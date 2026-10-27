@@ -56,6 +56,10 @@ label{display:block;font-size:14px;color:var(--muted);margin:10px 0 4px}
 .avatar.empty{display:flex;align-items:center;justify-content:center;color:var(--muted);font-family:Georgia,serif}
 .muted{color:var(--muted);font-size:14px}
 .search{margin:12px 0 4px}
+.paginacion{display:flex;flex-wrap:wrap;gap:8px 16px;align-items:center;justify-content:space-between;padding:10px 0 2px;font-size:14px;color:var(--muted)}
+.paginacion label{display:flex;gap:6px;align-items:center;margin:0}
+.paginacion select{width:auto;padding:4px 6px}
+.paginacion .pag-nav{display:flex;gap:8px;align-items:center}
 #bloqueo{position:fixed;inset:0;z-index:9999;background:rgba(30,25,20,.55);display:flex;align-items:center;justify-content:center}
 #bloqueo[hidden]{display:none}
 .bloqueo-caja{background:var(--card,#fff);color:inherit;border-radius:12px;padding:28px 36px;display:flex;flex-direction:column;align-items:center;gap:10px;text-align:center;max-width:420px;box-shadow:0 10px 40px rgba(0,0,0,.3)}
@@ -422,7 +426,7 @@ document.querySelectorAll('.vtn').forEach(e => e.textContent = nombreVentana());
 
 let db = normalize({});
 let loaded = false;
-let ui = { view: 'pacientes', patientId: null, tabP: 'pautas', planCasaId: null, fecha: new Date(), vista: 'mes', selDay: null, diaTab: 'puntuar', selected: new Set(), qP: '', qE: '', qB: '', qH: '', qEv: '', planActivo: {}, nivelB: '', res: { vista: 'mes', modo: 'lista', fecha: new Date(), desde: iso(firstOfMonth(new Date())), hasta: todayIso() } };
+let ui = { view: 'pacientes', patientId: null, tabP: 'pautas', planCasaId: null, fecha: new Date(), vista: 'mes', selDay: null, diaTab: 'puntuar', selected: new Set(), qP: '', qE: '', qB: '', qH: '', qEv: '', planActivo: {}, pag: {}, nivelB: '', res: { vista: 'mes', modo: 'lista', fecha: new Date(), desde: iso(firstOfMonth(new Date())), hasta: todayIso() } };
 let pendingPhoto;   // undefined = sin cambios; '' = quitar; dataURL = nueva
 let assignIds = [];
 
@@ -612,6 +616,53 @@ function setAjuste(clave, valor){
   db.ajustes[clave] = valor;
   save();
 }
+/* ---------- paginación de las listas ---------- */
+// Cada lista tiene su clave («pacientes», «hitos»…). Cuántos elementos se ven por página (10, 25, 50, 100 o todos) se
+// guarda en los ajustes («pagina.<clave>»); la página en la que se está, solo en memoria (ui.pag). Con 10 elementos
+// o menos no sale la botonera.
+const POR_PAGINA = [10, 25, 50, 100];
+function porPagina(clave){
+  const v = db.ajustes['pagina.' + clave];
+  return v === 'todos' ? 0 : POR_PAGINA.includes(+v) ? +v : 25;
+}
+// Los elementos de la página actual y la botonera para cambiar de página. «repintar» es la llamada que vuelve a pintar
+// la lista; «firma» resume sus filtros (búsqueda, paciente…): si cambia, se vuelve a la primera página.
+function paginar(clave, items, repintar = 'render()', firma = ''){
+  const pp = porPagina(clave), total = items.length;
+  const est = ui.pag[clave] || (ui.pag[clave] = { p: 1, firma });
+  if (est.firma !== firma){ est.p = 1; est.firma = firma; }
+  const paginas = pp ? Math.max(1, Math.ceil(total / pp)) : 1;
+  est.p = Math.min(Math.max(1, est.p), paginas);
+  const ini = pp ? (est.p - 1) * pp : 0, vis = pp ? items.slice(ini, ini + pp) : items;
+  if (total <= POR_PAGINA[0]) return { items: vis, html: '' };
+  const accion = js => `${js}; ${repintar}; subirALista('${clave}')`;
+  const html = `<div class="paginacion" id="pag-${clave}">
+    <label>Mostrar <select aria-label="Cuántos se muestran por página" onchange="${accion(`cambiarPorPagina('${clave}', this.value)`)}">${[...POR_PAGINA, 0].map(n =>
+      `<option value="${n || 'todos'}" ${n === pp ? 'selected' : ''}>${n || 'Todos'}</option>`).join('')}</select> por página</label>
+    <span>${pp ? `${ini + 1}–${ini + vis.length} de ${total}` : `${total} en total`}</span>
+    ${paginas > 1 ? `<span class="pag-nav"><button class="ghost small" ${est.p === 1 ? 'disabled' : ''} onclick="${accion(`irPagina('${clave}', -1)`)}">‹ Anterior</button>
+      <span>Página ${est.p} de ${paginas}</span>
+      <button class="ghost small" ${est.p === paginas ? 'disabled' : ''} onclick="${accion(`irPagina('${clave}', 1)`)}">Siguiente ›</button></span>` : ''}
+  </div>`;
+  return { items: vis, html };
+}
+function irPagina(clave, d){ const est = ui.pag[clave]; if (est) est.p += d; }
+// Al cambiar cuántos se ven, la página nueva es la que contiene el primero que se estaba viendo.
+function cambiarPorPagina(clave, v){
+  const antes = porPagina(clave), est = ui.pag[clave];
+  setAjuste('pagina.' + clave, v);
+  const ahora = porPagina(clave);
+  if (est) est.p = ahora && antes ? Math.floor((est.p - 1) * antes / ahora) + 1 : 1;
+}
+// Tras cambiar de página, si el principio de la lista ha quedado fuera de la vista, se sube hasta él.
+function subirALista(clave){
+  const pag = document.getElementById('pag-' + clave), lista = pag && pag.parentElement;
+  if (!lista) return;
+  const r = lista.getBoundingClientRect(), cab = parseFloat(getComputedStyle(document.documentElement).getPropertyValue('--hh')) || 0;
+  if (r.top < cab) window.scrollTo(0, scrollY + r.top - cab - 10);
+  const sc = pag.closest('.pautas-scroll, .mwrap > .card');
+  if (sc) sc.scrollTop = 0;
+}
 // Se llama tras cargar los datos (al arrancar, restaurar o cambiar de carpeta).
 function postCarga(){
   aplicarTema();
@@ -762,7 +813,7 @@ function sesionesDia(pid, day){
   if (!out.length || sesionesConPunt(pid, day).has('') || activePautas(pid, day).some(p => p.sesion && pautaEnSesion(p, '') && !out.some(x => pautaEnSesion(p, x.id)))) out.push({ id: '', cita: null });
   return out;
 }
-const etiquetaSesion = x => x.cita ? `Cita ${x.cita.hora}–${finCita(x.cita)}` : 'Sin cita';
+const etiquetaSesion = x => x.cita ? `Sesión ${x.cita.hora}–${finCita(x.cita)}` : 'Sin sesión';
 // Cuántos ejercicios tocan un día (contando cada sesión) y cuántos están puntuados. «q» filtra por el buscador.
 function cuentaDia(pid, day, q = ''){
   let total = 0, hechos = 0;
@@ -882,7 +933,7 @@ function render(){
   else if (ui.view === 'bloques'){ m.innerHTML = bloquesHTML(); refrescarBloques(); }
   else if (ui.view === 'paciente' && getP(ui.patientId)){ m.innerHTML = viewPaciente(); if (scrollY > 180) document.querySelector('.sticky-head').classList.add('compacta'); refrescarHitos(); refrescarEvaluaciones(); if (ui.tabP === 'informes') refrescarExistencia(); }
   else if (ui.view === 'plantilla' && plantillaActual()) m.innerHTML = viewPlantilla();
-  else if (ui.view === 'plantillas' || ui.view === 'plantilla'){ ui.view = 'plantillas'; m.innerHTML = viewPlantillas(); }
+  else if (ui.view === 'plantillas' || ui.view === 'plantilla'){ ui.view = 'plantillas'; m.innerHTML = viewPlantillas(); refrescarPlantillas(); }
   else if (ui.view === 'agenda'){ m.innerHTML = viewAgenda(); situarAgenda(); }
   else if (ui.view === 'ajustes'){ m.innerHTML = viewAjustes(); loadCopias(); loadRuta(); loadEstadoAuto(); loadNovedades(); if (ui.ajTab === 'agenda') pintarGoogleAjustes(); }
   else if (ui.view === 'ayuda'){ m.innerHTML = viewAyuda(); loadAyuda(); }
@@ -932,13 +983,14 @@ function refrescarPacientes(){
   const list = pacientesVisibles()
     .filter(p => { const txt = norm([p.nombre, p.apellidos, p.telefono, p.email].join(' ')); return q.every(x => txt.includes(x)); })
     .sort((a, b) => ui.ordenPac === 'sesion' ? ((ultima[b.id] || '').localeCompare(ultima[a.id] || '') || porNombre(a, b)) : porNombre(a, b));
-  const rows = list.map(p => {
+  const pag = paginar('pacientes', list, 'refrescarPacientes()', [ui.qP, ui.filtroPac, ui.ordenPac].join('|'));
+  const rows = pag.items.map(p => {
     const { total: nHoy, hechos } = cuentaDia(p.id, t);   // cada sesión de hoy cuenta aparte
     const datos = [
       nHoy ? `Hoy: <strong>${hechos} de ${nHoy}</strong> puntuados` : 'Hoy no tiene ejercicios',
       ultima[p.id] ? `Última sesión: ${esc(fmt(ultima[p.id]))}` : 'Sin sesiones puntuadas',
       hastaCasa[p.id] >= t ? `Plan en casa hasta el ${esc(fmt(hastaCasa[p.id]))}` : '',
-      proximas[p.id] ? `Próxima cita: ${esc(textoProximaCita(proximas[p.id]))}` : ''
+      proximas[p.id] ? `Próxima sesión: ${esc(textoProximaCita(proximas[p.id]))}` : ''
     ].filter(Boolean).join(' · ');
     return `
     <div class="item fila-pac">
@@ -949,12 +1001,12 @@ function refrescarPacientes(){
         <a href="#" onclick="openPatient('${p.id}');return false" style="font-weight:600;color:var(--ink)">${esc(p.apellidos)}, ${esc(p.nombre)}</a>${p.archivado ? ' <span class="nivel">Archivado</span>' : ''}
         <div class="muted">${datos}${p.telefono ? ' · ' + esc(p.telefono) : ''}</div>
       </div>
-      ${p.archivado ? '' : `<button class="ghost small" onclick="openCita(null, { patientId: '${p.id}' })" title="Dar una cita a ${esc(p.nombre)} ${esc(p.apellidos)}">Nueva cita</button>`}
+      ${p.archivado ? '' : `<button class="ghost small" onclick="openCita(null, { patientId: '${p.id}' })" title="Programar una sesión para ${esc(p.nombre)} ${esc(p.apellidos)}">Nueva sesión</button>`}
       ${nHoy && !p.archivado ? `<button class="${hechos < nHoy ? 'btn' : 'ghost'} small" onclick="puntuarHoy('${p.id}')">${hechos < nHoy ? 'Puntuar hoy' : 'Ver hoy'}</button>` : ''}
     </div>`; }).join('');
   const todosMarcados = list.length && list.every(p => ui.selected.has(p.id));
   const cab = list.length ? `<div class="item" style="padding:6px 0"><label style="display:flex;gap:12px;align-items:center;margin:0;color:var(--muted)"><input type="checkbox" style="width:auto" ${todosMarcados ? 'checked' : ''} onchange="marcarTodosPac(this.checked)"> ${todosMarcados ? 'Quitar la selección de' : 'Seleccionar'} los ${list.length} ${list.length === 1 ? 'paciente' : 'pacientes'} ${q.length ? 'de la búsqueda' : 'de la lista'}</label></div>` : '';
-  $('#listaPacientes').innerHTML = cab + rows || (!db.patients.length
+  $('#listaPacientes').innerHTML = rows ? cab + rows + pag.html : (!db.patients.length
     ? '<p class="muted">Aún no hay pacientes. Pulsa «Nuevo paciente» para empezar.</p>'
     : !pacientesVisibles().length
       ? `<p class="muted">${(ui.filtroPac || 'activos') === 'archivados' ? 'No hay pacientes archivados.' : 'No hay pacientes activos: todos están archivados.'}</p>`
@@ -1055,7 +1107,7 @@ async function delPacientes(ids){
     eval: db.evaluaciones.filter(x => set.has(x.patientId)).length,
     citas: db.citas.filter(x => set.has(x.patientId) && x.fecha >= todayIso()).length
   };
-  const partes = [[n.pautas, 'pautas'], [n.punt, 'puntuaciones'], [n.planes, 'planes en casa'], [n.hitos, 'hitos'], [n.eval, 'evaluaciones'], [n.citas, 'citas próximas']].filter(x => x[0]).map(x => `${x[0]} ${x[1]}`);
+  const partes = [[n.pautas, 'pautas'], [n.punt, 'puntuaciones'], [n.planes, 'planes en casa'], [n.hitos, 'hitos'], [n.eval, 'evaluaciones'], [n.citas, 'sesiones próximas']].filter(x => x[0]).map(x => `${x[0]} ${x[1]}`);
   const nombres = ps.slice(0, 8).map(p => `• ${p.apellidos}, ${p.nombre}`).join('\n') + (ps.length > 8 ? `\n• … y ${ps.length - 8} más` : '');
   const titulo = ps.length === 1 ? `¿Eliminar a ${ps[0].nombre} ${ps[0].apellidos}?` : `¿Eliminar a estos ${ps.length} pacientes?\n\n${nombres}`;
   if (!await preguntar(`${titulo}\n\n${partes.length ? 'Se borrarán también: ' + partes.join(', ') + '.' : (ps.length === 1 ? 'No tiene datos asociados.' : 'No tienen datos asociados.')}`, { boton: ps.length === 1 ? 'Eliminar paciente' : 'Eliminar ' + ps.length + ' pacientes', peligro: true })) return;
@@ -1100,7 +1152,7 @@ function savePatient(id){
 
 /* ---------- vista de paciente ---------- */
 // Pestañas del paciente. «Progreso» es un submenú (Evaluación inicial e Hitos); el Resumen es una subpestaña de Calendario.
-const TABS_PAC = [['pautas', 'Pautas'], ['calendario', 'Calendario'], ['casa', 'Plan en casa'], ['citas', 'Citas'],
+const TABS_PAC = [['pautas', 'Pautas'], ['calendario', 'Calendario'], ['casa', 'Plan en casa'], ['citas', 'Sesiones'],
   ['progreso', 'Progreso', [['evaluaciones', 'Evaluación inicial'], ['hitos', 'Hitos']]], ['informes', 'Informes']];
 const CLAVES_TAB_PAC = TABS_PAC.flatMap(([k, , sub]) => sub ? sub.map(x => x[0]) : [k]);
 function irTab(k){
@@ -1135,8 +1187,9 @@ function listaPautasHTML(p){
   const filtra = l => l.map(([k, xs], i) => [k, xs, i]).filter(([k, xs]) => !q.trim() || coincideQ(q, texto(xs)));
   const fa = filtra(activas), ft = filtra(terminadas);
   if (!fa.length && !ft.length) return `<p class="muted">${ordenados.length ? 'Ninguna pauta coincide con la búsqueda.' : 'Sin pautas asignadas todavía.'}</p>`;
-  return (fa.length ? fa.map(([k, xs, i]) => filaPauta(k, xs, i, activas.length)).join('') : '<p class="muted">No hay pautas en curso.</p>')
-    + (ft.length ? `<details class="sec pautas-terminadas" ${q.trim() ? 'open' : ''}><summary>Pautas terminadas (${ft.length})</summary>${ft.map(([k, xs, i]) => filaPauta(k, xs, i, terminadas.length, false)).join('')}</details>` : '');
+  const firma = p.id + '|' + q, pa = paginar('pautas', fa, 'refrescarPautas()', firma), pt = paginar('pautasTerminadas', ft, 'refrescarPautas()', firma);
+  return (fa.length ? pa.items.map(([k, xs, i]) => filaPauta(k, xs, i, activas.length)).join('') + pa.html : '<p class="muted">No hay pautas en curso.</p>')
+    + (ft.length ? `<details class="sec pautas-terminadas" ${q.trim() || ui.verTerminadas ? 'open' : ''} ontoggle="ui.verTerminadas = this.open"><summary>Pautas terminadas (${ft.length})</summary>${pt.items.map(([k, xs, i]) => filaPauta(k, xs, i, terminadas.length, false)).join('')}${pt.html}</details>` : '');
 }
 function panelPautas(p){
   const { pautas, grupos } = gruposPautas(p);
@@ -1247,7 +1300,7 @@ function viewPaciente(){
             <div>
               <h2 style="margin:0">${esc(p.nombre)} ${esc(p.apellidos)}</h2>
               <div id="diasSemana" class="det" style="font-weight:600">${esc(diasPorSemanaHTML(p))}</div>
-              ${(c => c ? `<div class="det"><button class="enlace" style="font-weight:400" onclick="openCita('${c.id}')" title="Ver la cita">Próxima cita: ${esc(textoProximaCita(c))}</button></div>` : '')(proximaCita(p.id))}
+              ${(c => c ? `<div class="det"><button class="enlace" style="font-weight:400" onclick="openCita('${c.id}')" title="Ver la sesión">Próxima sesión: ${esc(textoProximaCita(c))}</button></div>` : '')(proximaCita(p.id))}
               <div class="muted det">Primera visita: ${fmt(p.fechaAlta)}${p.telefono ? ' · ' + esc(p.telefono) : ''}${p.email ? ' · ' + esc(p.email) : ''}</div>
               ${p.observaciones ? `<div class="muted det" style="white-space:pre-wrap">${esc(p.observaciones)}</div>` : ''}
             </div>
@@ -1325,7 +1378,7 @@ function celdaMes(p, s, out, etiqueta){
     <div class="mes-info ${cd.hechos < cd.total ? 'pend' : 'muted'}">${cd.hechos} de ${cd.total} puntuados</div>`;
   const cs = citasDia(p.id, s);
   const tip = (items.length ? `${fmtLong(s)}: ${items.length} ejercicios${futuro ? '' : `, ${cd.hechos} de ${cd.total} puntuados${media !== null ? ', media ' + fmtPunt(Math.round(media * 10) / 10) : ''}`}` : fmtLong(s))
-    + (cs.length ? ` · ${cs.length === 1 ? 'cita' : cs.length + ' citas'}: ${cs.map(c => c.hora).join(', ')}` : '');
+    + (cs.length ? ` · ${cs.length === 1 ? 'sesión' : cs.length + ' sesiones'}: ${cs.map(c => c.hora).join(', ')}` : '');
   return `<div class="day mes ${out ? 'out' : ''} ${s === t ? 'today' : ''}" title="${esc(tip)}"
             role="button" tabindex="0" onclick="openDay('${s}')" onkeydown="if(event.key==='Enter')openDay('${s}')">
             <div class="n"><span>${etiqueta} ${marcaCitasDia(p.id, s)}</span></div>${cuerpo}</div>`;
@@ -1372,7 +1425,7 @@ function vistaDiaHTML(p){
       <button class="btn small" onclick="openDay('${s}', 'anadir', '${x.id}')">Añadir ejercicios</button>
     </div>
     ${filasDia(p, s, ui.qCal, x.id)}</div>`;
-  }).join('') + (sesiones.some(x => x.cita) ? '' : `<p class="muted">Sin cita este día.</p>`);
+  }).join('') + (sesiones.some(x => x.cita) ? '' : `<p class="muted">Sin sesión este día.</p>`);
 }
 // Filas de un día con sus repeticiones. Cada repetición tiene su propia puntuación de 0 a 3.
 // Una fila compacta por ejercicio: nombre · repeticiones (0 a 3) · acciones. Cada repetición es una «fila de
@@ -1885,7 +1938,7 @@ function hayCitasPaciente(pid){ return db.citas.some(c => c.patientId === pid) |
 function opcionesSesionesPanel(pid, desde, hasta){
   const porRaiz = new Map();
   db.seriesCitas.filter(x => x.patientId === pid && (!x.hasta || x.hasta >= desde) && (!hasta || x.desde <= hasta)).sort((a, b) => a.desde.localeCompare(b.desde)).forEach(x => porRaiz.set(raizSerie(x), x));
-  const series = [...porRaiz].map(([r, x]) => ({ v: 's:' + r, t: `${textoDiasSerie(x.dias).replace(/^./, m => m.toUpperCase())}, ${x.hora}`, sub: 'Todas las citas de la serie', color: x.color }));
+  const series = [...porRaiz].map(([r, x]) => ({ v: 's:' + r, t: `${textoDiasSerie(x.dias).replace(/^./, m => m.toUpperCase())}, ${x.hora}`, sub: 'Todas las sesiones de la serie', color: x.color }));
   const sueltas = db.citas.filter(c => c.patientId === pid && !c.serieId && c.fecha >= desde && (!hasta || c.fecha <= hasta)).sort(ordenCita);
   return { series, citas: sueltas.slice(0, 60).map(c => ({ v: 'c:' + c.id, t: `${fechaCita(c.fecha)} · ${c.hora}–${finCita(c)}`, sub: c.nota || '', color: c.color })), mas: Math.max(0, sueltas.length - 60) };
 }
@@ -1895,7 +1948,7 @@ function panelSesionesHTML(pid, actual, desde, hasta){
   return `<div class="ses-panel" id="sesPanel">
     <div class="ses-cab"><strong>En qué sesión</strong>${ayudaIco('sesiones')}</div>
     <label class="ses-todas"><input type="checkbox" id="sesTodas" ${sesPanel.todas ? 'checked' : ''} onchange="sesPanelTodas(this.checked)">
-      <span><strong>Todas</strong><span class="muted">Todas sus citas (también las que se den más adelante) y los días sin cita</span></span></label>
+      <span><strong>Todas</strong><span class="muted">Todas sus sesiones (también las que se programen más adelante) y los días sin sesión</span></span></label>
     <div class="ses-lista" id="sesLista">${listaSesionesHTML(desde, hasta)}</div>
     <div class="row" style="gap:6px;margin-top:8px"><button type="button" class="ghost small" onclick="sesPanelTodas(true)">Todas</button><button type="button" class="ghost small" onclick="sesPanelNinguna()">Ninguna</button></div>
     <p class="muted ses-resumen" id="sesResumen" aria-live="polite">${resumenSesionesPanel()}</p>
@@ -1905,18 +1958,18 @@ function listaSesionesHTML(desde, hasta){
   const { pid, marcadas, todas } = sesPanel;
   const o = opcionesSesionesPanel(pid, desde, hasta);
   // Lo marcado que no sale en el periodo (por ejemplo, una cita pasada) se sigue mostrando, para no perderlo.
-  const fuera = [...marcadas].filter(t => !o.series.some(x => x.v === t) && !o.citas.some(x => x.v === t)).map(t => ({ v: t, t: textoSesionPauta(t).replace(/^solo en (sus citas de |la cita del )?/, '').replace(/^./, m => m.toUpperCase()), sub: 'Fuera de las fechas elegidas' }));
+  const fuera = [...marcadas].filter(t => !o.series.some(x => x.v === t) && !o.citas.some(x => x.v === t)).map(t => ({ v: t, t: textoSesionPauta(t).replace(/^solo en (sus sesiones de |la sesión del )?/, '').replace(/^./, m => m.toUpperCase()), sub: 'Fuera de las fechas elegidas' }));
   const item = x => `<label class="ses-item"><input type="checkbox" class="sesCheck" value="${esc(x.v)}" ${todas || marcadas.has(x.v) ? 'checked' : ''} ${todas ? 'disabled' : ''} onchange="sesPanelMarca(this)">
       <i class="ses-punto" style="${estiloColorCita(x.color || '')}"></i><span>${esc(x.t)}${x.sub ? `<span class="muted">${esc(x.sub)}</span>` : ''}</span></label>`;
   const grupo = (t, xs) => xs.length ? `<div class="gTitulo">${t}</div>${xs.map(item).join('')}` : '';
-  const html = grupo('Se repiten cada semana', o.series) + grupo('Citas', o.citas) + grupo('Otras', fuera);
-  return (html || '<p class="muted" style="margin:6px 0">No tiene citas en esas fechas.</p>')
-    + (o.mas ? `<p class="muted" style="margin:6px 0">… y ${plural(o.mas, 'cita más', 'citas más')}: para esas, añade los ejercicios desde el día.</p>` : '');
+  const html = grupo('Se repiten cada semana', o.series) + grupo('Sesiones', o.citas) + grupo('Otras', fuera);
+  return (html || '<p class="muted" style="margin:6px 0">No tiene sesiones en esas fechas.</p>')
+    + (o.mas ? `<p class="muted" style="margin:6px 0">… y ${plural(o.mas, 'sesión más', 'sesiones más')}: para esas, añade los ejercicios desde el día.</p>` : '');
 }
 function resumenSesionesPanel(){
   const { todas, marcadas, excepto } = sesPanel;
   if (todas) return excepto ? `Tocan en todas las sesiones (${textoSesionPauta(excepto).replace(/^en todas las sesiones /, '')}).` : 'Tocan en todas las sesiones de cada día.';
-  if (!marcadas.size) return 'Ninguna: los ejercicios quedan sin sesión (se puntúan aparte de las citas).';
+  if (!marcadas.size) return 'Ninguna: los ejercicios quedan sin sesión (se puntúan aparte de las sesiones).';
   return marcadas.size === 1 ? 'Solo en la sesión marcada.' : `Solo en las ${marcadas.size} sesiones marcadas.`;
 }
 function refrescarPanelSesiones(desde, hasta){
@@ -1941,10 +1994,10 @@ function textoSesionPauta(v){
   if (!v) return '';
   if (v === '-') return 'sin sesión';
   if (v[0] === '!') return 'en todas las sesiones menos ' + v.slice(1).split(',').map(t => textoSesionPauta(t).replace(/^solo /, '')).join(', ');
-  if (v.startsWith('c:')){ const c = getCita(v.slice(2)); return c ? `solo en la cita del ${fechaCita(c.fecha)} a las ${c.hora}` : 'solo en una cita que ya no existe'; }
+  if (v.startsWith('c:')){ const c = getCita(v.slice(2)); return c ? `solo en la sesión del ${fechaCita(c.fecha)} a las ${c.hora}` : 'solo en una sesión que ya no existe'; }
   if (v.startsWith('s:')){
     const x = db.seriesCitas.filter(y => raizSerie(y) === v.slice(2)).sort((a, b) => b.desde.localeCompare(a.desde))[0];
-    return x ? `solo en sus citas de ${textoDiasSerie(x.dias)} a las ${x.hora}` : 'solo en una serie de citas que ya no existe';
+    return x ? `solo en sus sesiones de ${textoDiasSerie(x.dias)} a las ${x.hora}` : 'solo en una serie de sesiones que ya no existe';
   }
   return '';
 }
@@ -2107,8 +2160,8 @@ function elegirSesion(ses){ ui.selSes = ses; ui.diaFoco = null; ui.diaTab = exer
 // Botones de las sesiones del día (solo si hay alguna cita o más de una sesión).
 function sesionesDiaHTML(p, s, actual){
   const sesiones = sesionesDia(p.id, s);
-  const otra = `<button class="ghost small" onclick="otraCitaDia()" title="Dar una cita a ${esc(p.nombre)} este día: será otra sesión, con sus propias puntuaciones">+ Cita</button>`;
-  if (sesiones.length === 1 && !sesiones[0].cita) return `<p class="muted" style="margin:0 0 10px">Sin cita este día. ${otra}</p>`;
+  const otra = `<button class="ghost small" onclick="otraCitaDia()" title="Programar una sesión para ${esc(p.nombre)} este día: será otra sesión, con sus propias puntuaciones">+ Sesión</button>`;
+  if (sesiones.length === 1 && !sesiones[0].cita) return `<p class="muted" style="margin:0 0 10px">Sin sesión este día. ${otra}</p>`;
   return `<div class="sesiones-dia" role="tablist" aria-label="Sesiones del día">${sesiones.map(x => {
     const its = exercisesSesion(p.id, s, x.id), h = its.filter(it => puntuadoEn(p.id, s, it.exercise.id, x.id)).length;
     return `<button role="tab" aria-selected="${x.id === actual}" class="ses-btn${x.id === actual ? ' on' : ''}${x.cita && x.cita.color ? ' con-color' : ''}" style="${x.cita ? estiloColorCita(x.cita.color) : ''}" onclick="elegirSesion('${x.id}')">
@@ -2533,7 +2586,8 @@ function refrescarBloques(){
     // Primero por nivel (los que no tienen nivel, al final) y después por nombre.
     .sort((a, b) => (!a.nivel - !b.nivel) || (a.nivel || '').localeCompare(b.nivel || '', 'es') || a.nombre.localeCompare(b.nombre, 'es', { numeric: true }));
   const detalle = db.ajustes.bloquesDetalle !== '0';
-  const filas = lista.map(b => `
+  const pag = paginar('bloques', lista, 'refrescarBloques()', ui.qB + '|' + ui.nivelB);
+  const filas = pag.items.map(b => `
     <div class="item" style="align-items:flex-start">
       <div style="flex:1;min-width:0"><strong>${esc(b.nombre)}</strong> ${b.nivel ? `<span class="nivel">Nivel ${esc(b.nivel)}</span>` : ''}
         <div class="muted">${b.ejercicios.length} ejercicio${b.ejercicios.length === 1 ? '' : 's'}</div>
@@ -2542,7 +2596,7 @@ function refrescarBloques(){
       <button class="danger small" onclick="delBloque('${b.id}')">Eliminar</button>
     </div>`).join('');
   const cuenta = db.bloques.length && lista.length !== db.bloques.length ? `<p class="muted">Mostrando ${lista.length} de ${db.bloques.length} bloques.</p>` : '';
-  el.innerHTML = cuenta + (filas || (db.bloques.length
+  el.innerHTML = cuenta + (filas ? filas + pag.html : (db.bloques.length
     ? '<p class="muted">Ningún bloque coincide con la búsqueda.</p>'
     : '<p class="muted">Todavía no hay bloques.</p>'));
 }
@@ -2741,8 +2795,9 @@ function badgeBloques(eid){
 function refrescarEjercicios(){
   const q = norm(ui.qE).split(/\s+/).filter(Boolean);
   const list = [...biblioteca()].filter(e => q.every(x => norm(e.nombre).includes(x))).sort(byName);
+  const pag = paginar('ejercicios', list, 'refrescarEjercicios()', ui.qE);
   // Las acciones de cada ejercicio van en un menú «⋯» para no llenar la lista de botones.
-  $('#listaEjercicios').innerHTML = list.map(e => `
+  $('#listaEjercicios').innerHTML = (pag.items.map(e => `
     <div class="item">
       <div class="ej-nom">${esc(e.nombre)} ${badgeBloques(e.id)}</div>
       <div class="menu-sub menu-claro menu-fila">
@@ -2753,7 +2808,7 @@ function refrescarEjercicios(){
           <button class="peligro" onclick="cerrarSubmenu(); delEj('${e.id}')">Eliminar…</button>
         </div>
       </div>
-    </div>`).join('') || (biblioteca().length
+    </div>`).join('') + pag.html) || (biblioteca().length
       ? '<p class="muted">Ningún ejercicio coincide con la búsqueda.</p>'
       : '<p class="muted">Todavía no hay ejercicios. Pulsa «Nuevo ejercicio…» para añadir el primero.</p>');
 }
@@ -2853,7 +2908,7 @@ function estiloColorCita(c){
   return `--cc:${h};--ct:${luz > 0.62 ? '#1d1d1d' : '#fff'};`;
 }
 function selectorColorHTML(id, actual, cambio){
-  return `<div class="colores-cita" id="${id}" role="radiogroup" aria-label="Color de la cita">${COLORES_CITA.map(([v, t, h]) =>
+  return `<div class="colores-cita" id="${id}" role="radiogroup" aria-label="Color de la sesión">${COLORES_CITA.map(([v, t, h]) =>
     `<button type="button" role="radio" aria-checked="${v === (actual || '')}" data-color="${v}" title="${t}" aria-label="${t}" class="${v === (actual || '') ? 'on' : ''}${v ? '' : ' normal'}"
       style="${h ? '--sw:' + h : ''}" onclick="marcarColor('${id}', '${v}')${cambio ? '; ' + cambio : ''}"></button>`).join('')}</div>`;
 }
@@ -2939,7 +2994,7 @@ function viewAgenda(){
       <div class="row" style="justify-content:space-between;align-items:center">
         <h2 style="margin:0">Agenda${ayudaIco('agenda')}</h2>
         <span class="row"><span id="estadoGoogle" class="estado-google">${estadoGoogleHTML()}</span>
-        <button class="btn" onclick="openCita()">Nueva cita</button></span>
+        <button class="btn" onclick="openCita()">Nueva sesión</button></span>
       </div>
       <div class="row" style="justify-content:space-between;margin:12px 0 6px">
         <div class="row">
@@ -2956,7 +3011,7 @@ function viewAgenda(){
       </div>
       <h3 style="margin:6px 0 10px">${esc(tituloAgenda())}</h3>
       <div id="agendaCuerpo">${v === 'mes' ? agendaMesHTML() : agendaCuerpoHTML()}</div>
-      <p class="muted">${v === 'mes' ? 'Pulsa un día para dar una cita ese día, su número para verlo en detalle, o una cita para cambiarla o anularla.' : 'Pulsa un hueco libre para dar una cita a esa hora, o una cita para cambiarla o anularla.'} ${gSync.ocupados.length ? 'Las zonas rayadas están ocupadas en tu Google Calendar.' : ''}</p>
+      <p class="muted">${v === 'mes' ? 'Pulsa un día para programar una sesión ese día, su número para verlo en detalle, o una sesión para cambiarla o anularla.' : 'Pulsa un hueco libre para programar una sesión a esa hora, o una sesión para cambiarla o anularla.'} ${gSync.ocupados.length ? 'Las zonas rayadas están ocupadas en tu Google Calendar.' : ''}</p>
     </div>`;
 }
 function refrescarAgenda(){ const c = $('#agendaCuerpo'); if (c){ c.innerHTML = ui.agVista === 'mes' ? agendaMesHTML() : agendaCuerpoHTML(); situarAgenda(); } }
@@ -3047,7 +3102,7 @@ function agendaCuerpoHTML(){
   }).join('');
   const cab = dias.map(f => {
     const d = fromIso(f), n = db.citas.filter(c => c.fecha === f).length;
-    return `<div class="ag-dia${f === hoy ? ' hoy' : ''}"><button class="enlace" onclick="verDiaAgenda('${f}')" title="Ver solo este día">${d.toLocaleDateString('es-ES', { weekday: 'short' })} <strong>${d.getDate()}</strong></button>${n ? `<span class="muted"> · ${plural(n, 'cita', 'citas')}</span>` : ''}</div>`;
+    return `<div class="ag-dia${f === hoy ? ' hoy' : ''}"><button class="enlace" onclick="verDiaAgenda('${f}')" title="Ver solo este día">${d.toLocaleDateString('es-ES', { weekday: 'short' })} <strong>${d.getDate()}</strong></button>${n ? `<span class="muted"> · ${plural(n, 'sesión', 'sesiones')}</span>` : ''}</div>`;
   }).join('');
   return `<div class="ag-scroll" onscroll="ui.agScroll = this.scrollTop"><div class="ag-grid${ui.agVista === 'dia' ? ' ag-un-dia' : ''}" style="--px:${PX_MIN}px;--dias:${dias.length}">
     <div class="ag-cab"><div></div>${cab}</div>
@@ -3087,8 +3142,8 @@ function openCita(id, pre = {}){
   const color = c ? c.color || '' : (getP(pid) || {}).colorCita || '';
   const pacs = db.patients.filter(p => !p.archivado || p.id === pid).sort((a, b) => nombrePac(a).localeCompare(nombrePac(b), 'es'));
   const p = c && getP(c.patientId);
-  showModal(`<h3>${c ? 'Cita' : 'Nueva cita'}${ayudaIco('cita')}</h3>
-    ${s ? `<p class="banner-plan" style="display:block;margin-top:0">↻ ${esc(textoSerie(s))}, ${esc(periodoSerie(s))}.${c.modificada ? ' Esta cita se cambió aparte de las demás.' : ''}</p>` : ''}
+  showModal(`<h3>${c ? 'Sesión' : 'Nueva sesión'}${ayudaIco('cita')}</h3>
+    ${s ? `<p class="banner-plan" style="display:block;margin-top:0">↻ ${esc(textoSerie(s))}, ${esc(periodoSerie(s))}.${c.modificada ? ' Esta sesión se cambió aparte de las demás.' : ''}</p>` : ''}
     <div class="gridf">
       <div style="grid-column:1/-1"><label for="ctPac">Paciente</label>
         <select id="ctPac" onchange="pacienteCitaCambiado()"><option value="">Elige un paciente…</option>${pacs.map(x => `<option value="${x.id}" ${x.id === pid ? 'selected' : ''}>${esc(nombrePac(x))}${x.archivado ? ' (archivado)' : ''}</option>`).join('')}</select></div>
@@ -3106,10 +3161,10 @@ function openCita(id, pre = {}){
     <label style="margin-top:10px">Color</label>${selectorColorHTML('ctColor', color, 'citaEd.colorTocado = true')}
     <div id="ctSolape" role="status" aria-live="polite"></div>
     <p class="row" style="justify-content:space-between;margin-top:16px">
-      <span class="row">${c ? `<button class="danger" onclick="anularCita('${c.id}')">Anular cita…</button>
+      <span class="row">${c ? `<button class="danger" onclick="anularCita('${c.id}')">Anular sesión…</button>
         ${p ? `<button class="ghost" onclick="irFichaCita('${p.id}')">Ver ficha</button>` : ''}` : ''}</span>
       <span class="row"><button class="ghost" onclick="closeModal()">Cancelar</button>
-      <button class="btn" onclick="guardarCita()">${c ? 'Guardar' : 'Dar cita'}</button></span>
+      <button class="btn" onclick="guardarCita()">${c ? 'Guardar' : 'Programar sesión'}</button></span>
     </p>`);
   // En los paneles de días de la serie, que la casilla pase al día que se elija como primer día.
   document.querySelectorAll('#ctDias input').forEach(x => x.addEventListener('change', revisarSolapes));
@@ -3147,32 +3202,32 @@ function revisarSolapes(){
   const el = $('#ctSolape'); if (!el) return;
   const cs = conflictosForm(), serie = $('#ctRep') && $('#ctRep').checked;
   const fechas = serie ? fechasSerieForm() : [];
-  el.innerHTML = (serie && fechas.length ? `<p class="muted" style="margin:8px 0 0">Se darán ${plural(fechas.length, 'cita', 'citas')}${$('#ctSinFin').checked ? ' (las de los próximos 6 meses; después se van añadiendo solas)' : ''}.</p>` : '')
+  el.innerHTML = (serie && fechas.length ? `<p class="muted" style="margin:8px 0 0">Se programarán ${plural(fechas.length, 'sesión', 'sesiones')}${$('#ctSinFin').checked ? ' (las de los próximos 6 meses; después se van añadiendo solas)' : ''}.</p>` : '')
     + (!cs.length ? '' : `<div class="aviso-import" style="margin-top:8px"><strong>${serie ? `Se solapa en ${plural(cs.length, 'día', 'días')}` : 'Ese hueco no está libre'}:</strong>
       <ul style="margin:4px 0 0;padding-left:20px">${cs.slice(0, 4).map(([d, x]) => `<li>${serie ? esc(fechaCita(d)) + ': ' : ''}${textoSolapes(x).map(esc).join(' · ')}</li>`).join('')}${cs.length > 4 ? `<li>… y ${cs.length - 4} más</li>` : ''}</ul></div>`);
 }
 async function guardarCita(){
   const pid = $('#ctPac').value, fecha = $('#ctFecha').value, hora = $('#ctHora').value, duracion = Number($('#ctDur').value), nota = $('#ctNota').value.trim(), color = leerColor('ctColor');
   if (!pid){ avisar('Elige el paciente.'); return; }
-  if (!fecha || !/^\d\d:\d\d$/.test(hora)){ avisar('Indica el día y la hora de la cita.'); return; }
+  if (!fecha || !/^\d\d:\d\d$/.test(hora)){ avisar('Indica el día y la hora de la sesión.'); return; }
   const cs = conflictosForm();
   const id = citaEd && citaEd.id, c = id ? getCita(id) : null;
   if (id && !c){ closeModal(); return; }
   if (c && c.patientId === pid && c.fecha === fecha && c.hora === hora && c.duracion === duracion && (c.nota || '') === nota && (c.color || '') === color){ closeModal(); return; }
   if (cs.length && !await preguntar(cs.length === 1 && !($('#ctRep') && $('#ctRep').checked)
-      ? `Ese hueco no está libre:\n\n${textoSolapes(cs[0][1]).map(t => '• ' + t).join('\n')}\n\n¿Dar la cita igualmente?`
-      : `La serie se solapa con otras citas u horas ocupadas en ${plural(cs.length, 'día', 'días')}.\n\n¿Darla igualmente?`, { boton: c ? 'Guardar igualmente' : 'Dar la cita igualmente' })) return;
+      ? `Ese hueco no está libre:\n\n${textoSolapes(cs[0][1]).map(t => '• ' + t).join('\n')}\n\n¿Programar la sesión igualmente?`
+      : `La serie se solapa con otras sesiones u horas ocupadas en ${plural(cs.length, 'día', 'días')}.\n\n¿Programarla igualmente?`, { boton: c ? 'Guardar igualmente' : 'Programar la sesión igualmente' })) return;
   if (!c){
     if ($('#ctRep').checked){
       let dias = leerDias('ctDias');
       if (dias === null){ avisar('Marca al menos un día de la semana.'); return; }
       if (dias === '') dias = '1234567';
       const sinFin = $('#ctSinFin').checked, hasta = sinFin ? '' : $('#ctHasta').value;
-      if (!sinFin && (!hasta || hasta < fecha)){ avisar('La fecha «Hasta el» tiene que ser igual o posterior al día de la primera cita.'); return; }
+      if (!sinFin && (!hasta || hasta < fecha)){ avisar('La fecha «Hasta el» tiene que ser igual o posterior al día de la primera sesión.'); return; }
       const s = { id: uid(), patientId: pid, dias, hora, duracion, desde: fecha, hasta, nota, excluidas: [], creada: todayIso(), color };
       db.seriesCitas.push(s);
       const n = generarSerie(db, s);
-      if (!n){ db.seriesCitas.pop(); avisar('Con esos días y fechas no sale ninguna cita.'); return; }
+      if (!n){ db.seriesCitas.pop(); avisar('Con esos días y fechas no sale ninguna sesión.'); return; }
       if (!await resolverSinSesion(db.citas.filter(x => x.serieId === s.id), s)){
         db.citas = db.citas.filter(x => x.serieId !== s.id); db.seriesCitas = db.seriesCitas.filter(x => x !== s); return;
       }
@@ -3191,7 +3246,7 @@ async function guardarCita(){
   const s = c.serieId && getSerie(c.serieId);
   let op = 'una';
   if (s){
-    op = await elegir('Esta cita se repite cada semana. ¿Qué quieres cambiar?', [['una', 'Solo esta cita'], ['siguientes', 'Esta y las siguientes']]);
+    op = await elegir('Esta sesión se repite cada semana. ¿Qué quieres cambiar?', [['una', 'Solo esta sesión'], ['siguientes', 'Esta y las siguientes']]);
     if (!op) return;
   }
   const antes = instantanea();
@@ -3206,7 +3261,7 @@ async function guardarCita(){
     cambiarSerieDesde(s, fecha < c.fechaSerie ? fecha : c.fechaSerie, datos, c);
   } else Object.assign(c, { patientId: pid, fecha, hora, duracion, nota, color }, c.serieId ? { modificada: true } : {});
   closeModal(); render();
-  if (op === 'siguientes') ofrecerDeshacer(antes, 'Citas de la serie cambiadas');
+  if (op === 'siguientes') ofrecerDeshacer(antes, 'Sesiones de la serie cambiadas');
 }
 // Cambia una serie a partir de un día: las citas desde ese día se sustituyen por las de la serie con los datos
 // nuevos (las que se cambiaron aparte se respetan, salvo la que se está editando, que se vuelve a crear).
@@ -3255,10 +3310,10 @@ function textoEjerciciosCitas(citas){
     punt += its.filter(it => puntuadoEn(c.patientId, c.fecha, it.exercise.id, c.id)).length;
   }
   if (!conEj) return '';
-  const cuantas = citas.length === 1 ? `Esta cita tiene ${plural(ej, 'ejercicio', 'ejercicios')}` : `${plural(conEj, 'cita tiene', 'citas tienen')} ejercicios`;
+  const cuantas = citas.length === 1 ? `Esta sesión tiene ${plural(ej, 'ejercicio', 'ejercicios')}` : `${plural(conEj, 'sesión tiene', 'sesiones tienen')} ejercicios`;
   return punt
-    ? `⚠ ${cuantas} y ${plural(punt, 'ejercicio puntuado', 'ejercicios puntuados')}. Las puntuaciones no se borran: pasan a «Sin cita» de ese día, con sus ejercicios.`
-    : `${cuantas} (sin puntuar). Los que eran solo de ${citas.length === 1 ? 'esta cita' : 'esas citas'} se quitan; los demás siguen en el día.`;
+    ? `⚠ ${cuantas} y ${plural(punt, 'ejercicio puntuado', 'ejercicios puntuados')}. Las puntuaciones no se borran: pasan a «Sin sesión» de ese día, con sus ejercicios.`
+    : `${cuantas} (sin puntuar). Los que eran solo de ${citas.length === 1 ? 'esta sesión' : 'esas sesiones'} se quitan; los demás siguen en el día.`;
 }
 function quitarCita(c){
   conservarSesionCita(c);
@@ -3283,19 +3338,19 @@ async function anularCita(id){
   const c = getCita(id); if (!c) return;
   const p = getP(c.patientId), s = c.serieId && getSerie(c.serieId);
   const ej = textoEjerciciosCitas([c]);
-  const texto = `¿Anular la cita de ${p ? p.nombre + ' ' + p.apellidos : 'este paciente'} del ${fmtLong(c.fecha)} a las ${c.hora}?${ej ? '\n\n' + ej : ''}`;
+  const texto = `¿Anular la sesión de ${p ? p.nombre + ' ' + p.apellidos : 'este paciente'} del ${fmtLong(c.fecha)} a las ${c.hora}?${ej ? '\n\n' + ej : ''}`;
   let op = 'una';
   if (s){
     const desde = c.fechaSerie < c.fecha ? c.fechaSerie : c.fecha;
     const ejSig = textoEjerciciosCitas(db.citas.filter(x => x.serieId === s.id && (x.fechaSerie >= desde || x.fecha >= desde) && x !== c));
-    op = await elegir(texto + '\n\nEsta cita se repite cada semana.' + (ejSig ? ' Si anulas también las siguientes: ' + ejSig.replace(/^⚠ /, '') : ''), [['una', 'Anular solo esta'], ['siguientes', 'Anular esta y las siguientes']], { peligro: true });
+    op = await elegir(texto + '\n\nEsta sesión se repite cada semana.' + (ejSig ? ' Si anulas también las siguientes: ' + ejSig.replace(/^⚠ /, '') : ''), [['una', 'Anular solo esta'], ['siguientes', 'Anular esta y las siguientes']], { peligro: true });
     if (!op) return;
-  } else if (!await preguntar(texto, { boton: 'Anular cita', peligro: true })) return;
+  } else if (!await preguntar(texto, { boton: 'Anular sesión', peligro: true })) return;
   const antes = instantanea();
   if (op === 'una') quitarCita(c); else terminarSerie(s, c.fechaSerie < c.fecha ? c.fechaSerie : c.fecha);
   if ($('#ctFecha')) closeModal();   // desde la ventana de la cita; desde la lista no hay ventana abierta
   render(); if ($('#tabsDia')) refrescarModalDia();
-  ofrecerDeshacer(antes, op === 'una' ? 'Cita anulada' : 'Citas anuladas');
+  ofrecerDeshacer(antes, op === 'una' ? 'Sesión anulada' : 'Sesiones anuladas');
 }
 function irFichaCita(pid){ closeModal(); prepararPaciente(pid); ui.tabP = 'citas'; render(); window.scrollTo(0, 0); }
 // Citas de un paciente un día (para marcarlas en su calendario de ejercicios).
@@ -3305,7 +3360,7 @@ function marcaCitasDia(pid, s){
   const cs = citasDia(pid, s);
   if (!cs.length) return '';
   const horas = cs.map(c => `${c.hora}–${finCita(c)}`).join(' · ');
-  const t = cs.length === 1 ? `Cita: ${horas}` : `${cs.length} citas: ${horas}`;
+  const t = cs.length === 1 ? `Sesión: ${horas}` : `${cs.length} sesiones: ${horas}`;
   return `<span class="marca-cita" title="${esc(t)}" aria-label="${esc(t)}">${cs.slice(0, 3).map(c => `<i style="${estiloColorCita(c.color)}"></i>`).join('')}</span>`;
 }
 function puntuarCita(pid, fecha, citaId){
@@ -3328,13 +3383,13 @@ async function resolverSinSesion(citas, serie){
       ? `El ${fmtLong(con[0].fecha)} ya tiene ${plural(nEj, 'ejercicio', 'ejercicios')} sin sesión${puntuados ? ', con puntuaciones' : ''}.`
       : `${plural(con.length, 'día', 'días')} de la serie ya ${con.length === 1 ? 'tiene' : 'tienen'} ejercicios sin sesión${puntuados ? ` (${puntuados === 1 ? 'uno' : puntuados} con puntuaciones)` : ''}.`)
     + ' ¿Qué hacemos con ellos?'
-    + `\n\n• Sesión vacía: ${varias ? 'las citas empiezan' : 'la cita empieza'} sin ejercicios; los de ahora siguen sin sesión.`
-    + `\n• Copiando ejercicios: ${varias ? 'cada cita tiene' : 'la cita tiene'} los mismos ejercicios para puntuarlos aparte; los de ahora siguen sin sesión${puntuados ? ' con sus puntuaciones' : ''}.`
-    + `\n• Asignar los existentes: los ejercicios${puntuados ? ' y sus puntuaciones' : ''} pasan a ${varias ? 'las citas' : 'la cita'}.`;
+    + `\n\n• Sesión vacía: ${varias ? 'las sesiones empiezan' : 'la sesión empieza'} sin ejercicios; los de ahora siguen sin sesión.`
+    + `\n• Copiando ejercicios: ${varias ? 'cada sesión tiene' : 'la sesión tiene'} los mismos ejercicios para puntuarlos aparte; los de ahora siguen sin sesión${puntuados ? ' con sus puntuaciones' : ''}.`
+    + `\n• Asignar los existentes: los ejercicios${puntuados ? ' y sus puntuaciones' : ''} pasan a ${varias ? 'las sesiones' : 'la sesión'}.`;
   const op = await elegir(msg, varias
-    ? [['vacia', 'Crear sesiones vacías'], ['copiar', 'Crear citas copiando ejercicios'], ['asignar', 'Crear citas y asignar ejercicios existentes']]
-    : [['vacia', 'Crear sesión vacía'], ['copiar', 'Crear cita copiando ejercicios'], ['asignar', 'Crear cita y asignar ejercicios existentes']],
-    { titulo: 'Ejercicios sin sesión', cancelar: 'No dar la cita', vertical: true });
+    ? [['vacia', 'Crear sesiones vacías'], ['copiar', 'Crear sesiones copiando ejercicios'], ['asignar', 'Crear sesiones y asignar ejercicios existentes']]
+    : [['vacia', 'Crear sesión vacía'], ['copiar', 'Crear sesión copiando ejercicios'], ['asignar', 'Crear sesión y asignar ejercicios existentes']],
+    { titulo: 'Ejercicios sin sesión', cancelar: 'No programar la sesión', vertical: true });
   if (!op) return false;
   aplicarSinSesion(con, serie, op);
   return true;
@@ -3386,24 +3441,24 @@ function citasSeccionHTML(p){
   const fila = c => {
     const n = exercisesSesion(p.id, c.fecha, c.id).length;
     return `<div class="item cita-fila"><div style="flex:1;min-width:0"><strong>${esc(fechaCita(c.fecha))}</strong> · ${c.hora}–${finCita(c)}${c.serieId ? ' <span title="Se repite cada semana" aria-label="se repite cada semana">↻</span>' : ''}${c.nota ? ` <span class="muted">· ${esc(c.nota)}</span>` : ''}</div>
-      ${n ? `<button class="ghost small" onclick="puntuarCita('${p.id}', '${c.fecha}', '${c.id}')" title="Puntuar los ${n} ejercicios de esta cita">Puntuar</button>` : ''}
+      ${n ? `<button class="ghost small" onclick="puntuarCita('${p.id}', '${c.fecha}', '${c.id}')" title="Puntuar los ${n} ejercicios de esta sesión">Puntuar</button>` : ''}
       <button class="ghost small" onclick="openCita('${c.id}')">Cambiar…</button>
-      <button class="danger small" onclick="anularCita('${c.id}')" title="Anular esta cita">Anular</button></div>`;
+      <button class="danger small" onclick="anularCita('${c.id}')" title="Anular esta sesión">Anular</button></div>`;
   };
-  const max = ui.citasTodas ? 1e9 : 12;
+  const pp = paginar('sesionesProximas', prox, 'render()', p.id), pa = paginar('sesionesPasadas', pasadas, 'render()', p.id), ps = paginar('sesionesSeries', series, 'render()', p.id);
   return `
     <div class="row" style="justify-content:space-between;align-items:center">
-      <h3 class="titulo-sec" style="margin:0">Citas <span class="muted">(${plural(prox.length, 'próxima', 'próximas')})</span>${ayudaIco('citas')}</h3>
+      <h3 class="titulo-sec" style="margin:0">Sesiones <span class="muted">(${plural(prox.length, 'próxima', 'próximas')})</span>${ayudaIco('citas')}</h3>
       <span class="row"><button class="ghost" onclick="verAgendaDe('${p.id}')">Ver en la agenda</button>
-      <button class="btn" onclick="openCita(null, { patientId: '${p.id}' })">Nueva cita</button></span>
+      <button class="btn" onclick="openCita(null, { patientId: '${p.id}' })">Nueva sesión</button></span>
     </div>
-    <div class="row" style="margin-top:12px;align-items:center"><span>Color de sus citas:</span>${selectorColorHTML('pacColor', p.colorCita || '', `cambiarColorPaciente('${p.id}')`)}</div>
-    <p class="muted" style="margin:2px 0 0">Es el color con que se dan sus citas nuevas; en cada cita se puede cambiar.</p>
-    ${series.length ? `<h4 style="margin:16px 0 4px">Se repiten cada semana</h4>${series.map(s => `<div class="item"><div style="flex:1;min-width:0">${esc(textoSerie(s))}<div class="muted">${esc(periodoSerie(s))}${s.nota ? ' · ' + esc(s.nota) : ''}</div></div>
-      <button class="ghost small" onclick="openSerie('${s.id}')">Cambiar…</button><button class="danger small" onclick="anularSerie('${s.id}')">Terminar…</button></div>`).join('')}` : ''}
+    <div class="row" style="margin-top:12px;align-items:center"><span>Color de sus sesiones:</span>${selectorColorHTML('pacColor', p.colorCita || '', `cambiarColorPaciente('${p.id}')`)}</div>
+    <p class="muted" style="margin:2px 0 0">Es el color con que se programan sus sesiones nuevas; en cada sesión se puede cambiar.</p>
+    ${series.length ? `<h4 style="margin:16px 0 4px">Se repiten cada semana</h4>${ps.items.map(s => `<div class="item"><div style="flex:1;min-width:0">${esc(textoSerie(s))}<div class="muted">${esc(periodoSerie(s))}${s.nota ? ' · ' + esc(s.nota) : ''}</div></div>
+      <button class="ghost small" onclick="openSerie('${s.id}')">Cambiar…</button><button class="danger small" onclick="anularSerie('${s.id}')">Terminar…</button></div>`).join('')}${ps.html}` : ''}
     <h4 style="margin:16px 0 4px">Próximas</h4>
-    ${prox.length ? prox.slice(0, max).map(fila).join('') + (prox.length > max ? `<p><button class="enlace" onclick="ui.citasTodas = true; render()">Ver las ${prox.length} próximas citas</button></p>` : '') : '<p class="muted">No tiene citas próximas.</p>'}
-    ${pasadas.length ? `<details class="sec" style="margin-top:12px"><summary>Citas pasadas (${pasadas.length})</summary>${pasadas.slice(0, 100).map(fila).join('')}</details>` : ''}`;
+    ${prox.length ? pp.items.map(fila).join('') + pp.html : '<p class="muted">No tiene sesiones próximas.</p>'}
+    ${pasadas.length ? `<details class="sec" style="margin-top:12px" ${ui.verPasadas ? 'open' : ''} ontoggle="ui.verPasadas = this.open"><summary>Sesiones pasadas (${pasadas.length})</summary>${pa.items.map(fila).join('')}${pa.html}</details>` : ''}`;
 }
 // Cambia el color por defecto de las citas de un paciente y ofrece aplicarlo también a sus próximas citas
 // (las que tenían el color anterior; las que se cambiaron a otro color a mano se respetan).
@@ -3413,12 +3468,12 @@ async function cambiarColorPaciente(pid){
   if (nuevo === viejo) return;
   p.colorCita = nuevo;
   const hoy = todayIso(), proximas = citasDe(pid).filter(c => c.fecha >= hoy && (c.color || '') === viejo);
-  if (proximas.length && await preguntar(`¿Poner también en ${nombreColorCita(nuevo).toLowerCase() === 'normal' ? 'el color normal' : 'color ' + nombreColorCita(nuevo).toLowerCase()} sus ${plural(proximas.length, 'próxima cita', 'próximas citas')}?`, { boton: 'Cambiar también', cancelar: 'Solo las nuevas' })){
+  if (proximas.length && await preguntar(`¿Poner también en ${nombreColorCita(nuevo).toLowerCase() === 'normal' ? 'el color normal' : 'color ' + nombreColorCita(nuevo).toLowerCase()} sus ${plural(proximas.length, 'próxima sesión', 'próximas sesiones')}?`, { boton: 'Cambiar también', cancelar: 'Solo las nuevas' })){
     proximas.forEach(c => { c.color = nuevo; });
     db.seriesCitas.forEach(s => { if (s.patientId === pid && (s.color || '') === viejo && (!s.hasta || s.hasta >= hoy)) s.color = nuevo; });
   }
   render();
-  ofrecerDeshacer(antes, 'Color de las citas cambiado');
+  ofrecerDeshacer(antes, 'Color de las sesiones cambiado');
 }
 function verAgendaDe(pid){
   const c = proximaCita(pid);
@@ -3428,7 +3483,7 @@ function verAgendaDe(pid){
 function openSerie(id){
   const s = getSerie(id); if (!s) return;
   const hoy = todayIso(), desde = s.desde > hoy ? s.desde : hoy;
-  showModal(`<h3>Cambiar la serie de citas${ayudaIco('citas')}</h3>
+  showModal(`<h3>Cambiar la serie de sesiones${ayudaIco('citas')}</h3>
     <p class="muted" style="margin-top:0">${esc(textoSerie(s))}, ${esc(periodoSerie(s))}.</p>
     ${selectorDiasHTML('srDias', s.dias.length === 7 ? '' : s.dias)}
     <div class="gridf" style="margin-top:8px">
@@ -3440,7 +3495,7 @@ function openSerie(id){
     </div>
     <label for="srNota">Nota</label><input id="srNota" value="${esc(s.nota || '')}">
     <label style="margin-top:10px">Color</label>${selectorColorHTML('srColor', s.color || '')}
-    <p class="muted">Las citas anteriores a «Cambiar a partir del» se quedan como están, y también las que cambiaste una a una.</p>
+    <p class="muted">Las sesiones anteriores a «Cambiar a partir del» se quedan como están, y también las que cambiaste una a una.</p>
     <p class="row" style="justify-content:flex-end;margin-top:16px"><button class="ghost" onclick="closeModal()">Cancelar</button><button class="btn" onclick="guardarSerie('${s.id}')">Guardar</button></p>`);
 }
 function guardarSerie(id){
@@ -3455,14 +3510,14 @@ function guardarSerie(id){
   const antes = instantanea();
   cambiarSerieDesde(s, corte < s.desde ? s.desde : corte, { dias, hora, duracion, nota, hasta, color: leerColor('srColor') });
   closeModal(); render();
-  ofrecerDeshacer(antes, 'Serie de citas cambiada');
+  ofrecerDeshacer(antes, 'Serie de sesiones cambiada');
 }
 async function anularSerie(id){
   const s = getSerie(id); if (!s) return;
   const manana = addDays(todayIso(), 1), corte = s.desde > manana ? s.desde : manana;
   const fuera = db.citas.filter(c => c.serieId === s.id && (c.fechaSerie >= corte || c.fecha >= corte)), n = fuera.length;
   const ej = textoEjerciciosCitas(fuera);
-  if (!await preguntar(`¿Terminar esta serie?\n\n${textoSerie(s)}.\n\nSe anulan sus ${plural(n, 'cita', 'citas')} a partir del ${fmtLong(corte)}. Las anteriores se conservan.${ej ? '\n\n' + ej : ''}`, { boton: 'Terminar la serie', peligro: true })) return;
+  if (!await preguntar(`¿Terminar esta serie?\n\n${textoSerie(s)}.\n\nSe anulan sus ${plural(n, 'sesión', 'sesiones')} a partir del ${fmtLong(corte)}. Las anteriores se conservan.${ej ? '\n\n' + ej : ''}`, { boton: 'Terminar la serie', peligro: true })) return;
   const antes = instantanea();
   terminarSerie(s, corte);
   render();
@@ -3534,7 +3589,7 @@ function aplicarCambiosGoogle(cambios){
   if (!movidas && !anuladas) return;
   render();
   if ($('#modal #ctPac') && citaEd && citaEd.id && !getCita(citaEd.id)) closeModal();
-  ofrecerDeshacer(antes, 'Desde Google Calendar: ' + [movidas ? plural(movidas, 'cita cambiada', 'citas cambiadas') : '', anuladas ? plural(anuladas, 'cita anulada', 'citas anuladas') : ''].filter(Boolean).join(' y '));
+  ofrecerDeshacer(antes, 'Desde Google Calendar: ' + [movidas ? plural(movidas, 'sesión cambiada', 'sesiones cambiadas') : '', anuladas ? plural(anuladas, 'sesión anulada', 'sesiones anuladas') : ''].filter(Boolean).join(' y '));
 }
 function haceTexto(t){
   if (!t) return '';
@@ -3566,14 +3621,14 @@ function agendaAjustesHTML(){
     <p class="row">Mostrar de <select style="width:auto" id="agIni" onchange="setAjuste('agendaInicio', this.value)">${horas(5, 14, db.ajustes.agendaInicio || '08:00')}</select>
       a <select style="width:auto" id="agFin" onchange="setAjuste('agendaFin', this.value)">${horas(12, 24, db.ajustes.agendaFin || '21:00').replace('>24:00<', '>24:00 (medianoche)<')}</select></p>
     <div class="row">${selectorDiasHTML('agDias', (db.ajustes.agendaDias || '12345').length === 7 ? '' : db.ajustes.agendaDias || '12345')}</div>
-    <p class="muted" style="margin-top:4px">Días que se ven en la semana de la agenda. Un día no marcado se ve igualmente si tiene alguna cita.</p>
-    <p class="row">Duración de las citas nuevas: <select style="width:auto" id="agDur" onchange="setAjuste('citaDuracion', this.value)">${opcionesDuracion(durDefecto())}</select></p>
+    <p class="muted" style="margin-top:4px">Días que se ven en la semana de la agenda. Un día no marcado se ve igualmente si tiene alguna sesión.</p>
+    <p class="row">Duración de las sesiones nuevas: <select style="width:auto" id="agDur" onchange="setAjuste('citaDuracion', this.value)">${opcionesDuracion(durDefecto())}</select></p>
     <h3 style="margin-top:24px">Google Calendar${ayudaIco('google')}</h3>
     <div id="googleAjustes"><p class="muted">Cargando…</p></div>
     <h3 style="margin-top:24px">Qué se ve en Google</h3>
-    <p class="muted">El título de los eventos de las citas en tu Google Calendar. Los datos de los pacientes son datos de salud: si prefieres que su nombre no salga de este ordenador, elige «Solo las iniciales» o «Solo “Cita”».</p>
+    <p class="muted">El título de los eventos de las sesiones en tu Google Calendar. Los datos de los pacientes son datos de salud: si prefieres que su nombre no salga de este ordenador, elige «Solo las iniciales» o «Solo “Sesión”».</p>
     <p class="row"><select style="width:auto" id="gTitulo" onchange="setAjuste('googleTitulo', this.value)">
-      ${[['nombre', 'Nombre y apellidos del paciente (y la nota de la cita)'], ['iniciales', 'Solo las iniciales del paciente'], ['cita', 'Solo «Cita»']].map(([v, t]) => `<option value="${v}" ${v === titulo ? 'selected' : ''}>${t}</option>`).join('')}
+      ${[['nombre', 'Nombre y apellidos del paciente (y la nota de la sesión)'], ['iniciales', 'Solo las iniciales del paciente'], ['cita', 'Solo «Sesión»']].map(([v, t]) => `<option value="${v}" ${v === titulo ? 'selected' : ''}>${t}</option>`).join('')}
     </select></p>`;
 }
 // Los días de la agenda se guardan al marcar o desmarcar.
@@ -3602,7 +3657,7 @@ async function pintarGoogleAjustes(){
   }
   el.innerHTML = `<p>Conectada con la cuenta de Google <strong>${esc(e.cuenta || '(sin correo)')}</strong>.</p>
     <p class="row"><label style="display:flex;gap:8px;align-items:center;margin:0;color:var(--ink);font-size:16px"><input type="checkbox" id="gActivo" style="width:auto" ${e.activo ? 'checked' : ''} onchange="activarGoogle(this.checked)"> Sincronizar la agenda de esta carpeta de datos con Google Calendar</label></p>
-    ${e.activo ? `<p class="muted">Las citas se copian en el calendario «Fisioterapia · citas» de tu cuenta (se crea solo). Si allí mueves o borras una cita, también cambia aquí. Los demás calendarios marcados abajo se usan solo para ver tus horas ocupadas.</p>
+    ${e.activo ? `<p class="muted">Las sesiones se copian en el calendario «Fisioterapia · sesiones» de tu cuenta (se crea solo). Si allí mueves o borras una sesión, también cambia aquí. Los demás calendarios marcados abajo se usan solo para ver tus horas ocupadas.</p>
       <p class="row" style="align-items:center"><button class="ghost" onclick="sincronizarGoogle(true)" ${gSync.enCurso ? 'disabled' : ''}>${gSync.enCurso ? 'Sincronizando…' : 'Sincronizar ahora'}</button>
         <span class="${gSync.error ? '' : 'muted'}" style="${gSync.error ? 'color:var(--danger)' : ''}">${gSync.error ? 'Error: ' + esc(gSync.error) : gSync.ultima ? 'Última sincronización: ' + esc(haceTexto(gSync.ultima)) : 'Todavía no se ha sincronizado.'}</span></p>
       <h4 style="margin:16px 0 4px">Horas ocupadas de otros calendarios</h4>
@@ -3670,7 +3725,7 @@ async function activarGoogle(si){
   if (si) sincronizarGoogle(true);
 }
 async function desconectarGoogle(){
-  if (!await preguntar('¿Desconectar la aplicación de tu cuenta de Google?\n\nLas citas dejan de sincronizarse. Lo que ya está en Google Calendar se queda allí (puedes borrar el calendario «Fisioterapia · citas» desde Google si ya no lo quieres).', { boton: 'Desconectar' })) return;
+  if (!await preguntar('¿Desconectar la aplicación de tu cuenta de Google?\n\nLas sesiones dejan de sincronizarse. Lo que ya está en Google Calendar se queda allí (puedes borrar el calendario «Fisioterapia · sesiones» desde Google si ya no lo quieres).', { boton: 'Desconectar' })) return;
   await fetch('/api/google/desconectar', { method: 'POST' });
   gSync.ocupados = []; gSync.error = '';
   await cargarEstadoGoogle(); pintarGoogleAjustes();
@@ -3752,8 +3807,8 @@ function viewAjustes(){
 const AYUDA_CORTA = {
   pacientes: { t: 'Pacientes', ancla: 'pacientes', txt: 'Pulsa un nombre para abrir su ficha o «Puntuar hoy» para ir directa a la puntuación de hoy. Marca pacientes para asignarles ejercicios, sacar informes de pautas, archivarlos o eliminarlos a la vez. Los archivados se ven con el filtro «Archivados».' },
   pautas: { t: 'Pautas', ancla: 'pautas', txt: 'Bloques y ejercicios que el paciente trabaja en la clínica, en el orden en que se hacen. Con «Editar» cambias las fechas de inicio y fin y los días de la semana. Las pautas terminadas quedan plegadas al final.' },
-  asignar: { t: 'Asignar ejercicios', ancla: 'pautas', txt: 'Marca bloques o ejercicios, elige desde qué fecha, la duración (continua, hasta una fecha o solo ese día) y los días de la semana, y pulsa «Asignar». Si el paciente tiene citas, a la derecha eliges en qué sesiones tocan.' },
-  calendario: { t: 'Calendario', ancla: 'calendario', txt: 'Los días con cita llevan un punto del color de la cita junto al número. En la semana, cada ejercicio sale del color de su puntuación (con borde de puntos, aún no está puntuado). En el mes, cada día resume su media y cuántos están puntuados. Pulsa un día para añadir, quitar o puntuar sus ejercicios.' },
+  asignar: { t: 'Asignar ejercicios', ancla: 'pautas', txt: 'Marca bloques o ejercicios, elige desde qué fecha, la duración (continua, hasta una fecha o solo ese día) y los días de la semana, y pulsa «Asignar». Si el paciente tiene sesiones, a la derecha eliges en qué sesiones tocan.' },
+  calendario: { t: 'Calendario', ancla: 'calendario', txt: 'Los días con sesión llevan un punto del color de la sesión junto al número. En la semana, cada ejercicio sale del color de su puntuación (con borde de puntos, aún no está puntuado). En el mes, cada día resume su media y cuántos están puntuados. Pulsa un día para añadir, quitar o puntuar sus ejercicios.' },
   puntuar: { t: 'Puntuar un día', ancla: 'puntuar', txt: 'Pulsa 0, 1, 2 o 3 en cada ejercicio (otra vez el mismo número para borrarlo). «+ Rep.» sirve para puntuarlo varias veces el mismo día. Con el teclado: 0–3 puntúa la fila marcada, ↑ ↓ cambian de fila y «+» añade una repetición. Todo se guarda solo.' },
   resumen: { t: 'Resumen', ancla: 'resumen', txt: 'La evolución del periodo elegido: en lista (medias; «Ver cada repetición» las desglosa), en puntos (cada día) o en líneas (por ejercicio, por bloque o la media del día; pulsa la leyenda para ocultar o mostrar una línea).' },
   'plan-en-casa': { t: 'Planes en casa', ancla: 'plan-en-casa', txt: 'Cada plan tiene nombre, fecha de inicio, duración en semanas, fecha de fin (se calcula, pero puedes cambiarla) y notas. Añade ejercicios a cada día o a «A elegir» si el paciente puede hacerlos cuando quiera. No se puntúan ni cambian las pautas de la clínica.' },
@@ -3762,11 +3817,11 @@ const AYUDA_CORTA = {
   'plantilla-aplicar': { t: 'Crear un plan con una plantilla', ancla: 'plantillas', txt: 'Cada paciente que marques tendrá un plan nuevo con el nombre, la fecha de inicio y la duración que elijas. Si la duración es mayor que la plantilla, la plantilla se repite.' },
   progreso: { t: 'Evaluación inicial e hitos', ancla: 'progreso', txt: 'Notas con fecha y fotos sobre cómo está el paciente y lo que va consiguiendo. Arriba está el historial; pulsa «Nueva evaluación…» o «Nuevo hito…» para añadir una.' },
   informes: { t: 'Informes', ancla: 'informes', txt: 'Todos los PDF de este paciente (informes de pautas y planes en casa). «Abrir» lo abre con tu programa de PDF; «Quitar de la lista» no borra el archivo.' },
-  sesiones: { t: 'Sesiones', ancla: 'sesiones', txt: 'Cada cita es una sesión con sus propias puntuaciones. «Todas» vale para cualquier sesión y para los días sin cita. Desmárcala para elegir una o varias citas (o series de citas); sin ninguna marcada, los ejercicios quedan sin sesión y se puntúan aparte, en «Sin cita».' },
-  agenda: { t: 'Agenda', ancla: 'agenda', txt: 'Las citas de todos los pacientes, por días, semanas o meses. Pulsa un hueco libre para dar una cita a esa hora, o una cita para cambiarla o anularla. Las zonas rayadas son horas ocupadas en tu Google Calendar (si está conectado). El horario y los días que se ven se cambian en Ajustes › Agenda.' },
-  cita: { t: 'Cita', ancla: 'agenda', txt: 'Elige paciente, día, hora y duración. Con «Se repite cada semana» se dan de una vez todas las citas de los días marcados hasta la fecha indicada (o sin fecha de fin). Si el hueco no está libre, se avisa antes de guardar. El color sale el del paciente, pero puedes elegir otro. Al cambiar o anular una cita que se repite, puedes elegir si es solo esa o también las siguientes.' },
-  citas: { t: 'Citas del paciente', ancla: 'agenda', txt: '«Color de sus citas» es el color con que se dan sus citas nuevas. «Puntuar» abre la puntuación de esa cita (si tiene ejercicios) y «Anular» la anula sin abrirla (avisa si tiene ejercicios o puntuaciones). Debajo, sus próximas citas y las que se repiten cada semana. «Cambiar…» en una serie cambia días, hora o duración a partir del día que elijas; «Terminar…» anula sus citas desde mañana. Las citas pasadas quedan en la lista de abajo.' },
-  google: { t: 'Google Calendar', ancla: 'google-calendar', txt: 'Copia las citas en un calendario «Fisioterapia · citas» de tu cuenta de Google y, si allí mueves o borras una, también cambia aquí. De tus otros calendarios trae solo las horas ocupadas, para no dar citas encima. Hay que configurarlo una vez (ver el manual).' },
+  sesiones: { t: 'Sesiones', ancla: 'sesiones', txt: 'Cada sesión tiene sus propias puntuaciones; los días sin sesión se puntúan aparte, en «Sin sesión». «Todas» vale para cualquier sesión y para los días sin sesión. Desmárcala para elegir una o varias sesiones (o series de sesiones); sin ninguna marcada, los ejercicios quedan sin sesión y se puntúan en «Sin sesión».' },
+  agenda: { t: 'Agenda', ancla: 'agenda', txt: 'Las sesiones de todos los pacientes, por días, semanas o meses. Pulsa un hueco libre para programar una sesión a esa hora, o una sesión para cambiarla o anularla. Las zonas rayadas son horas ocupadas en tu Google Calendar (si está conectado). El horario y los días que se ven se cambian en Ajustes › Agenda.' },
+  cita: { t: 'Sesión', ancla: 'agenda', txt: 'Elige paciente, día, hora y duración. Con «Se repite cada semana» se programan de una vez todas las sesiones de los días marcados hasta la fecha indicada (o sin fecha de fin). Si el hueco no está libre, se avisa antes de guardar. El color sale el del paciente, pero puedes elegir otro. Al cambiar o anular una sesión que se repite, puedes elegir si es solo esa o también las siguientes.' },
+  citas: { t: 'Sesiones del paciente', ancla: 'agenda', txt: '«Color de sus sesiones» es el color con que se programan sus sesiones nuevas. «Puntuar» abre la puntuación de esa sesión (si tiene ejercicios) y «Anular» la anula sin abrirla (avisa si tiene ejercicios o puntuaciones). Debajo, sus próximas sesiones y las que se repiten cada semana. «Cambiar…» en una serie cambia días, hora o duración a partir del día que elijas; «Terminar…» anula sus sesiones desde mañana. Las sesiones pasadas quedan en la lista de abajo.' },
+  google: { t: 'Google Calendar', ancla: 'google-calendar', txt: 'Copia las sesiones en un calendario «Fisioterapia · sesiones» de tu cuenta de Google y, si allí mueves o borras una, también cambia aquí. De tus otros calendarios trae solo las horas ocupadas, para no programar sesiones encima. Hay que configurarlo una vez (ver el manual).' },
   maestros: { t: 'Exportar e importar', ancla: 'exportar-importar', txt: 'Exportar guarda los ejercicios y los bloques (sin pacientes) en un archivo. Importar lo añade a la biblioteca de esta carpeta de datos: si ya tiene ejercicios o bloques, se avisa y se combinan, sin borrar ni cambiar nada y sin duplicar lo que ya existe.' },
   exportar: { t: 'Informe de pautas', ancla: 'informes', txt: 'Crea un PDF por paciente con los datos de tu clínica, un resumen por ejercicio, una gráfica del periodo y, si lo marcas, el detalle de cada día. Al generarlo eliges dónde guardarlo; esa ventana a veces aparece detrás del navegador.' },
   ejercicios: { t: 'Ejercicios', ancla: 'ejercicios', txt: 'La biblioteca de ejercicios. «Nuevo ejercicio…» añade uno. En el botón ⋯ de cada ejercicio: renombrar (cambia el nombre en toda la aplicación), duplicar o eliminar (lo quita también de pautas y puntuaciones).' },
@@ -4000,11 +4055,12 @@ function loadCopias(){
     .then(list => {
       const el = $('#listaCopias');
       if (!el) return;
-      el.innerHTML = list.length ? list.map(c => `
+      const pag = paginar('copias', list, 'loadCopias()');
+      el.innerHTML = list.length ? pag.items.map(c => `
         <div class="item">
           <div style="flex:1">${esc(new Date(c.fecha).toLocaleString('es-ES'))} ${c.auto ? '<span class="nivel">Automática</span>' : ''}<div class="muted">${esc(c.nombre)}</div></div>
           <button class="danger small" title="Sustituye los datos actuales por los de esta copia" onclick="restaurarCopia('${esc(c.nombre)}')">Restaurar</button>
-        </div>`).join('') : '<p class="muted">Todavía no hay copias guardadas.</p>';
+        </div>`).join('') + pag.html : '<p class="muted">Todavía no hay copias guardadas.</p>';
     })
     .catch(() => { const el = $('#listaCopias'); if (el) el.textContent = 'No se pudo leer la lista de copias.'; });
 }
@@ -4041,7 +4097,7 @@ function consultarBloqueo(){
 setInterval(consultarBloqueo, 1000);
 async function borrarTodo(){
   const antes = instantanea();
-  if (!await preguntar(`Se borrarán TODOS los pacientes, ejercicios, bloques, pautas, puntuaciones, planes, plantillas y citas de esta carpeta de datos (${db.patients.length} pacientes y ${db.exercises.length} ejercicios). Los ajustes se conservan.\n\nSi no estás segura, haz antes una copia de seguridad.`,
+  if (!await preguntar(`Se borrarán TODOS los pacientes, ejercicios, bloques, pautas, puntuaciones, planes, plantillas y sesiones de esta carpeta de datos (${db.patients.length} pacientes y ${db.exercises.length} ejercicios). Los ajustes se conservan.\n\nSi no estás segura, haz antes una copia de seguridad.`,
     { titulo: '¿Borrar todos los datos?', palabra: 'BORRAR', boton: 'Borrar todo', peligro: true })) return;
   const ajustes = db.ajustes;
   db = normalize({}); db.ajustes = ajustes; ui.selected.clear(); render();
@@ -4427,7 +4483,7 @@ function informesGeneradosHTML(p){
     `<button class="${f === k ? 'on' : ''}" onclick="ui.infTipo='${k}'; render()">${t} (${k ? todos.filter(x => x.tipo === k).length : todos.length})</button>`).join('')}</div>` : '';
   return `<div id="secInformes">
     ${filtro}
-    <div id="listaInformes">${lista.map(fila).join('') || `<p class="muted">${todos.length ? 'No hay PDF de este tipo.' : 'Todavía no se ha generado ningún PDF para este paciente. Los informes de pautas y los planes en casa que exportes aparecerán aquí.'}</p>`}</div>
+    <div id="listaInformes">${lista.length ? (pag => pag.items.map(fila).join('') + pag.html)(paginar('informes', lista, 'render()', p.id + '|' + f)) : `<p class="muted">${todos.length ? 'No hay PDF de este tipo.' : 'Todavía no se ha generado ningún PDF para este paciente. Los informes de pautas y los planes en casa que exportes aparecerán aquí.'}</p>`}</div>
   </div>`;
 }
 // Pregunta al servidor qué archivos siguen en su sitio y marca los que faltan (sin volver a pintar la pantalla).
@@ -4576,10 +4632,11 @@ function refrescarHitos(){
     cont.innerHTML = `<p class="muted">${todos.length ? 'Ninguna nota coincide con la búsqueda.' : 'Todavía no hay hitos. Añade el primero con la fecha y una nota.'}</p>`;
     return;
   }
+  const pag = paginar('hitos', lista, 'refrescarHitos()', ui.patientId + '|' + ui.qH);
   cont.innerHTML = `<table class="tabla-h"><thead><tr><th style="width:160px">Fecha</th><th>Notas</th><th style="width:100px">Fotos</th><th style="width:170px"></th></tr></thead><tbody>${
-    lista.map(h => `<tr><td>${fmt(h.fecha)}</td><td class="nota">${esc(h.nota)}</td><td>${fotosCeldaHTML('hitos', h)}</td>
+    pag.items.map(h => `<tr><td>${fmt(h.fecha)}</td><td class="nota">${esc(h.nota)}</td><td>${fotosCeldaHTML('hitos', h)}</td>
       <td><span class="row" style="gap:6px;justify-content:flex-end"><button class="ghost small" onclick="openHito('${h.id}')">Editar</button><button class="danger small" onclick="delHito('${h.id}')">Eliminar</button></span></td></tr>`).join('')
-  }</tbody></table>`;
+  }</tbody></table>${pag.html}`;
 }
 function addHito(){
   const fecha = $('#hFecha').value, nota = $('#hNota').value.trim();
@@ -4653,10 +4710,11 @@ function refrescarEvaluaciones(){
     cont.innerHTML = `<p class="muted">${todos.length ? 'Ninguna evaluación coincide con la búsqueda.' : 'Todavía no hay evaluaciones. Añade la primera con la fecha y su evaluación.'}</p>`;
     return;
   }
+  const pag = paginar('evaluaciones', lista, 'refrescarEvaluaciones()', ui.patientId + '|' + ui.qEv);
   cont.innerHTML = `<table class="tabla-h"><thead><tr><th style="width:160px">Fecha</th><th>Evaluación</th><th style="width:100px">Fotos</th><th style="width:170px"></th></tr></thead><tbody>${
-    lista.map(h => `<tr><td>${fmt(h.fecha)}</td><td class="nota">${esc(h.evaluacion)}</td><td>${fotosCeldaHTML('evaluaciones', h)}</td>
+    pag.items.map(h => `<tr><td>${fmt(h.fecha)}</td><td class="nota">${esc(h.evaluacion)}</td><td>${fotosCeldaHTML('evaluaciones', h)}</td>
       <td><span class="row" style="gap:6px;justify-content:flex-end"><button class="ghost small" onclick="openEvaluacion('${h.id}')">Editar</button><button class="danger small" onclick="delEvaluacion('${h.id}')">Eliminar</button></span></td></tr>`).join('')
-  }</tbody></table>`;
+  }</tbody></table>${pag.html}`;
 }
 function addEvaluacion(){
   const fecha = $('#evFecha').value, nota = $('#evTexto').value.trim();
@@ -4861,7 +4919,8 @@ function tablaPlanesHTML(p){
   if (!todos.length) return '<p class="muted">Este paciente todavía no tiene planes en casa. Pulsa «Nuevo plan» o «Usar una plantilla…».</p>';
   const lista = filtrarPlanes(todos, filtroPlanes()).sort((a, b) => b.inicio.localeCompare(a.inicio) || (b.creado || '').localeCompare(a.creado || ''));
   if (!lista.length) return '<p class="muted">Ningún plan coincide con la búsqueda.</p>';
-  const filas = lista.map(pl => {
+  const pag = paginar('planes', lista, 'refrescarPlanes()', p.id + '|' + JSON.stringify(filtroPlanes()));
+  const filas = pag.items.map(pl => {
     const hay = pl.items.some(i => getE(i.exerciseId));
     return `<tr class="fila-plan" data-id="${pl.id}">
       <td><button class="enlace" onclick="abrirPlanCasa('${pl.id}')">${esc(pl.nombre)}</button> ${estadoPlanHTML(pl)}
@@ -4875,7 +4934,7 @@ function tablaPlanesHTML(p){
         <button class="ghost small" onclick="exportarPlan('${p.id}', '${pl.id}')" ${hay && !exportandoPlan ? '' : 'disabled'}>Exportar a PDF</button>
         <button class="danger small" onclick="delPlanCasa('${pl.id}')">Eliminar</button></span></td></tr>`;
   }).join('');
-  return `<table class="tabla-planes"><thead><tr><th>Plan</th><th>Empieza</th><th>Termina</th><th>Duración</th><th>Contenido</th><th><span class="sr">Acciones</span></th></tr></thead><tbody>${filas}</tbody></table>`;
+  return `<table class="tabla-planes"><thead><tr><th>Plan</th><th>Empieza</th><th>Termina</th><th>Duración</th><th>Contenido</th><th><span class="sr">Acciones</span></th></tr></thead><tbody>${filas}</tbody></table>${pag.html}`;
 }
 function refrescarPlanes(){
   const p = getP(ui.patientId), c = $('#listaPlanes'); if (!p || !c) return;
@@ -5177,20 +5236,30 @@ const semanasPl = t => Math.max(1, t.semanas || 1);
 
 // --- pantalla «Plantillas» ---
 function viewPlantillas(){
-  const lista = [...db.plantillas].sort((a, b) => a.nombre.localeCompare(b.nombre, 'es'));
-  const filas = lista.map(t => filaPlantillaHTML(t, `<button class="ghost small" onclick="openAplicarPlantilla('', '${t.id}')" ${t.items.some(i => getE(i.exerciseId)) ? '' : 'disabled title="La plantilla está vacía: añádele ejercicios con «Editar»"'}>Usar con pacientes…</button>
-      <button class="ghost small" onclick="openPacientesPlantilla('${t.id}')" title="Pacientes con un plan en curso creado con esta plantilla">Pacientes (${pacientesDePlantilla(t)})</button>
-      <button class="ghost small" onclick="verPlantilla('${t.id}')" title="Cambiar el nombre, la duración, las notas y los ejercicios de cada día">Editar</button>
-      <button class="danger small" onclick="delPlantilla('${t.id}')">Eliminar</button>`)).join('');
+  const n = db.plantillas.length;
   return `<div class="card">
     <div class="row" style="justify-content:space-between;align-items:center">
-      <h2 style="margin:0">Plantillas casa <span class="muted" style="font-weight:400;font-size:14px">(${lista.length})</span>${ayudaIco('plantillas')}</h2>
+      <h2 style="margin:0">Plantillas casa <span class="muted" style="font-weight:400;font-size:14px">(${n})</span>${ayudaIco('plantillas')}</h2>
       <button class="btn" onclick="nuevaPlantilla()">Nueva plantilla</button>
     </div>
     <p class="muted">Planes en casa sin fechas (de lunes a domingo, de una o varias semanas) para usar con cualquier paciente.</p>
-    ${lista.length ? buscadorPlantillasHTML() : ''}
-    ${filas || '<p class="muted">Todavía no hay plantillas.</p>'}
+    ${n ? `<input type="search" id="plBuscar" placeholder="Buscar por nombre de plantilla, bloque o ejercicio" value="${esc(ui.qPl || '')}" oninput="ui.qPl=this.value; refrescarPlantillas()" style="width:100%;margin:6px 0 10px">` : ''}
+    <div id="listaPlantillas"></div>
   </div>`;
+}
+// La lista de la pantalla Plantillas (con su buscador y paginada; la de «Usar una plantilla…» filtra en la ventana).
+function refrescarPlantillas(){
+  const el = $('#listaPlantillas'); if (!el) return;
+  const q = norm(ui.qPl || '').split(/\s+/).filter(Boolean);
+  const lista = db.plantillas.filter(t => { const txt = textoPlantilla(t); return q.every(w => txt.includes(w)); })
+    .sort((a, b) => a.nombre.localeCompare(b.nombre, 'es'));
+  const pag = paginar('plantillas', lista, 'refrescarPlantillas()', ui.qPl || '');
+  const filas = pag.items.map(t => filaPlantillaHTML(t, `<button class="ghost small" onclick="openAplicarPlantilla('', '${t.id}')" ${t.items.some(i => getE(i.exerciseId)) ? '' : 'disabled title="La plantilla está vacía: añádele ejercicios con «Editar»"'}>Usar con pacientes…</button>
+      <button class="ghost small" onclick="openPacientesPlantilla('${t.id}')" title="Pacientes con un plan en curso creado con esta plantilla">Pacientes (${pacientesDePlantilla(t)})</button>
+      <button class="ghost small" onclick="verPlantilla('${t.id}')" title="Cambiar el nombre, la duración, las notas y los ejercicios de cada día">Editar</button>
+      <button class="danger small" onclick="delPlantilla('${t.id}')">Eliminar</button>`)).join('');
+  el.innerHTML = filas ? filas + pag.html : db.plantillas.length
+    ? '<p id="plNada" class="muted">Ninguna plantilla coincide con la búsqueda.</p>' : '<p class="muted">Todavía no hay plantillas.</p>';
 }
 // --- pacientes con un plan creado con una plantilla ---
 const filtrarPacientesPl = v => filtrarPorTexto('.plaItem', '#plaNada', v);

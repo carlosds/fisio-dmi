@@ -260,6 +260,8 @@ Rendimiento medido en navegador con 34.560 puntuaciones (8 pacientes × 12 ejerc
 10. **Acordeones:** usar `acordeon()`; no guardar estado de UI en `localStorage`.
 11. **Datos de salud:** no añadir telemetría, servicios externos ni escuchar fuera de `127.0.0.1`.
 12. Tras cambiar `main.go`/`index.html`, pasar `test_sql.py` y `test_ui.py` y, siempre que se pueda, compilar con el driver real.
+13. **Nomenclatura:** en los textos que ve el usuario se dice siempre **sesión** (nunca «cita»; «dar una cita» es «programar una sesión»). En el código y la base de datos se conserva `cita` (ver sección 28).
+14. **Listas:** toda lista nueva de una pantalla o pestaña se pinta con `paginar()` (sección 28).
 
 ---
 
@@ -711,3 +713,19 @@ Cada cita de un paciente es una **sesión** con sus propios ejercicios y puntuac
 - Resumen (`datosRango`): cada ejercicio cuenta una vez al día, con las repeticiones de todas las sesiones. Informe (`datosPdf`): `dias[].sesiones[] = { titulo, grupos }`; el detalle pone un título por sesión si hay varias (con una sola cita, en la cabecera del día); la gráfica usa la media del día.
 - Lista de citas del paciente: «Puntuar» abre la sesión de esa cita (`puntuarCita(pid, fecha, cita)`); «Anular» → `anularCita`.
 - Pruebas: `tests/test_sesiones.py`, `tests/test_sesiones_opciones.py`. En `mock_server.py`, aceptar una ventana de elegir sin texto es la primera opción.
+
+## 28. «Sesión» en lugar de «cita» y listas por páginas (0.0.6)
+
+### Nomenclatura
+- En la interfaz, el manual (`AYUDA.md`), las ayudas «?», los avisos y el changelog, las **citas** se llaman **sesiones**: «Nueva sesión», «Programar sesión», «Anular sesión…», «+ Sesión», «Sin sesión», pestaña **Sesiones** de la ficha, «Agenda y sesiones» en el manual… La entrada 0.0.6 del changelog explica el cambio.
+- **En el código y los datos sigue llamándose `cita`**, para no migrar la base de datos ni las copias: tablas `citas`, `citas_series`, `google_eventos.cita_id`, columna `patients.color_cita`; estado JSON `db.citas` / `db.seriesCitas`; Go `Cita`, `SerieCitas`; funciones `openCita`, `anularCita`, `citasDia`…; el valor `cita` del ajuste `googleTitulo`; las claves de ayuda `cita` y `citas` y la pestaña `citas` (dirección `#/paciente/<id>/citas`). Glosario: en el código, una **cita** es una sesión con fecha y hora (de la agenda) y `sesion` (en pautas y puntuaciones) dice a qué sesión pertenece algo: `''` es la de los días sin sesión programada, que en pantalla se llama **«Sin sesión»**.
+- Los comentarios del código siguen usando «cita» en ese sentido técnico.
+- Google Calendar (`google.go`): el calendario nuevo se llama `googleNombreCal` = «Fisioterapia · sesiones». Si el que ya existe se llama `googleNombreViejo` («Fisioterapia · citas»), la pasada lo renombra con un PATCH (si falla, lo intenta en la siguiente). Los eventos se titulan «Sesión» / «Sesión A. L.»; como el título entra en la firma, la primera pasada tras actualizar vuelve a subir los eventos (120 por pasada, como siempre). Prueba: `TestGoogleRenombraCalendarioViejo`.
+
+### Listas por páginas
+- `paginar(clave, items, repintar = 'render()', firma = '')` → `{ items, html }`: los elementos de la página actual y la botonera (`.paginacion`, `#pag-<clave>`), que se pone **dentro del contenedor de la lista, al final**. Con 10 elementos o menos no hay botonera. `repintar` es la llamada que vuelve a pintar la lista (por ejemplo `refrescarPacientes()`); `firma` resume los filtros (búsqueda, paciente, filtro de tipo…): si cambia, se vuelve a la página 1.
+- Tamaño de página: `porPagina(clave)` lee `ajustes['pagina.<clave>']` (`10`, `25`, `50`, `100` o `todos`; por defecto 25) con `setAjuste`, así se recuerda por lista y por carpeta de datos. La página actual vive solo en memoria (`ui.pag[clave] = { p, firma }`). `cambiarPorPagina` deja a la vista la página que contiene el primer elemento que se veía; `irPagina` y `subirALista` (sube al principio de la lista si ha quedado fuera de la vista, también dentro de `.pautas-scroll`).
+- Listas paginadas (clave): pacientes (`pacientes`; «Seleccionar los N» sigue marcando toda la lista filtrada, no solo la página), ejercicios (`ejercicios`), bloques (`bloques`), plantillas (`plantillas`), pautas en curso y terminadas (`pautas`, `pautasTerminadas`; el plegable de terminadas recuerda si está abierto en `ui.verTerminadas`), planes en casa (`planes`), sesiones de la ficha (`sesionesProximas`, `sesionesPasadas`, `sesionesSeries`; sustituye a los límites fijos de 12 próximas y 100 pasadas; `ui.verPasadas`), hitos (`hitos`), evaluaciones (`evaluaciones`), informes (`informes`) y copias de seguridad (`copias`).
+- No se paginan las listas de elegir dentro de una ventana (Asignar, «Usar una plantilla…», pacientes de «Usar con pacientes…», «Pacientes con la plantilla», exportar varios pacientes), que filtran ocultando filas y tienen «Marcar visibles»; ni el Resumen, la agenda, el manual o las Novedades.
+- La pantalla Plantillas filtra ahora sobre los datos (`ui.qPl`, `refrescarPlantillas()`, llamada desde `render()`), no ocultando filas; la búsqueda se conserva al volver. `filtrarPlantillas` / `buscadorPlantillasHTML` quedan para la ventana de elegir plantilla.
+- Pruebas: `tests/test_paginacion.py`; `test_ui.py` (bloques) y `test_plantillas.py` adaptadas.

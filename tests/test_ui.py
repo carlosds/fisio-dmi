@@ -56,11 +56,11 @@ with sync_playwright() as pw:
     check(page.locator('#listaBloques .item').count() == 1, 'buscar «pivoteo» deja 1 bloque')
     check('Nivel A' in page.locator('#listaBloques .item').first.inner_text(), 'el bloque muestra su etiqueta de nivel')
     page.fill('#buscarBl', ''); page.select_option('#nivelBl', 'B'); page.wait_for_timeout(100)
-    check(page.locator('#listaBloques .item').count() == 30, 'filtrar por Nivel B muestra 30 bloques')
+    check(page.locator('#listaBloques .item').count() == 25 and '1–25 de 30' in page.locator('#pag-bloques').inner_text(), 'filtrar por Nivel B muestra 30 bloques (25 en la primera página)')
     page.select_option('#nivelBl', '__sin'); page.wait_for_timeout(100)
     check(page.locator('#listaBloques .item').count() == 0, '«Sin nivel» no muestra ninguno de los importados')
     page.select_option('#nivelBl', ''); page.wait_for_timeout(100)
-    check(page.locator('#listaBloques .item').count() == 95, 'sin filtro se ven los 95')
+    check(page.locator('#listaBloques .item').count() == 25 and '1–25 de 95' in page.locator('#pag-bloques').inner_text(), 'sin filtro se ven los 95 (25 por página)')
     primero = page.locator('#listaBloques .item strong').first.inner_text()
     check(primero.startswith('1, 2, 3') or True, f'orden: nivel y luego nombre (primero: «{primero}»)')
 
@@ -203,7 +203,7 @@ with sync_playwright() as pw:
 
     print('\n[9] Pestañas de la ficha del paciente')
     check(page.locator('nav.side').count() == 0, 'ya no hay menú lateral')
-    check(page.locator('.ptabs [role=tab]').all_inner_texts() == ['Pautas', 'Calendario', 'Plan en casa', 'Citas', 'Progreso ▾', 'Informes'], 'pestañas: Pautas, Calendario, Plan en casa, Citas, Progreso, Informes')
+    check(page.locator('.ptabs [role=tab]').all_inner_texts() == ['Pautas', 'Calendario', 'Plan en casa', 'Sesiones', 'Progreso ▾', 'Informes'], 'pestañas: Pautas, Calendario, Plan en casa, Sesiones, Progreso, Informes')
     page.get_by_role('tab', name='Calendario').click(); page.locator('#subCal').get_by_role('button', name='Calendario').click(); page.wait_for_timeout(100)
     check(page.locator('#sec-calendario').count() == 1 and page.locator('#sec-pautas').count() == 0, 'cada pestaña muestra solo su sección')
     check(page.locator('.ptabs [aria-selected=true]').inner_text() == 'Calendario', 'la pestaña activa está marcada')

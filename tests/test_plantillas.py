@@ -75,8 +75,9 @@ with sync_playwright() as pw:
     page.fill('#plBuscar', ej.split()[0]); check(page.locator('.plItem:visible').count() == 1, 'buscar por ejercicio encuentra la plantilla')
     page.fill('#plBuscar', 'Lumbalgia'); check(page.locator('.plItem:visible').count() == 1, 'buscar por nombre')
     page.fill('#plBuscar', 'qqqqq'); check(page.locator('.plItem:visible').count() == 0 and page.locator('#plNada').is_visible(), 'sin coincidencias, avisa')
-    # pacientes con la plantilla
+    # pacientes con la plantilla (la búsqueda se conserva al volver a la pantalla: se borra)
     page.locator('#menuBiblioteca > button').click(); page.locator('header [data-v="plantillas"]').click(); page.wait_for_selector('#plBuscar')
+    check(page.input_value('#plBuscar') == 'qqqqq', 'al volver a Plantillas se conserva la búsqueda'); page.fill('#plBuscar', '')
     check(len([x for x in st()['planes'] if x['plantillaId'] == st()['plantillas'][0]['id']]) >= 3, 'cada plan recuerda con qué plantilla se creó')
     page.get_by_role('button', name='Pacientes (').click(); page.wait_for_selector('#plaBuscar')
     check(page.locator('.plaItem').count() >= 1, 'lista de pacientes con la plantilla')

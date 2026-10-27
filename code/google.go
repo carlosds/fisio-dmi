@@ -30,6 +30,7 @@ import (
 	"fmt"
 	"html"
 	"io"
+	"log"
 	"net/http"
 	"net/url"
 	"os"
@@ -53,8 +54,11 @@ var (
 )
 
 const (
-	googleScope       = "openid email https://www.googleapis.com/auth/calendar"
-	googleNombreCal   = "Fisioterapia · citas"
+	googleScope     = "openid email https://www.googleapis.com/auth/calendar"
+	googleNombreCal = "Fisioterapia · sesiones"
+	googleDescCal   = "Sesiones de la aplicación Fisioterapia. Se actualiza solo."
+	// googleNombreViejo es el nombre que tenía el calendario hasta la 0.0.5, cuando las sesiones se llamaban citas.
+	googleNombreViejo = "Fisioterapia · citas"
 	googleMaxCambios  = 120 // altas, cambios y bajas por llamada (si hay más, la página vuelve a llamar)
 	googleDiasAtras   = 30  // las citas más antiguas que esto no se suben (sí se actualizan las ya subidas)
 	googleOcupadoDias = 90  // hasta cuándo se traen los huecos ocupados de los otros calendarios
@@ -636,10 +640,10 @@ func leerDatosSync() (*datosSync, error) {
 }
 
 // eventoDe prepara el evento de Google de una cita. Lo que se ve en Google depende del ajuste googleTitulo:
-// «nombre» (nombre y apellidos, y la nota), «iniciales» o «cita» (solo «Cita»).
+// «nombre» (nombre y apellidos, y la nota), «iniciales» o «cita» (solo «Sesión»).
 func (d *datosSync) eventoDe(c Cita) eventoGoogle {
 	n := d.nombres[c.PatientID]
-	titulo, desc := "Cita", ""
+	titulo, desc := "Sesión", ""
 	switch d.titulo {
 	case "iniciales":
 		ini := ""
@@ -649,7 +653,7 @@ func (d *datosSync) eventoDe(c Cita) eventoGoogle {
 			}
 		}
 		if ini != "" {
-			titulo = "Cita " + strings.TrimSpace(ini)
+			titulo = "Sesión " + strings.TrimSpace(ini)
 		}
 	case "cita":
 	default:
@@ -659,7 +663,7 @@ func (d *datosSync) eventoDe(c Cita) eventoGoogle {
 	if desc != "" {
 		desc += "\n\n"
 	}
-	desc += "Cita de la aplicación Fisioterapia. Si la cambias aquí de día u hora, o la borras, también cambia en la aplicación."
+	desc += "Sesión de la aplicación Fisioterapia. Si la cambias aquí de día u hora, o la borras, también cambia en la aplicación."
 	ini, _ := time.ParseInLocation("2006-01-02 15:04", c.Fecha+" "+c.Hora, time.Local)
 	fin := ini.Add(time.Duration(duracionCita(c.Duracion)) * time.Minute)
 	var color *string
@@ -751,11 +755,19 @@ func (d *datosSync) guardar(completa bool, inicio time.Time) error {
 func (d *datosSync) pasada(res *resultadoSync) error {
 	// 1. El calendario de la aplicación: se crea la primera vez (o si se ha borrado en Google).
 	if d.calendario != "" {
-		if err := llamarGoogle("GET", "/calendars/"+url.PathEscape(d.calendario), nil, nil); err != nil {
+		var cal struct {
+			Summary string `json:"summary"`
+		}
+		if err := llamarGoogle("GET", "/calendars/"+url.PathEscape(d.calendario), nil, &cal); err != nil {
 			if s := estadoGoogle(err); s == http.StatusNotFound || s == http.StatusGone {
 				d.calendario, d.ultimoPull, d.mapa = "", "", map[string]mapeoGoogle{}
 			} else {
 				return err
+			}
+		} else if cal.Summary == googleNombreViejo {
+			// Las citas pasaron a llamarse sesiones: el calendario creado antes se renombra (si falla, en la próxima).
+			if err := llamarGoogle("PATCH", "/calendars/"+url.PathEscape(d.calendario), map[string]string{"summary": googleNombreCal, "description": googleDescCal}, nil); err != nil {
+				log.Println("Google Calendar: no se pudo renombrar el calendario:", err)
 			}
 		}
 	}
@@ -769,7 +781,7 @@ func (d *datosSync) pasada(res *resultadoSync) error {
 		var nuevo struct {
 			ID string `json:"id"`
 		}
-		cuerpo := map[string]string{"summary": googleNombreCal, "description": "Citas de la aplicación Fisioterapia. Se actualiza solo.", "timeZone": prim.TimeZone}
+		cuerpo := map[string]string{"summary": googleNombreCal, "description": googleDescCal, "timeZone": prim.TimeZone}
 		if err := llamarGoogle("POST", "/calendars", cuerpo, &nuevo); err != nil {
 			return err
 		}

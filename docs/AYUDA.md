@@ -4,14 +4,16 @@ Esta aplicación sirve para llevar el seguimiento de los ejercicios de cada paci
 
 Todo se guarda solo, en tu ordenador. No hace falta pulsar «Guardar» salvo en las ventanas que lo piden expresamente. Cada vez que se guarda algo sale un momento «✓ Guardado» abajo a la izquierda.
 
-**Si borras algo por error**, abajo sale durante unos segundos un aviso con el botón **Deshacer** (también vale **Cmd+Z** en Mac o **Ctrl+Z** en Windows). Funciona al eliminar o quitar pacientes, pautas, ejercicios, bloques, plantillas, hitos, evaluaciones, citas y cosas del plan en casa, y también al importar ejercicios y bloques.
+**Si borras algo por error**, abajo sale durante unos segundos un aviso con el botón **Deshacer** (también vale **Cmd+Z** en Mac o **Ctrl+Z** en Windows). Funciona al eliminar o quitar pacientes, pautas, ejercicios, bloques, plantillas, hitos, evaluaciones, sesiones y cosas del plan en casa, y también al importar ejercicios y bloques.
+
+**Listas largas.** Las listas (pacientes, ejercicios, bloques, plantillas, pautas, planes en casa, sesiones, hitos, evaluaciones, informes y copias de seguridad) se ven por páginas cuando tienen más de 10 elementos. Debajo de cada lista eliges cuántos ver a la vez (**10**, **25**, **50**, **100** o **Todos**) y pasas de página con **‹ Anterior** y **Siguiente ›**. Cada lista recuerda lo que elijas. Al buscar o filtrar se vuelve a la primera página.
 
 **Los botones Atrás y Adelante** del navegador (o deslizar dos dedos en el trackpad) te llevan a la pantalla anterior o siguiente. Si hay una ventana abierta, Atrás primero la cierra.
 
 El menú de arriba tiene estos apartados:
 
 - **Pacientes**: la lista de pacientes y la ficha de cada uno. Es donde pasarás la mayor parte del tiempo.
-- **Agenda**: las citas de todos los pacientes, por semanas o por días.
+- **Agenda**: las sesiones de todos los pacientes, por semanas o por días.
 - **Biblioteca ▾**: los **Ejercicios**, los **Bloques** y las **Plantillas casa** (plantillas del plan en casa), que luego usas con los pacientes.
 - **Ajustes**: datos de la clínica, horario de la agenda y Google Calendar, copias de seguridad, carpeta de datos y novedades.
 - **Ayuda**: este manual.
@@ -47,14 +49,14 @@ Merece la pena tener claras estas palabras, porque se repiten en toda la aplicac
 - **Plantilla**: un plan en casa sin fechas (de lunes a domingo, con su duración en días, semanas o meses) que puedes usar con cualquier paciente.
 - **Evaluación inicial** e **hitos**: notas con fecha y fotos sobre el estado y los logros del paciente.
 - **Informe de pautas**: un PDF con los ejercicios de las pautas y sus puntuaciones en un periodo. (El otro tipo de PDF es el del **plan en casa**.)
-- **Cita**: un día y una hora reservados para un paciente en la **Agenda**. Una cita puede **repetirse cada semana** (por ejemplo, martes y jueves a las 17:00): es una **serie** de citas.
+- **Sesión**: un día y una hora reservados para un paciente en la **Agenda**, con sus propios ejercicios y puntuaciones. Una sesión puede **repetirse cada semana** (por ejemplo, martes y jueves a las 17:00): es una **serie** de sesiones.
 - **Paciente archivado**: un paciente que ya no viene. Deja de salir en la lista, pero no se borra nada de lo suyo.
 
 ## Pacientes {#pacientes}
 
-La pantalla **Pacientes** muestra la lista de pacientes. En cada uno ves cuántos ejercicios tiene **hoy** y cuántos están puntuados, la fecha de su **última sesión** puntuada, hasta cuándo tiene **plan en casa**, su **próxima cita** y su teléfono.
+La pantalla **Pacientes** muestra la lista de pacientes. En cada uno ves cuántos ejercicios tiene **hoy** y cuántos están puntuados, la fecha de su **última sesión** puntuada, hasta cuándo tiene **plan en casa**, su **próxima sesión** y su teléfono.
 
-- **Nueva cita**: da una cita a ese paciente sin salir de la lista (ver [Agenda y citas](#agenda)).
+- **Nueva sesión**: programa una sesión para ese paciente sin salir de la lista (ver [Agenda y sesiones](#agenda)).
 - **Puntuar hoy**: abre la ventana de puntuación de hoy de ese paciente sin salir de la lista, así puedes ir puntuando a un paciente tras otro (ver [Puntuar un día](#puntuar)). Si quieres ir a su calendario, pulsa **Ver su calendario** en esa ventana. Si ya está todo puntuado, el botón dice **Ver hoy**.
 - **Buscar**: escribe en la caja de búsqueda parte del nombre, del teléfono o del email.
 - **Ordenar por**: **Apellidos** o **Última sesión** (primero los que han venido más recientemente).
@@ -74,11 +76,11 @@ La pantalla **Pacientes** muestra la lista de pacientes. En cada uno ves cuánto
 
 > **Consejo:** cuando un paciente deja de venir, mejor **archivarlo** que eliminarlo: la lista queda limpia y, si vuelve, lo recuperas con todo su historial.
 
-> **Importante:** eliminar un paciente borra también sus pautas, puntuaciones, plan en casa, evaluaciones, hitos y citas. Justo después puedes pulsar **Deshacer**; pasados unos segundos, solo se recupera restaurando una copia de seguridad (ver [Copias de seguridad](#copias)).
+> **Importante:** eliminar un paciente borra también sus pautas, puntuaciones, plan en casa, evaluaciones, hitos y sesiones. Justo después puedes pulsar **Deshacer**; pasados unos segundos, solo se recupera restaurando una copia de seguridad (ver [Copias de seguridad](#copias)).
 
 ## La ficha del paciente {#ficha}
 
-Arriba de la ficha están siempre la foto, el nombre, los días de la semana con ejercicios, su **próxima cita** (púlsala para verla), la fecha de la primera visita, el teléfono y las observaciones, y los botones **Puntuar hoy** y **Editar datos del paciente**. Al bajar por la página, esta cabecera se hace más pequeña para dejar sitio.
+Arriba de la ficha están siempre la foto, el nombre, los días de la semana con ejercicios, su **próxima sesión** (púlsala para verla), la fecha de la primera visita, el teléfono y las observaciones, y los botones **Puntuar hoy** y **Editar datos del paciente**. Al bajar por la página, esta cabecera se hace más pequeña para dejar sitio.
 
 Si el paciente está archivado, lo indica debajo del nombre, con el botón **Recuperar paciente**.
 
@@ -87,7 +89,7 @@ Debajo hay seis pestañas:
 - **Pautas**: qué ejercicios tiene asignados para la clínica. Ver [Pautas del paciente](#pautas).
 - **Calendario**: el día a día, para puntuar, y el **Resumen** de la evolución. Ver [Calendario](#calendario) y [Resumen](#resumen).
 - **Plan en casa**: los ejercicios para casa. Ver [Plan en casa](#plan-en-casa).
-- **Citas**: sus próximas citas, las que se repiten cada semana y las pasadas. Ver [Agenda y citas](#agenda).
+- **Sesiones**: sus próximas sesiones, las que se repiten cada semana y las pasadas. Ver [Agenda y sesiones](#agenda).
 - **Progreso ▾**: despliega **Evaluación inicial** e **Hitos**. Ver [Progreso](#progreso).
 - **Informes**: los PDF generados de este paciente (informes de pautas y planes en casa). Ver [Informes](#informes).
 
@@ -101,7 +103,7 @@ En la pestaña **Pautas** ves los bloques y ejercicios que el paciente tiene asi
 2. Elige **Desde** qué fecha.
 3. Elige la **Duración**: **Continua** (hasta que la termines), **Hasta una fecha** o **Solo ese día**.
 4. Elige los **días de la semana**. Por defecto están todos; **Lunes a viernes** marca solo los laborables.
-5. Si el paciente tiene citas, a la derecha de la lista sale **En qué sesión**: **Todas** (lo normal), una o varias de sus citas o series de citas, o **Ninguna** (los ejercicios quedan sin sesión). Ver [Sesiones](#sesiones).
+5. Si el paciente tiene sesiones, a la derecha de la lista sale **En qué sesión**: **Todas** (lo normal), una o varias de sus sesiones o series de sesiones, o **Ninguna** (los ejercicios quedan sin sesión). Ver [Sesiones](#sesiones).
 6. Pulsa **Asignar**.
 
 **Cambiar el orden.** Usa las flechas ↑ ↓ de cada pauta.
@@ -111,7 +113,7 @@ En la pestaña **Pautas** ves los bloques y ejercicios que el paciente tiene asi
 - **Inicio**: desde qué día.
 - **Fin**: **Continua (sin fecha de fin)** o **Hasta una fecha**.
 - **Días**: qué días de la semana toca. Si desmarcas un día, el ejercicio deja de salir ese día en el calendario.
-- **En qué sesión** (si el paciente tiene citas): todas, unas citas concretas o ninguna. Ver [Sesiones](#sesiones).
+- **En qué sesión** (si el paciente tiene sesiones): todas, unas sesiones concretas o ninguna. Ver [Sesiones](#sesiones).
 
 Pulsa **Guardar** para aplicar los cambios.
 
@@ -128,7 +130,7 @@ Pulsa **Guardar** para aplicar los cambios.
 La pestaña **Calendario** tiene dos vistas, que se cambian con los botones de arriba: **Calendario** y **Resumen**.
 
 - **Día / Semana / Mes**: cambia cuánto tiempo ves a la vez. **Anterior**, **Hoy** y **Siguiente** mueven las fechas.
-- **Días con cita**: junto al número del día sale un punto del color de la cita (al poner el ratón encima, la hora). Así se ve de un vistazo qué días vino o viene el paciente. Las citas se dan en la [Agenda](#agenda).
+- **Días con sesión**: junto al número del día sale un punto del color de la sesión (al poner el ratón encima, la hora). Así se ve de un vistazo qué días vino o viene el paciente. Las sesiones se programan en la [Agenda](#agenda).
 - **Buscar**: escribe el nombre de un bloque o ejercicio para ver solo esos.
 
 **Vista Semana.** Cada día muestra sus ejercicios, agrupados bajo el nombre de su bloque:
@@ -147,7 +149,7 @@ Pulsa un día para añadir, quitar o puntuar ejercicios de ese día.
 
 ## Puntuar un día {#puntuar}
 
-Al pulsar un día del calendario (o **Puntuar hoy**) se abre su ventana, con dos pestañas. Si ese día el paciente tiene cita, arriba salen sus **sesiones** (una por cita, con cuántos ejercicios lleva puntuados): pulsa la que quieras puntuar. Ver [Sesiones](#sesiones).
+Al pulsar un día del calendario (o **Puntuar hoy**) se abre su ventana, con dos pestañas. Si ese día el paciente tiene sesión, arriba salen sus **sesiones** (con cuántos ejercicios lleva puntuados cada una): pulsa la que quieras puntuar. Ver [Sesiones](#sesiones).
 
 **Puntuar ejercicios** (se abre esta si el día tiene ejercicios). Cada ejercicio ocupa una fila:
 
@@ -162,31 +164,31 @@ Al pulsar un día del calendario (o **Puntuar hoy**) se abre su ventana, con dos
 - Las flechas **↑** y **↓** cambian de fila.
 - La tecla **+** añade una repetición al ejercicio marcado.
 
-**Añadir ejercicios** (se abre esta si el día está vacío): marca los bloques o ejercicios y pulsa **Añadir al día** (o **Añadir a la sesión**, si hay citas). Se añaden solo a ese día (y solo a la sesión abierta, si hay citas). Después se vuelve sola a la pestaña de puntuar.
+**Añadir ejercicios** (se abre esta si el día está vacío): marca los bloques o ejercicios y pulsa **Añadir al día** (o **Añadir a la sesión**, si hay sesiones). Se añaden solo a ese día (y solo a la sesión abierta, si hay sesiones). Después se vuelve sola a la pestaña de puntuar.
 
-## Sesiones: varias citas el mismo día {#sesiones}
+## Sesiones: ejercicios y puntuaciones de cada sesión {#sesiones}
 
-Cada **cita** es una **sesión**, con sus propios ejercicios y sus propias puntuaciones. Si un día el paciente no tiene cita apuntada, sus ejercicios se puntúan igual, en la sesión **Sin cita**. Así, si un paciente viene dos veces el mismo día, cada visita tiene su puntuación, aunque haga los mismos bloques.
+Cada **sesión** tiene sus propios ejercicios y sus propias puntuaciones. Si un día el paciente no tiene sesión programada, sus ejercicios se puntúan igual, en **Sin sesión**. Así, si un paciente viene dos veces el mismo día, cada visita tiene su puntuación, aunque haga los mismos bloques.
 
 **Qué ejercicios tiene cada sesión.** Los de sus pautas. Una pauta puede ser para:
 
-- **Todas** las sesiones (lo normal): sale en cada cita y también los días sin cita.
-- **Unas citas concretas**: una o varias citas, o las citas de una serie (por ejemplo, «los martes y jueves a las 10:00»: sale solo en esas, aunque luego cambies la serie a partir de un día).
-- **Ninguna**: el ejercicio queda **sin sesión**: se puntúa aparte de las citas, en **Sin cita**.
+- **Todas** las sesiones (lo normal): sale en cada sesión y también los días sin sesión.
+- **Unas sesiones concretas**: una o varias sesiones, o las sesiones de una serie (por ejemplo, «los martes y jueves a las 10:00»: sale solo en esas, aunque luego cambies la serie a partir de un día).
+- **Ninguna**: el ejercicio queda **sin sesión**: se puntúa aparte de las sesiones, en **Sin sesión**.
 
-Se elige en **En qué sesión** al asignar o al editar la pauta: es la lista de la derecha, con las citas de las fechas de la pauta. Marca **Todas**, o desmárcala y marca las que quieras (o pulsa **Ninguna**). Por ejemplo: a las 10:00 trabaja el bloque A y a las 17:00 el bloque B; asigna el A «solo en sus citas de las 10:00» y el B «solo en sus citas de las 17:00». Lo que añadas o quites desde la ventana de un día vale solo para esa sesión de ese día.
+Se elige en **En qué sesión** al asignar o al editar la pauta: es la lista de la derecha, con las sesiones de las fechas de la pauta. Marca **Todas**, o desmárcala y marca las que quieras (o pulsa **Ninguna**). Por ejemplo: a las 10:00 trabaja el bloque A y a las 17:00 el bloque B; asigna el A «solo en sus sesiones de las 10:00» y el B «solo en sus sesiones de las 17:00». Lo que añadas o quites desde la ventana de un día vale solo para esa sesión de ese día.
 
-**En la ventana del día**, arriba salen sus sesiones: **Cita 10:00–10:45** («3 de 9 puntuados»), **Cita 17:00–17:45**… Pulsa una para puntuarla. **+ Cita** da otra cita ese día (otra sesión) y vuelve a la ventana con ella abierta. Desde la pestaña **Citas** de la ficha, **Puntuar** abre directamente la sesión de esa cita.
+**En la ventana del día**, arriba salen sus sesiones: **Sesión 10:00–10:45** («3 de 9 puntuados»), **Sesión 17:00–17:45**… Pulsa una para puntuarla. **+ Sesión** programa otra sesión ese día y vuelve a la ventana con ella abierta. Desde la pestaña **Sesiones** de la ficha, **Puntuar** abre directamente la puntuación de esa sesión.
 
-**Dar la primera cita de un día que ya tiene ejercicios.** La aplicación pregunta qué hacer con los ejercicios sin sesión de ese día:
+**Programar la primera sesión de un día que ya tiene ejercicios.** La aplicación pregunta qué hacer con los ejercicios sin sesión de ese día:
 
-- **Crear sesión vacía**: la cita empieza sin ejercicios; los que había siguen en **Sin cita**, con sus puntuaciones.
-- **Crear cita copiando ejercicios**: la cita tiene los mismos ejercicios, para puntuarlos aparte; los de **Sin cita** siguen como estaban.
-- **Crear cita y asignar ejercicios existentes**: los ejercicios (y sus puntuaciones) pasan a la cita.
+- **Crear sesión vacía**: la sesión empieza sin ejercicios; los que había siguen en **Sin sesión**, con sus puntuaciones.
+- **Crear sesión copiando ejercicios**: la sesión tiene los mismos ejercicios, para puntuarlos aparte; los de **Sin sesión** siguen como estaban.
+- **Crear sesión y asignar ejercicios existentes**: los ejercicios (y sus puntuaciones) pasan a la sesión.
 
-Con **No dar la cita** no se da. Si es una cita que se repite cada semana, se pregunta una sola vez para todos sus días.
+Con **No programar la sesión** no se programa. Si es una sesión que se repite cada semana, se pregunta una sola vez para todos sus días.
 
-**Anular una cita con ejercicios.** Antes de anularla se avisa de cuántos ejercicios tiene y, sobre todo, si tiene puntuaciones. Las puntuaciones no se pierden: pasan a **Sin cita** de ese día, con sus ejercicios. Si la mueves a otro día, también pasan a **Sin cita** en el día en que se hicieron.
+**Anular una sesión con ejercicios.** Antes de anularla se avisa de cuántos ejercicios tiene y, sobre todo, si tiene puntuaciones. Las puntuaciones no se pierden: pasan a **Sin sesión** de ese día, con sus ejercicios. Si la mueves a otro día, también pasan a **Sin sesión** en el día en que se hicieron.
 
 **En el calendario, el resumen y los informes**, la puntuación de un ejercicio en un día es la **media de todas sus sesiones** (y repeticiones). En el calendario, «N sin puntuar» cuenta cada sesión. En el detalle por días del informe de pautas, cada sesión sale por separado.
 
@@ -325,50 +327,50 @@ Si mueves, renombras o borras un PDF fuera de la aplicación, en la lista sale �
 
 > **Importante:** los PDF contienen datos de salud. Guárdalos en un sitio seguro y compártelos con cuidado.
 
-## Agenda y citas {#agenda}
+## Agenda y sesiones {#agenda}
 
-En **Agenda** (menú de arriba) están las citas de todos los pacientes en una cuadrícula con las horas del día.
+En **Agenda** (menú de arriba) están las sesiones de todos los pacientes en una cuadrícula con las horas del día.
 
-- **Día**, **Semana** o **Mes**: cómo se ve. Pulsa el nombre (o, en el mes, el número) de un día para ver solo ese día. En el mes, cada día muestra sus primeras citas (con **+N más** si hay más); pulsar un día da una cita ese día.
+- **Día**, **Semana** o **Mes**: cómo se ve. Pulsa el nombre (o, en el mes, el número) de un día para ver solo ese día. En el mes, cada día muestra sus primeras sesiones (con **+N más** si hay más); pulsar un día programa una sesión ese día.
 - **Anterior**, **Hoy** y **Siguiente**, o el calendario pequeño, para ir a otra fecha.
-- **Dar una cita**: pulsa un hueco libre de la cuadrícula (la cita empieza a esa hora) o el botón **Nueva cita**. Elige el paciente, el día, la hora y la duración, y pulsa **Dar cita**.
-- **Cambiar o anular una cita**: púlsala. En su ventana también está **Ver ficha**.
-- Las citas que se solapan se ven una al lado de la otra. La línea roja marca la hora actual.
+- **Programar una sesión**: pulsa un hueco libre de la cuadrícula (la sesión empieza a esa hora) o el botón **Nueva sesión**. Elige el paciente, el día, la hora y la duración, y pulsa **Programar sesión**.
+- **Cambiar o anular una sesión**: púlsala. En su ventana también está **Ver ficha**.
+- Las sesiones que se solapan se ven una al lado de la otra. La línea roja marca la hora actual.
 
-**Colores.** Cada cita puede tener un color (los mismos que Google Calendar, así se ven igual allí). En la pestaña **Citas** de la ficha del paciente eliges el **color de sus citas**: es el que llevan por defecto las citas nuevas de ese paciente. Al cambiarlo, la aplicación pregunta si cambiar también sus próximas citas o solo las nuevas. En la ventana de cada cita (y de cada serie) se puede poner otro color.
+**Colores.** Cada sesión puede tener un color (los mismos que Google Calendar, así se ven igual allí). En la pestaña **Sesiones** de la ficha del paciente eliges el **color de sus sesiones**: es el que llevan por defecto las sesiones nuevas de ese paciente. Al cambiarlo, la aplicación pregunta si cambiar también sus próximas sesiones o solo las nuevas. En la ventana de cada sesión (y de cada serie) se puede poner otro color.
 
-**Huecos ocupados.** Al elegir día y hora, la ventana avisa si ese hueco ya está ocupado por otra cita (o por algo de tu Google Calendar, si está conectado, ver [Google Calendar](#google-calendar)). Puedes darla igualmente: la aplicación te lo pregunta antes.
+**Huecos ocupados.** Al elegir día y hora, la ventana avisa si ese hueco ya está ocupado por otra sesión (o por algo de tu Google Calendar, si está conectado, ver [Google Calendar](#google-calendar)). Puedes programarla igualmente: la aplicación te lo pregunta antes.
 
-**Citas que se repiten cada semana.** En una cita nueva, marca **Se repite cada semana**, elige los días de la semana y hasta qué fecha (o **Sin fecha de fin**). La aplicación da de una vez todas esas citas y te dice cuántas son y si alguna se solapa. Las citas sin fecha de fin se crean para los próximos 6 meses y se van añadiendo solas.
+**Sesiones que se repiten cada semana.** En una sesión nueva, marca **Se repite cada semana**, elige los días de la semana y hasta qué fecha (o **Sin fecha de fin**). La aplicación programa de una vez todas esas sesiones y te dice cuántas son y si alguna se solapa. Las sesiones sin fecha de fin se crean para los próximos 6 meses y se van añadiendo solas.
 
-Al **cambiar** o **anular** una cita que se repite, la aplicación pregunta:
+Al **cambiar** o **anular** una sesión que se repite, la aplicación pregunta:
 
-- **Solo esta cita**: por ejemplo, para mover una sesión concreta a otra hora. Las demás no cambian.
-- **Esta y las siguientes**: por ejemplo, porque a partir de esa semana viene a otra hora o en otro día. Si la mueves a otro día de la semana (de jueves a viernes), las siguientes también pasan a ese día. Las citas anteriores no cambian.
+- **Solo esta sesión**: por ejemplo, para moverla a otra hora. Las demás no cambian.
+- **Esta y las siguientes**: por ejemplo, porque a partir de esa semana viene a otra hora o en otro día. Si la mueves a otro día de la semana (de jueves a viernes), las siguientes también pasan a ese día. Las sesiones anteriores no cambian.
 
-**En la ficha del paciente**, la pestaña **Citas** muestra:
+**En la ficha del paciente**, la pestaña **Sesiones** muestra:
 
-- **Color de sus citas**: el color por defecto de sus citas nuevas.
-- **Se repiten cada semana**: sus series. **Cambiar…** cambia días, hora, duración o fecha de fin a partir del día que elijas. **Terminar…** anula las citas de la serie desde mañana (las anteriores se quedan).
-- **Próximas**: sus citas a partir de hoy. **Cambiar…** abre la cita y **Puntuar** (si ese día tiene ejercicios) abre directamente la puntuación de ese día, sin pasar por la cita.
-- **Citas pasadas**: el historial, plegado.
-- **Nueva cita** (ya con el paciente elegido) y **Ver en la agenda**.
+- **Color de sus sesiones**: el color por defecto de sus sesiones nuevas.
+- **Se repiten cada semana**: sus series. **Cambiar…** cambia días, hora, duración o fecha de fin a partir del día que elijas. **Terminar…** anula las sesiones de la serie desde mañana (las anteriores se quedan).
+- **Próximas**: sus sesiones a partir de hoy. **Cambiar…** abre la sesión y **Puntuar** (si ese día tiene ejercicios) abre directamente la puntuación de ese día, sin pasar por la sesión.
+- **Sesiones pasadas**: el historial, plegado.
+- **Nueva sesión** (ya con el paciente elegido) y **Ver en la agenda**.
 
-**Horario de la agenda.** En **Ajustes → Agenda** eliges desde qué hora y hasta qué hora se ve la cuadrícula, qué días de la semana salen (un día sin marcar sale igualmente si tiene alguna cita) y cuánto duran las citas nuevas.
+**Horario de la agenda.** En **Ajustes → Agenda** eliges desde qué hora y hasta qué hora se ve la cuadrícula, qué días de la semana salen (un día sin marcar sale igualmente si tiene alguna sesión) y cuánto duran las sesiones nuevas.
 
-> **Consejo:** si anulas o cambias citas por error, pulsa **Deshacer** en el aviso de abajo.
+> **Consejo:** si anulas o cambias sesiones por error, pulsa **Deshacer** en el aviso de abajo.
 
 ## Google Calendar {#google-calendar}
 
 La agenda se puede sincronizar con tu **Google Calendar**, en los dos sentidos:
 
-- **De la aplicación a Google**: las citas se copian en un calendario nuevo de tu cuenta llamado **Fisioterapia · citas** (lo crea la aplicación). Cada cita que des, cambies o anules aquí cambia allí al poco tiempo, con su color. Así las ves también en el móvil.
-- **De Google a la aplicación**: si en Google Calendar mueves o borras una de esas citas, también cambia en la aplicación (sale un aviso con **Deshacer**). Si la misma cita se ha cambiado en los dos sitios a la vez, se queda la versión de la aplicación.
-- **Tus otros calendarios** (por ejemplo, el personal): de ellos solo se trae qué horas están **ocupadas**, sin el título de los eventos. En la agenda salen como zonas rayadas («Ocupado») y la ventana de la cita avisa si das una cita encima. En **Ajustes → Agenda → Elegir calendarios…** decides cuáles se usan (al principio, tu calendario principal).
+- **De la aplicación a Google**: las sesiones se copian en un calendario nuevo de tu cuenta llamado **Fisioterapia · sesiones** (lo crea la aplicación). Cada sesión que programes, cambies o anules aquí cambia allí al poco tiempo, con su color. Así las ves también en el móvil.
+- **De Google a la aplicación**: si en Google Calendar mueves o borras una de esas sesiones, también cambia en la aplicación (sale un aviso con **Deshacer**). Si la misma sesión se ha cambiado en los dos sitios a la vez, se queda la versión de la aplicación.
+- **Tus otros calendarios** (por ejemplo, el personal): de ellos solo se trae qué horas están **ocupadas**, sin el título de los eventos. En la agenda salen como zonas rayadas («Ocupado») y la ventana de la sesión avisa si la programas encima. En **Ajustes → Agenda → Elegir calendarios…** decides cuáles se usan (al principio, tu calendario principal).
 
-La aplicación sincroniza sola al abrirla, cada pocos minutos mientras está abierta y poco después de cada cambio en las citas. Arriba de la agenda ves cómo va («al día», «sincronizando…» o un error) y el botón **⟳** para sincronizar en ese momento. Hace falta conexión a internet; sin ella, la agenda funciona igual y se pone al día cuando vuelva la conexión.
+La aplicación sincroniza sola al abrirla, cada pocos minutos mientras está abierta y poco después de cada cambio en las sesiones. Arriba de la agenda ves cómo va («al día», «sincronizando…» o un error) y el botón **⟳** para sincronizar en ese momento. Hace falta conexión a internet; sin ella, la agenda funciona igual y se pone al día cuando vuelva la conexión.
 
-**Qué se ve en Google.** En **Ajustes → Agenda → Qué se ve en Google** eliges el título de los eventos: el **nombre y apellidos** del paciente (y la nota de la cita), **solo las iniciales** o **solo «Cita»**. Los datos de los pacientes son datos de salud: si prefieres que su nombre no salga de tu ordenador, usa las iniciales o «Cita».
+**Qué se ve en Google.** En **Ajustes → Agenda → Qué se ve en Google** eliges el título de los eventos: el **nombre y apellidos** del paciente (y la nota de la sesión), **solo las iniciales** o **solo «Sesión»**. Los datos de los pacientes son datos de salud: si prefieres que su nombre no salga de tu ordenador, usa las iniciales o «Sesión».
 
 **Configurarlo (solo la primera vez).** Google pide que cada aplicación tenga su propio «ID de cliente». Se crea gratis con tu cuenta de Google, en unos 10 minutos. En **Ajustes → Agenda** están los pasos:
 
@@ -382,9 +384,9 @@ La aplicación sincroniza sola al abrirla, cada pocos minutos mientras está abi
 
 El ID de cliente y el permiso se guardan solo en tu ordenador, fuera de la carpeta de datos (no van en las copias de seguridad). Cada carpeta de datos tiene su propio calendario en Google; la casilla **Sincronizar la agenda de esta carpeta de datos** la activa o la desactiva.
 
-**Desconectar.** **Desconectar de Google** retira el permiso. Lo que ya está en Google Calendar se queda allí; si no lo quieres, borra el calendario «Fisioterapia · citas» desde Google Calendar.
+**Desconectar.** **Desconectar de Google** retira el permiso. Lo que ya está en Google Calendar se queda allí; si no lo quieres, borra el calendario «Fisioterapia · sesiones» desde Google Calendar.
 
-> **Importante:** si borras el calendario «Fisioterapia · citas» en Google, la aplicación crea otro y vuelve a copiar en él las citas desde hace un mes.
+> **Importante:** si borras el calendario «Fisioterapia · sesiones» en Google, la aplicación crea otro y vuelve a copiar en él las sesiones desde hace un mes.
 
 ## Ejercicios {#ejercicios}
 
@@ -463,7 +465,7 @@ En **Ajustes → Datos**:
 
 - **Carpeta de datos**: dónde están la base de datos, las fotos y las copias. Con **Elegir otra carpeta…** puedes usar otra; cada carpeta es un juego de datos independiente.
 - **Ejercicios y bloques**: **Exportar…** e **Importar…** la biblioteca. Ver [Exportar e importar ejercicios y bloques](#exportar-importar).
-- **Borrar todo**: elimina pacientes, ejercicios, pautas, puntuaciones, planes y citas. Los ajustes se conservan. Para confirmarlo hay que escribir la palabra **BORRAR**.
+- **Borrar todo**: elimina pacientes, ejercicios, pautas, puntuaciones, planes y sesiones. Los ajustes se conservan. Para confirmarlo hay que escribir la palabra **BORRAR**.
 
 > **Importante:** después de **Borrar todo** solo tienes unos segundos para pulsar **Deshacer**; luego, solo se recupera restaurando una copia de seguridad.
 
@@ -495,4 +497,4 @@ Al actualizar, la aplicación hace sola una copia de seguridad de tus datos si l
 
 **Google Calendar dice «no se ha podido sincronizar».** Pulsa el aviso para ir a Ajustes → Agenda y ver el motivo. Si no hay internet, se pondrá al día sola al volver la conexión. Si dice que Google ha cerrado la conexión, pulsa **Conectar con Google…** otra vez (pasa si se retiró el permiso o si la aplicación de Google Cloud se quedó «En prueba», ver [Google Calendar](#google-calendar)).
 
-**Una cita cambiada en Google Calendar no cambia en la aplicación.** Solo se sincronizan las citas del calendario «Fisioterapia · citas». Lo que crees directamente en Google no pasa a la aplicación como cita: si está en uno de los calendarios elegidos, sale como «Ocupado». No crees eventos tuyos en «Fisioterapia · citas»: ese calendario es solo para las citas de la aplicación.
+**Una sesión cambiada en Google Calendar no cambia en la aplicación.** Solo se sincronizan las sesiones del calendario «Fisioterapia · sesiones». Lo que crees directamente en Google no pasa a la aplicación como sesión: si está en uno de los calendarios elegidos, sale como «Ocupado». No crees eventos tuyos en «Fisioterapia · sesiones»: ese calendario es solo para las sesiones de la aplicación.

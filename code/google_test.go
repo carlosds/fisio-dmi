@@ -23,6 +23,7 @@ type googleFalso struct {
 	eventos    map[string]*eventoGoogle
 	cambiados  []string // eventos que devolverá el próximo listado (cambios «hechos en Google»)
 	calendario string
+	nombreCal  string
 	borrado    bool // el calendario de la aplicación se ha borrado en Google
 	peticiones []string
 	n          int
@@ -56,16 +57,28 @@ func (g *googleFalso) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 	case p == "/calendars" && r.Method == "POST":
 		g.n++
 		g.calendario = fmt.Sprintf("cal%d@group", g.n)
+		var body struct {
+			Summary string `json:"summary"`
+		}
+		json.NewDecoder(r.Body).Decode(&body)
+		g.nombreCal = body.Summary
 		g.borrado = false
 		g.eventos = map[string]*eventoGoogle{}
 		writeJSON(map[string]string{"id": g.calendario})
-	case strings.HasPrefix(p, "/calendars/") && strings.Count(p, "/") == 2 && r.Method == "GET":
+	case strings.HasPrefix(p, "/calendars/") && strings.Count(p, "/") == 2 && (r.Method == "GET" || r.Method == "PATCH"):
 		if g.borrado || strings.TrimPrefix(p, "/calendars/") != g.calendario {
 			w.WriteHeader(404)
 			writeJSON(map[string]any{"error": map[string]string{"message": "Not Found"}})
 			return
 		}
-		writeJSON(map[string]string{"id": g.calendario})
+		if r.Method == "PATCH" {
+			var body struct {
+				Summary string `json:"summary"`
+			}
+			json.NewDecoder(r.Body).Decode(&body)
+			g.nombreCal = body.Summary
+		}
+		writeJSON(map[string]string{"id": g.calendario, "summary": g.nombreCal})
 	case p == "/freeBusy":
 		var body struct {
 			Items []struct {
@@ -323,12 +336,12 @@ func TestGoogleTitulosYLimite(t *testing.T) {
 		t.Fatalf("segunda pasada: subidas %d, pendientes %d", res.Subidas, res.Pendientes)
 	}
 	e := g.eventos[d.mapa["c000"].EventID]
-	if e.Summary != "Cita A. L." || strings.Contains(e.Description, "privada") {
+	if e.Summary != "Sesión A. L." || strings.Contains(e.Description, "privada") {
 		t.Fatalf("con iniciales no debe salir el nombre ni la nota: %q / %q", e.Summary, e.Description)
 	}
 	// Cambiar lo que se ve en Google vuelve a subir las citas.
 	d.titulo = "cita"
-	if res = pasar(t, d); res.Subidas != googleMaxCambios || g.eventos[d.mapa["c000"].EventID].Summary != "Cita" {
+	if res = pasar(t, d); res.Subidas != googleMaxCambios || g.eventos[d.mapa["c000"].EventID].Summary != "Sesión" {
 		t.Fatalf("cambio de título: subidas %d", res.Subidas)
 	}
 }
@@ -424,5 +437,35 @@ func TestGoogleColor(t *testing.T) {
 	}
 	if colorValido("12") != "" || colorValido("05") != "" || colorValido("7") != "7" {
 		t.Fatal("colorValido")
+	}
+}
+
+// El calendario creado cuando las sesiones se llamaban citas se renombra una vez; el nuevo ya nace con su nombre.
+func TestGoogleRenombraCalendarioViejo(t *testing.T) {
+	g, _ := prepararGoogleFalso(t)
+	d := nuevosDatos()
+	pasar(t, d)
+	if g.nombreCal != googleNombreCal {
+		t.Fatalf("calendario nuevo: %q", g.nombreCal)
+	}
+	g.nombreCal = googleNombreViejo
+	pasar(t, d)
+	if g.nombreCal != googleNombreCal {
+		t.Fatalf("no se ha renombrado el calendario viejo: %q", g.nombreCal)
+	}
+	n := 0
+	for _, p := range g.peticiones {
+		if strings.HasPrefix(p, "PATCH /calendars/") && strings.Count(p, "/") == 2 {
+			n++
+		}
+	}
+	pasar(t, d)
+	for _, p := range g.peticiones {
+		if strings.HasPrefix(p, "PATCH /calendars/") && strings.Count(p, "/") == 2 {
+			n--
+		}
+	}
+	if n != 0 {
+		t.Fatal("con el nombre nuevo no debería volver a renombrarlo")
 	}
 }

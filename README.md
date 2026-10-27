@@ -1,6 +1,6 @@
 # Fisioterapia
 
-Aplicación local (sin internet obligatorio) para gestionar pacientes, pautas de ejercicios, puntuaciones, citas e informes de fisioterapia pediátrica. Un único ejecutable en Go con la interfaz embebida; los datos van en SQLite en la carpeta que elija la usuaria.
+Aplicación local (sin internet obligatorio) para gestionar pacientes, pautas de ejercicios, puntuaciones, sesiones (agenda) e informes de fisioterapia pediátrica. Un único ejecutable en Go con la interfaz embebida; los datos van en SQLite en la carpeta que elija la usuaria.
 
 ## Estructura
 

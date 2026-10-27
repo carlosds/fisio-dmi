@@ -1,4 +1,4 @@
-# Sesiones: cada cita de un día es una sesión con sus ejercicios y puntuaciones; sin cita, la sesión «Sin cita».
+# Sesiones: cada cita de un día es una sesión con sus ejercicios y puntuaciones; sin cita, la sesión «Sin sesión».
 # Uso: python3 mock_server.py PUERTO seed_nuevo.json & ; python3 test_sesiones.py PUERTO
 import json, sys, urllib.request
 from playwright.sync_api import sync_playwright
@@ -29,24 +29,24 @@ with sync_playwright() as pw:
 
     print('\n[1] Día sin cita: se puntúa como siempre')
     page.evaluate("openPatient('p1'); irTab('calendario'); openDay(todayIso())"); page.wait_for_selector('#modal .ej-dia')
-    check(m.locator('.sesiones-dia').count() == 0 and 'Sin cita este día' in m.inner_text(), 'sin citas no hay botones de sesión, solo «Sin cita este día»')
+    check(m.locator('.sesiones-dia').count() == 0 and 'Sin sesión este día' in m.inner_text(), 'sin citas no hay botones de sesión, solo «Sin sesión este día»')
     puntuar('e1', 2)
     check(claves() == [f'p1|{hoy}|e1|1'], f'la puntuación se guarda sin sesión ({claves()})')
 
     print('\n[2] Apuntar la cita después de puntuar')
-    m.get_by_role('button', name='+ Cita').click(); page.wait_for_selector('#ctHora')
+    m.get_by_role('button', name='+ Sesión').click(); page.wait_for_selector('#ctHora')
     check(page.input_value('#ctPac') == 'p1' and page.input_value('#ctFecha') == hoy, 'la cita se propone para ese paciente y ese día')
     page.fill('#ctHora', '10:00'); respuestas[:] = ['asignar']
-    m.get_by_role('button', name='Dar cita').click(); page.wait_for_selector('#modal .sesiones-dia')
+    m.get_by_role('button', name='Programar sesión').click(); page.wait_for_selector('#modal .sesiones-dia')
     check(any('ejercicios sin sesión, con puntuaciones' in d for d in dialogos), 'pregunta qué hacer con lo que ya había sin cita')
     c1 = page.evaluate("db.citas[0].id")
     check(claves() == [f'p1|{hoy}|e1|1|{c1}'], f'al asignar los ejercicios existentes, la puntuación pasa a la cita ({claves()})')
-    check(m.locator('.ses-btn').count() == 1 and 'Cita 10:00–10:45' in m.locator('.ses-btn').inner_text() and '1 de 3 puntuados' in m.locator('.ses-btn').inner_text(), 'vuelve a la ventana del día, con la sesión de la cita')
+    check(m.locator('.ses-btn').count() == 1 and 'Sesión 10:00–10:45' in m.locator('.ses-btn').inner_text() and '1 de 3 puntuados' in m.locator('.ses-btn').inner_text(), 'vuelve a la ventana del día, con la sesión de la cita')
 
     print('\n[3] Segunda visita el mismo día: otra sesión con sus propias puntuaciones')
     dialogos.clear()
-    m.get_by_role('button', name='+ Cita').click(); page.wait_for_selector('#ctHora')
-    page.fill('#ctHora', '18:00'); m.get_by_role('button', name='Dar cita').click(); page.wait_for_selector('#modal .sesiones-dia')
+    m.get_by_role('button', name='+ Sesión').click(); page.wait_for_selector('#ctHora')
+    page.fill('#ctHora', '18:00'); m.get_by_role('button', name='Programar sesión').click(); page.wait_for_selector('#modal .sesiones-dia')
     check(not any('sin sesión' in d for d in dialogos), 'en la segunda cita del día ya no pregunta')
     c2 = page.evaluate("db.citas.find(c => c.hora === '18:00').id")
     check(m.locator('.ses-btn').count() == 2 and 'on' in m.locator('.ses-btn').nth(1).get_attribute('class'), 'dos sesiones; se abre la nueva')
@@ -71,7 +71,7 @@ with sync_playwright() as pw:
     check(next(x for x in st()['pautas'] if x['id'] == 'a3').get('sesion') == f'c:{c2}', 'la pauta queda ligada a esa cita')
     n1 = page.evaluate(f"exercisesSesion('p1', '{hoy}', '{c1}').length"); n2 = page.evaluate(f"exercisesSesion('p1', '{hoy}', '{c2}').length")
     check((n1, n2) == (2, 3), f'la cita de las 10:00 ya no tiene ese ejercicio y la de las 18:00 sí ({n1}, {n2})')
-    check('solo en la cita del' in page.locator('#pautasLista').inner_text(), 'la lista de pautas dice en qué cita toca')
+    check('solo en la sesión del' in page.locator('#pautasLista').inner_text(), 'la lista de pautas dice en qué cita toca')
     page.evaluate("openAssign(['p1'])"); page.wait_for_selector('#modal .exItem')
     check(page.locator('#sesPanel').count() == 1, 'al asignar a un paciente con citas se puede elegir la sesión')
     page.evaluate("closeModal(); openAssign(['p2'])"); page.wait_for_selector('#modal .exItem')
@@ -97,7 +97,7 @@ with sync_playwright() as pw:
     print('\n[6] Anular una cita con puntuaciones: no se pierden')
     respuestas[:] = [None]
     page.evaluate(f"closeModal(); anularCita('{c1}')"); page.wait_for_timeout(400)
-    check(st()['puntuaciones'].get(f'p1|{hoy}|e1|1') == 2 and not any(k.endswith('|' + c1) for k in st()['puntuaciones']), 'sus puntuaciones pasan a «Sin cita» en ese día')
+    check(st()['puntuaciones'].get(f'p1|{hoy}|e1|1') == 2 and not any(k.endswith('|' + c1) for k in st()['puntuaciones']), 'sus puntuaciones pasan a «Sin sesión» en ese día')
     ses = page.evaluate(f"sesionesDia('p1', '{hoy}').map(x => x.cita ? x.cita.hora : 'sin')")
     check(ses == ['18:00', 'sin'], f'el día queda con la cita de las 18:00 y la sesión sin cita ({ses})')
     check(page.evaluate(f"resumenDia('p1', '{hoy}', 'e1').avg") == 2.5, 'y la media del día no cambia')
@@ -117,7 +117,7 @@ with sync_playwright() as pw:
     print('\n[8] Informe y resumen')
     d = page.evaluate(f"datosPdf(getP('p1'), '{hoy}', '{hoy}')")
     titulos = [x['titulo'] for x in d['dias'][0]['sesiones']]
-    check(titulos == ['Cita 18:00–18:45', 'Sin cita'], f'el detalle del informe separa las sesiones ({titulos})')
+    check(titulos == ['Sesión 18:00–18:45', 'Sin sesión'], f'el detalle del informe separa las sesiones ({titulos})')
     check(abs(d['puntos'][0]['media'] - page.evaluate(f"(resumenDia('p1','{hoy}','e1').avg + resumenDia('p1','{hoy}','e2').avg) / 2")) < 1e-9, 'la gráfica usa la media del día')
     r = page.evaluate(f"datosRango(getP('p1'), '{hoy}', '{hoy}').stats.e1")
     check(r['exp'] == 1 and sorted(r['scores']) == [2, 3], 'en el resumen el ejercicio cuenta una vez ese día, con las puntuaciones de las dos sesiones')

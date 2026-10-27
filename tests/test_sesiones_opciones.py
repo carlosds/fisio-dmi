@@ -27,7 +27,7 @@ with sync_playwright() as pw:
     def dar_cita(fecha, hora, resp):
         dialogos.clear(); respuestas[:] = [resp]
         ev(f"closeModal(); openCita(null, {{ patientId: 'p1', fecha: '{fecha}', hora: '{hora}' }})"); page.wait_for_selector('#ctHora')
-        m.get_by_role('button', name='Dar cita').click(); page.wait_for_timeout(300)
+        m.get_by_role('button', name='Programar sesión').click(); page.wait_for_timeout(300)
         return ev(f"(db.citas.find(c => c.fecha === '{fecha}' && c.hora === '{hora}') || {{}}).id || null")
     nses = lambda f, ses: ev(f"exercisesSesion('p1', '{f}', '{ses}').length")
     sesiones = lambda f: ev(f"sesionesDia('p1', '{f}').map(x => x.id)")
@@ -44,7 +44,7 @@ with sync_playwright() as pw:
     c1 = dar_cita(H, '10:00', 'vacia')
     check(any('ya tiene 3 ejercicios sin sesión, con puntuaciones' in x for x in dialogos), f'pregunta qué hacer con los ejercicios sin sesión ({dialogos[-1][:80] if dialogos else ""})')
     check(c1 and nses(H, c1) == 0, 'la cita empieza sin ejercicios')
-    check(sesiones(H) == [c1, ''] and nses(H, '') == 3, 'los ejercicios siguen en «Sin cita» ese día')
+    check(sesiones(H) == [c1, ''] and nses(H, '') == 3, 'los ejercicios siguen en «Sin sesión» ese día')
     check(f'p1|{H}|e1|1' in st()['puntuaciones'], 'con sus puntuaciones')
     check(ev("db.pautas.find(p => p.id === 'a1').sesion") == '!c:' + c1, 'la pauta toca en todas las sesiones menos en esa cita')
     check(nses(d(1), '') == 3, 'los demás días no cambian')
@@ -53,7 +53,7 @@ with sync_playwright() as pw:
 
     print('\n[3] Copiando ejercicios')
     c2 = dar_cita(d(1), '10:00', 'copiar')
-    check(nses(d(1), c2) == 3 and nses(d(1), '') == 3 and sesiones(d(1)) == [c2, ''], 'la cita tiene una copia y «Sin cita» sigue con los suyos')
+    check(nses(d(1), c2) == 3 and nses(d(1), '') == 3 and sesiones(d(1)) == [c2, ''], 'la cita tiene una copia y «Sin sesión» sigue con los suyos')
     copias = ev(f"db.pautas.filter(p => p.sesion === 'c:{c2}').map(p => [p.desde, p.hasta])")
     check(len(copias) == 3 and all(x == [d(1), d(1)] for x in copias), 'las copias son solo de ese día')
     check(nses(d(2), '') == 3 and sesiones(d(2)) == [''], 'el día siguiente no cambia')
@@ -71,7 +71,7 @@ with sync_playwright() as pw:
     print('\n[6] Serie nueva: una sola pregunta para todos sus días')
     dialogos.clear(); respuestas[:] = ['vacia']
     ev(f"openCita(null, {{ patientId: 'p1', fecha: '{d(7)}', hora: '17:00', repetir: true }})"); page.wait_for_selector('#ctHasta')
-    page.fill('#ctHasta', d(21)); m.get_by_role('button', name='Dar cita').click(); page.wait_for_timeout(300)
+    page.fill('#ctHasta', d(21)); m.get_by_role('button', name='Programar sesión').click(); page.wait_for_timeout(300)
     serie = ev(f"db.citas.filter(c => c.serieId).map(c => c.id)")
     check(len(serie) == 3 and sum('sin sesión' in x for x in dialogos) == 1 and any('3 días de la serie' in x for x in dialogos), 'pregunta una vez por los 3 días')
     check(all(nses(f, c) == 0 for f, c in zip([d(7), d(14), d(21)], serie)) and nses(d(7), '') == 3, 'sus citas empiezan vacías y los ejercicios siguen sin sesión')
@@ -85,15 +85,15 @@ with sync_playwright() as pw:
     dialogos.clear(); respuestas[:] = [None]; fila(c1).get_by_role('button', name='Anular').click(); page.wait_for_timeout(300)
     check(not ev(f"!!getCita('{c1}')") and not any('ejercicio' in x for x in dialogos), 'una cita sin ejercicios se anula sin más avisos')
     dialogos.clear(); respuestas[:] = [None]; fila(c2).get_by_role('button', name='Anular').click(); page.wait_for_timeout(300)
-    check(any('Esta cita tiene 3 ejercicios (sin puntuar)' in x for x in dialogos), 'con ejercicios sin puntuar, avisa')
+    check(any('Esta sesión tiene 3 ejercicios (sin puntuar)' in x for x in dialogos), 'con ejercicios sin puntuar, avisa')
     check(ev(f"db.pautas.filter(p => p.sesion === 'c:{c2}').length") == 0, 'las pautas que eran solo de esa cita se quitan')
     ev(f"db.pautas.push({{ id: 'solo', patientId: 'p1', exerciseId: 'e4', desde: '{d(2)}', hasta: '{d(2)}', asignacion: 'g9', bloqueId: '', orden: 9, sesion: 'c:{c3}' }}); db.puntuaciones['p1|{d(2)}|e4|1|{c3}'] = 1; idxPunt = null; render()")
     dialogos.clear(); respuestas[:] = [False]; fila(c3).get_by_role('button', name='Anular').click(); page.wait_for_timeout(300)
-    check(any('⚠' in x and '2 ejercicios puntuados' in x and 'pasan a «Sin cita»' in x for x in dialogos), 'con puntuaciones, el aviso lo destaca')
+    check(any('⚠' in x and '2 ejercicios puntuados' in x and 'pasan a «Sin sesión»' in x for x in dialogos), 'con puntuaciones, el aviso lo destaca')
     check(ev(f"!!getCita('{c3}')"), 'si se cancela, la cita sigue')
     respuestas[:] = [None]; fila(c3).get_by_role('button', name='Anular').click(); page.wait_for_timeout(300)
     p = st()['puntuaciones']
-    check(p.get(f'p1|{d(2)}|e2|1') == 3 and p.get(f'p1|{d(2)}|e4|1') == 1, 'al anularla, las puntuaciones pasan a «Sin cita»')
+    check(p.get(f'p1|{d(2)}|e2|1') == 3 and p.get(f'p1|{d(2)}|e4|1') == 1, 'al anularla, las puntuaciones pasan a «Sin sesión»')
     check(nses(d(2), '') == 4, 'y el ejercicio que era solo de la cita sigue ese día, sin sesión')
     check(page.locator('#deshacer.visible').count() == 1, 'se puede deshacer')
 
