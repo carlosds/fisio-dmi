@@ -1,0 +1,111 @@
+# Google Calendar en la página: configuración, sincronización, horas ocupadas y cambios hechos en Google.
+# El servidor de pruebas simula /api/google/* (el servidor de verdad se prueba en google_test.go.txt).
+# Uso: python3 mock_server.py PUERTO seed_nuevo.json & ; python3 test_google.py PUERTO
+import json, sys, urllib.request
+from playwright.sync_api import sync_playwright
+PORT = sys.argv[1]; BASE = f'http://127.0.0.1:{PORT}'
+fails = []
+def check(c, m):
+    print(('  ok  ' if c else '  FALLA ') + m)
+    if not c: fails.append(m)
+st = lambda: json.loads(urllib.request.urlopen(BASE + '/__state').read())
+g = lambda: json.loads(urllib.request.urlopen(BASE + '/__google').read())
+def g_pon(**kw): urllib.request.urlopen(urllib.request.Request(BASE + '/__google', data=json.dumps(kw).encode(), method='POST'))
+
+with sync_playwright() as pw:
+    b = pw.chromium.launch(); ctx = b.new_context(viewport={'width': 1300, 'height': 900}); page = ctx.new_page()
+    errs = []; page.on('pageerror', lambda e: errs.append(str(e)))
+    respuestas = []; dialogos = []
+    def on_dialog(d):
+        dialogos.append(d.message); r = respuestas.pop(0) if respuestas else None
+        d.dismiss() if r is False else d.accept()
+    page.on('dialog', on_dialog)
+    page.goto(BASE + '/'); page.wait_for_selector('#listaPacientes'); page.evaluate('descartarNovedades()')
+    L = page.evaluate("addDays(iso(inicioSemana(new Date())), 7)")
+    d = lambda n: page.evaluate(f"addDays('{L}', {n})")
+
+    print('\n[1] Sin configurar')
+    page.evaluate("go('agenda')"); page.wait_for_timeout(200)
+    check(g()['syncs'] == 0, 'sin conectar no se sincroniza nada')
+    page.get_by_role('button', name='Conectar con Google Calendar').click(); page.wait_for_timeout(200)
+    check(page.evaluate("ui.view + ui.ajTab") == 'ajustesagenda', 'el enlace de la agenda lleva a Ajustes › Agenda')
+    check('console.cloud.google.com' in page.inner_text('#googleAjustes') and 'App de escritorio' in page.inner_text('#googleAjustes'), 'se ven los pasos para crear el ID de cliente')
+    page.fill('#gCliente', 'esto no es un id'); page.fill('#gSecreto', 'GOCSPX-1'); page.get_by_role('button', name='Guardar', exact=True).click(); page.wait_for_timeout(300)
+    check(any('no parece correcto' in x for x in dialogos), 'un ID de cliente mal copiado se rechaza')
+    page.set_input_files('#gArchivo', files=[{'name': 'client_secret.json', 'mimeType': 'application/json', 'buffer': json.dumps({'installed': {'client_id': '123-abc.apps.googleusercontent.com', 'client_secret': 'GOCSPX-xyz'}}).encode()}])
+    page.wait_for_timeout(200)
+    check(page.input_value('#gCliente') == '123-abc.apps.googleusercontent.com' and page.input_value('#gSecreto') == 'GOCSPX-xyz', 'el archivo JSON que descarga Google rellena el ID y el secreto')
+    page.get_by_role('button', name='Guardar', exact=True).click(); page.wait_for_selector('text=Conectar con Google…')
+    check('123-abc.apps.googleusercontent.com' in page.inner_text('#googleAjustes'), 'guardado: ahora toca conectar')
+    with ctx.expect_page() as nueva:
+        page.get_by_role('button', name='Conectar con Google…').click()
+    pestaña = nueva.value
+    check(pestaña.url.endswith('/api/google/conectar'), 'conectar abre la página de Google en otra pestaña')
+    pestaña.close()
+    check('Esperando a que termines' in page.inner_text('#googleAjustes'), 'mientras, la aplicación espera')
+    g_pon(conectado=True, activo=True, cuenta='clinica@gmail.com', ocupados=[{'inicio': L + 'T10:00', 'fin': L + 'T11:00'}])
+    page.wait_for_selector('text=Conectada con la cuenta de Google', timeout=8000); page.wait_for_timeout(500)
+    check('clinica@gmail.com' in page.inner_text('#googleAjustes') and page.is_checked('#gActivo'), 'al dar permiso en Google, se ve conectada y activada sin recargar')
+    check(g()['syncs'] >= 1, 'y sincroniza enseguida')
+
+    print('\n[2] Horas ocupadas en Google')
+    page.evaluate(f"ui.agFecha = fromIso('{L}'); go('agenda')"); page.wait_for_timeout(200)
+    check(page.locator(f'.ag-col[data-fecha="{L}"] .ag-ocupado').count() == 1, 'el hueco ocupado sale rayado en la agenda')
+    check('Google Calendar: al día' in page.inner_text('#estadoGoogle'), 'arriba se ve que está al día')
+    page.evaluate(f"openCita(null, {{ fecha: '{L}', hora: '10:30', patientId: 'p1' }})"); page.wait_for_selector('#ctSolape')
+    check('10:00–11:00 ocupado en Google Calendar' in page.inner_text('#ctSolape'), 'la cita avisa si cae en una hora ocupada en Google')
+    page.fill('#ctHora', '12:00'); page.dispatch_event('#ctHora', 'change')
+    n0 = g()['syncs']
+    page.get_by_role('button', name='Dar cita').click(); page.wait_for_timeout(500)
+    check(g()['syncs'] == n0, 'no sincroniza en cada clic…')
+    page.wait_for_timeout(3500)
+    check(g()['syncs'] == n0 + 1, '…sino unos segundos después de cambiar las citas')
+    page.evaluate("render()"); page.wait_for_timeout(3500)
+    check(g()['syncs'] == n0 + 1, 'si las citas no cambian, no vuelve a sincronizar')
+
+    print('\n[3] Cambios hechos en Google')
+    cid = page.evaluate("db.citas[0].id")
+    page.evaluate(f"openCita(null, {{ fecha: '{d(1)}', hora: '17:00', patientId: 'p1', repetir: true }})"); page.wait_for_selector('#ctHasta')
+    page.fill('#ctHasta', d(15)); page.locator('#modal').get_by_role('button', name='Dar cita').click(); page.wait_for_timeout(300)
+    serie = page.evaluate(f"db.citas.filter(c => c.serieId).map(c => c.id)")
+    check(len(serie) == 3, 'una serie de 3 martes')
+    g_pon(cambios=[{'citaId': cid, 'accion': 'mover', 'fecha': d(2), 'hora': '13:00', 'duracion': 60}, {'citaId': serie[1], 'accion': 'anular'}, {'citaId': 'no-existe', 'accion': 'anular'}])
+    page.locator('#estadoGoogle').get_by_role('button', name='Sincronizar ahora con Google Calendar').click(); page.wait_for_timeout(800)
+    c = page.evaluate(f"getCita('{cid}')")
+    check(c['fecha'] == d(2) and c['hora'] == '13:00' and c['duracion'] == 60, 'una cita movida en Google se mueve aquí')
+    check(page.evaluate(f"!getCita('{serie[1]}')") and d(8) in page.evaluate("db.seriesCitas[0].excluidas"), 'una cita de la serie borrada en Google se anula aquí (y la serie no la vuelve a crear)')
+    bar = page.locator('#deshacer.visible')
+    check(bar.count() == 1 and 'Desde Google Calendar: 1 cita cambiada y 1 cita anulada' in bar.inner_text(), 'sale un aviso con lo que ha cambiado desde Google')
+    page.wait_for_timeout(400)
+    s = st()
+    check(any(x['id'] == cid and x['hora'] == '13:00' for x in s['citas']) and not any(x['id'] == serie[1] for x in s['citas']), 'los cambios se guardan')
+    bar.get_by_role('button', name='Deshacer').click(); page.wait_for_timeout(400)
+    check(page.evaluate(f"getCita('{cid}').hora") == '12:00' and page.evaluate(f"!!getCita('{serie[1]}')"), 'y se pueden deshacer (se volverán a subir a Google)')
+
+    print('\n[4] Errores')
+    g_pon(falla='Google ha cerrado la conexión: vuelve a conectar')
+    page.locator('#estadoGoogle').get_by_role('button', name='Sincronizar ahora con Google Calendar').click(); page.wait_for_timeout(600)
+    check(any('No se ha podido sincronizar con Google Calendar' in x and 'vuelve a conectar' in x for x in dialogos), 'al sincronizar a mano, un error se explica')
+    check('no se ha podido sincronizar' in page.inner_text('#estadoGoogle'), 'y arriba queda marcado')
+    g_pon(falla='')
+    page.evaluate("ui.ajTab = 'agenda'; go('ajustes')"); page.wait_for_timeout(300)
+    check('Error: Google ha cerrado la conexión' in page.inner_text('#googleAjustes'), 'en Ajustes se ve el motivo')
+
+    print('\n[5] Ajustes: calendarios, título y desconectar')
+    g_pon(calendarios=['clinica@gmail.com', 'Familia', 'Festivos'])
+    page.get_by_role('button', name='Elegir calendarios…').click(); page.wait_for_selector('#gCalendarios input')
+    check(page.locator('#gCalendarios input').count() == 3 and page.locator('#gCalendarios input:checked').count() == 1, 'lista los calendarios de la cuenta (marcado el principal)')
+    page.locator('#gCalendarios label', has_text='Familia').locator('input').check()
+    page.locator('#gCalendarios').get_by_role('button', name='Guardar').click(); page.wait_for_timeout(500)
+    check(g()['pedidos'][-1] == {'ids': ['clinica@gmail.com', 'Familia']}, 'guarda los calendarios elegidos')
+    page.select_option('#gTitulo', 'iniciales'); page.wait_for_timeout(300)
+    check(st()['ajustes'].get('googleTitulo') == 'iniciales', 'el título de los eventos se guarda')
+    page.uncheck('#gActivo'); page.wait_for_timeout(400)
+    check(g()['activo'] is False and 'Sincronizar ahora' not in page.inner_text('#googleAjustes'), 'se puede desactivar para esta carpeta de datos')
+    respuestas[:] = [None]
+    page.get_by_role('button', name='Desconectar de Google').click(); page.wait_for_timeout(400)
+    check(g()['conectado'] is False and 'Conectar con Google…' in page.inner_text('#googleAjustes'), 'desconectar vuelve al paso de conectar')
+    check(not errs, f'sin errores JS {errs}')
+    b.close()
+print('\nRESULTADO:', 'TODO OK' if not fails else f'{len(fails)} FALLOS')
+sys.exit(1 if fails else 0)

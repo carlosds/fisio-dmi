@@ -1,0 +1,34 @@
+CÓMO ACTUALIZAR FISIOTERAPIA A UNA VERSIÓN NUEVA
+================================================
+
+Tus datos (pacientes, ejercicios, fotos, copias de seguridad) NO están dentro de la aplicación:
+están en tu carpeta de datos, así que al actualizar no se pierden.
+
+1. CIERRA la aplicación: pulsa «Salir» en el menú de arriba.
+   Si tu versión todavía no tiene «Salir», cierra la ventana negra (Terminal en Mac, ventana de
+   comandos en Windows). Si no estás segura de si sigue abierta, reinicia el ordenador.
+
+2. Descomprime el archivo nuevo (.zip) que te han enviado.
+
+3. SUSTITUYE los archivos de la aplicación por los nuevos, en la misma carpeta donde los tenías
+   (los dos, también el de doble clic, que a veces cambia):
+   - Mac:      fisioterapia  y  Fisioterapia.command
+   - Windows:  fisioterapia.exe  y  Fisioterapia.bat
+   (Si te piden confirmar que quieres reemplazar, di que sí.)
+
+4. ABRE la aplicación de siempre (doble clic en Fisioterapia.command / Fisioterapia.bat).
+   La primera vez con una versión nueva puede tardar unos segundos: hace una copia de seguridad
+   automática de tus datos antes de actualizarlos (la verás en Ajustes > Copias de seguridad, con
+   un nombre que empieza por "copia-previa-actualizacion"; no se borra sola).
+   Si se te olvidó cerrar la versión anterior, la nueva la cierra sola. Si sale un aviso de que
+   sigue abierta otra versión, ciérrala (o reinicia el ordenador) y vuelve a abrir.
+
+5. COMPRUEBA la versión: en la barra de arriba, a la derecha de todo, aparece el número
+   (por ejemplo v0.0.5).
+   Si sigue saliendo el número antiguo, la aplicación vieja seguía abierta: repite desde el paso 1.
+   Arriba saldrá un aviso con las novedades de la versión.
+
+IMPORTANTE
+- No vuelvas a una versión ANTERIOR después de haber usado una nueva: la aplicación te avisará y no
+  abrirá los datos, para no estropearlos.
+- Si algo falla, no borres nada: avisa y se restaura desde la copia de seguridad.
