@@ -1,0 +1,130 @@
+.gitignore
+  h_c753831e532a0e 1-2,4-9,11-17
+README.md
+  h_c753831e532a0e 1-27
+code/exportar_test.go
+  h_c753831e532a0e 1-177
+code/google.go
+  h_c753831e532a0e 1-1016
+code/google_test.go
+  h_c753831e532a0e 1-428
+code/index.html
+  h_c753831e532a0e 1-5852
+code/main.go
+  h_c753831e532a0e 1-2773
+code/pdf-lib.min.js
+  h_c753831e532a0e 1-16
+code/sesion_test.go
+  h_c753831e532a0e 1-26
+code/soloLocal_test.go
+  h_c753831e532a0e 1-35
+docs/ACTUALIZAR.txt
+  h_c753831e532a0e 1-34
+docs/AYUDA.md
+  h_c753831e532a0e 1-498
+docs/CHANGELOG.md
+  h_c753831e532a0e 1-100
+docs/DOCUMENTACION.md
+  h_c753831e532a0e 1-713
+docs/embed.go
+  h_c753831e532a0e 1-15
+docs/pdf-lib.LICENSE.md
+  h_c753831e532a0e 1-21
+go.mod
+  h_c753831e532a0e 1-17
+go.sum
+  h_c753831e532a0e 1-50
+internal/bloques_dmi.json
+  h_c753831e532a0e 1-102
+scripts/Fisioterapia.bat
+  h_c753831e532a0e 1-28
+scripts/Fisioterapia.command
+  h_c753831e532a0e 1-28
+scripts/build.sh
+  h_c753831e532a0e 1-47
+tests/ayuda_planes.py
+  h_c753831e532a0e 1-9
+tests/gen_bloques.py
+  h_c753831e532a0e 1-100
+tests/mock_server.py
+  h_c753831e532a0e 1-116
+tests/seed_nuevo.json
+  h_c753831e532a0e 1
+tests/test_005.py
+  h_c753831e532a0e 1-202
+tests/test_agenda.py
+  h_c753831e532a0e 1-293
+tests/test_aviso_bloques.py
+  h_c753831e532a0e 1-31
+tests/test_ayuda.py
+  h_c753831e532a0e 1-61
+tests/test_buscador_pac.py
+  h_c753831e532a0e 1-48
+tests/test_dia.py
+  h_c753831e532a0e 1-44
+tests/test_dia_pestanas.py
+  h_c753831e532a0e 1-36
+tests/test_dialogos.py
+  h_c753831e532a0e 1-134
+tests/test_eliminar_paciente.py
+  h_c753831e532a0e 1-59
+tests/test_evaluaciones.py
+  h_c753831e532a0e 1-35
+tests/test_foto_ampliar.py
+  h_c753831e532a0e 1-19
+tests/test_fotos.py
+  h_c753831e532a0e 1-63
+tests/test_google.py
+  h_c753831e532a0e 1-111
+tests/test_informes.py
+  h_c753831e532a0e 1-70
+tests/test_libre.py
+  h_c753831e532a0e 1-37
+tests/test_lote.py
+  h_c753831e532a0e 1-156
+tests/test_maestros.py
+  h_c753831e532a0e 1-110
+tests/test_negrita.py
+  h_c753831e532a0e 1-38
+tests/test_novedades.py
+  h_c753831e532a0e 1-34
+tests/test_nuevo.py
+  h_c753831e532a0e 1-160
+tests/test_pestanas_paciente.py
+  h_c753831e532a0e 1-39
+tests/test_planes.py
+  h_c753831e532a0e 1-199
+tests/test_plantilla_semanas.py
+  h_c753831e532a0e 1-60
+tests/test_plantillas.py
+  h_c753831e532a0e 1-110
+tests/test_prefijo.py
+  h_c753831e532a0e 1-45
+tests/test_reps_resumen.py
+  h_c753831e532a0e 1-67
+tests/test_scroll_modal.py
+  h_c753831e532a0e 1-27
+tests/test_scroll_pacientes.py
+  h_c753831e532a0e 1-21
+tests/test_sesiones.py
+  h_c753831e532a0e 1-138
+tests/test_sesiones_opciones.py
+  h_c753831e532a0e 1-133
+tests/test_sql.py
+  h_c753831e532a0e 1-298
+tests/test_ui.py
+  h_c753831e532a0e 1-367
+tests/test_vaciar.py
+  h_c753831e532a0e 1-64
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.7.6",
+  "base_commit_sha": "66172529cf7a5d41f7dcefb112b32fddd9a30aaa",
+  "prompts": {},
+  "humans": {
+    "h_c753831e532a0e": {
+      "author": "Carlos Dabarca Soto <carlosdsot@inditex.com>"
+    }
+  }
+}
