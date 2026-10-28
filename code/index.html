@@ -55,6 +55,7 @@ label{display:block;font-size:14px;color:var(--muted);margin:10px 0 4px}
 #fotoAmpliada figcaption{margin-top:10px;font-size:16px}
 .avatar.empty{display:flex;align-items:center;justify-content:center;color:var(--muted);font-family:Georgia,serif}
 .muted{color:var(--muted);font-size:14px}
+.linea-ses{padding-left:18px;margin-top:2px}
 .search{margin:12px 0 4px}
 .paginacion{display:flex;flex-wrap:wrap;gap:8px 16px;align-items:center;justify-content:space-between;padding:10px 0 2px;font-size:14px;color:var(--muted)}
 .paginacion label{display:flex;gap:6px;align-items:center;margin:0}
@@ -919,7 +920,7 @@ document.addEventListener('keydown', e => {
 function openPatient(id){ prepararPaciente(id); render(); window.scrollTo(0, 0); }
 // Deja la ficha de un paciente lista para verse (pestaña Pautas, sin búsquedas de otro paciente).
 function prepararPaciente(id){
-  ui.patientId = id; ui.tabP = 'pautas'; ui.calVista = 'calendario'; ui.planCasaId = null; ui.fPlanes = null; ui.qH = ''; ui.qEv = ''; ui.qPautas = ''; ui.qCal = ''; ui.qRes = ''; ui.qCasa = ''; ui.casaExpMsg = null; fotosPend = { hitos: [], evaluaciones: [] }; ui.view = 'paciente'; ui.fecha = new Date(); ui.res.fecha = new Date(); ui.res.vista = 'mes';
+  ui.patientId = id; ui.tabP = 'pautas'; ui.calVista = 'calendario'; ui.planCasaId = null; ui.fPlanes = null; ui.qH = ''; ui.qEv = ''; ui.qPautas = ''; ui.qCal = ''; ui.qRes = ''; ui.qCasa = ''; ui.infQ = ''; ui.casaExpMsg = null; fotosPend = { hitos: [], evaluaciones: [] }; ui.view = 'paciente'; ui.fecha = new Date(); ui.res.fecha = new Date(); ui.res.vista = 'mes';
 }
 function render(){
   if (loaded) normalizarSesiones();
@@ -958,9 +959,14 @@ function viewPacientes(){
         </select>
         <label style="margin:0">Ordenar por</label>
         <select id="ordenPac" style="width:auto" onchange="ui.ordenPac=this.value;refrescarPacientes()">
-          <option value="nombre" ${ui.ordenPac !== 'sesion' ? 'selected' : ''}>Apellidos</option>
+          <option value="nombre" ${(ui.ordenPac || 'nombre') === 'nombre' ? 'selected' : ''}>Apellidos</option>
           <option value="sesion" ${ui.ordenPac === 'sesion' ? 'selected' : ''}>Última sesión</option>
+          <option value="proxima" ${ui.ordenPac === 'proxima' ? 'selected' : ''}>Próxima sesión</option>
         </select>
+      </div>
+      <div class="row" style="align-items:center;margin-bottom:6px">
+        <span class="muted">Con sesiones:</span>
+        <span id="filtroSesiones">${filtroSesionesHTML()}</span>
       </div>
       <div class="list" id="listaPacientes"></div>
     </div>`;
@@ -976,22 +982,32 @@ function refrescarPacientes(){
     <button class="danger" onclick="delPacientes([...ui.selected])" title="Elimina a los pacientes marcados y todos sus datos">Eliminar (${n})</button>` : '') + `
     <button class="btn" onclick="openPatientForm()">Nuevo paciente</button>`;
   const q = norm(ui.qP).split(/\s+/).filter(Boolean);
-  const t = todayIso();
+  const t = todayIso(), tipos = tiposSesionPac(), sesFiltro = ui.filtroSes || [];
+  $('#filtroSesiones').innerHTML = filtroSesionesHTML();
   const ultima = ultimasSesiones(), hastaCasa = finPlanesCasa(), proximas = {};
   for (const c of [...db.citas].sort(ordenCita)) if (c.fecha >= t && !proximas[c.patientId] && (c.fecha > t || minDe(c.hora) + c.duracion >= new Date().getHours() * 60 + new Date().getMinutes())) proximas[c.patientId] = c;
   const porNombre = (a, b) => (a.apellidos + a.nombre).localeCompare(b.apellidos + b.nombre, 'es');
+  // Sin próxima sesión, al final de la lista.
+  const porProxima = (a, b) => proximas[a.id] && proximas[b.id] ? ordenCita(proximas[a.id], proximas[b.id]) || porNombre(a, b) : proximas[a.id] ? -1 : proximas[b.id] ? 1 : porNombre(a, b);
+  const orden = { sesion: (a, b) => (ultima[b.id] || '').localeCompare(ultima[a.id] || '') || porNombre(a, b), proxima: porProxima }[ui.ordenPac] || porNombre;
   const list = pacientesVisibles()
     .filter(p => { const txt = norm([p.nombre, p.apellidos, p.telefono, p.email].join(' ')); return q.every(x => txt.includes(x)); })
-    .sort((a, b) => ui.ordenPac === 'sesion' ? ((ultima[b.id] || '').localeCompare(ultima[a.id] || '') || porNombre(a, b)) : porNombre(a, b));
-  const pag = paginar('pacientes', list, 'refrescarPacientes()', [ui.qP, ui.filtroPac, ui.ordenPac].join('|'));
+    .filter(p => !sesFiltro.length || sesFiltro.some(k => tipos[p.id] && tipos[p.id].has(k)))
+    .sort(orden);
+  const pag = paginar('pacientes', list, 'refrescarPacientes()', [ui.qP, ui.filtroPac, ui.ordenPac, sesFiltro.join(',')].join('|'));
   const rows = pag.items.map(p => {
     const { total: nHoy, hechos } = cuentaDia(p.id, t);   // cada sesión de hoy cuenta aparte
     const datos = [
       nHoy ? `Hoy: <strong>${hechos} de ${nHoy}</strong> puntuados` : 'Hoy no tiene ejercicios',
-      ultima[p.id] ? `Última sesión: ${esc(fmt(ultima[p.id]))}` : 'Sin sesiones puntuadas',
-      hastaCasa[p.id] >= t ? `Plan en casa hasta el ${esc(fmt(hastaCasa[p.id]))}` : '',
-      proximas[p.id] ? `Próxima sesión: ${esc(textoProximaCita(proximas[p.id]))}` : ''
+      ultima[p.id] ? '' : 'Sin sesiones puntuadas',
+      hastaCasa[p.id] >= t ? `Plan en casa hasta el ${esc(fmt(hastaCasa[p.id]))}` : ''
     ].filter(Boolean).join(' · ');
+    // Última y próxima sesión, una debajo de otra. La última no sale si es el mismo día que la próxima.
+    const prox = proximas[p.id], mostrarUltima = ultima[p.id] && (!prox || prox.fecha !== ultima[p.id]);
+    const lineasSes = [
+      mostrarUltima ? `Última sesión: ${esc(fmt(ultima[p.id]))}` : '',
+      prox ? `Próxima sesión: ${esc(textoProximaCita(prox))}` : ''
+    ].filter(Boolean).map(l => `<div class="muted linea-ses">${l}</div>`).join('');
     return `
     <div class="item fila-pac">
       <input type="checkbox" style="width:auto" ${ui.selected.has(p.id) ? 'checked' : ''}
@@ -1000,6 +1016,7 @@ function refrescarPacientes(){
       <div style="flex:1;min-width:0">
         <a href="#" onclick="openPatient('${p.id}');return false" style="font-weight:600;color:var(--ink)">${esc(p.apellidos)}, ${esc(p.nombre)}</a>${p.archivado ? ' <span class="nivel">Archivado</span>' : ''}
         <div class="muted">${datos}${p.telefono ? ' · ' + esc(p.telefono) : ''}</div>
+        ${lineasSes}
       </div>
       ${p.archivado ? '' : `<button class="ghost small" onclick="openCita(null, { patientId: '${p.id}' })" title="Programar una sesión para ${esc(p.nombre)} ${esc(p.apellidos)}">Nueva sesión</button>`}
       ${nHoy && !p.archivado ? `<button class="${hechos < nHoy ? 'btn' : 'ghost'} small" onclick="puntuarHoy('${p.id}')">${hechos < nHoy ? 'Puntuar hoy' : 'Ver hoy'}</button>` : ''}
@@ -1026,6 +1043,27 @@ function ultimasSesiones(){
 function pacientesVisibles(){
   const f = ui.filtroPac || 'activos';
   return db.patients.filter(p => f === 'todos' || (f === 'archivados' ? p.archivado : !p.archivado));
+}
+// Filtro por fechas de sesión: un paciente sale si tiene alguna sesión del tipo marcado (varios tipos suman).
+const SESIONES_FILTRO = [['pasada', 'Pasadas'], ['hoy', 'Hoy'], ['futura', 'Futuras']];
+function filtroSesionesHTML(){
+  const sel = ui.filtroSes || [];
+  return `<div class="tabs" role="group" aria-label="Pacientes con sesiones">${SESIONES_FILTRO.map(([k, t]) =>
+    `<button class="${sel.includes(k) ? 'on' : ''}" aria-pressed="${sel.includes(k)}" onclick="toggleFiltroSes('${k}')">${t}</button>`).join('')}</div>`;
+}
+function toggleFiltroSes(k){
+  const sel = ui.filtroSes || [];
+  ui.filtroSes = sel.includes(k) ? sel.filter(x => x !== k) : [...sel, k];
+  ui.selected.clear(); refrescarPacientes();
+}
+// Qué tipos de sesión tiene cada paciente (pasada: antes de hoy; hoy; futura: después de hoy).
+function tiposSesionPac(){
+  const t = todayIso(), m = {};
+  for (const c of db.citas){
+    const k = c.fecha < t ? 'pasada' : c.fecha === t ? 'hoy' : 'futura';
+    (m[c.patientId] = m[c.patientId] || new Set()).add(k);
+  }
+  return m;
 }
 // Archivar: el paciente sale de la lista (y de los selectores) pero conserva todo; «Recuperar» lo devuelve.
 async function archivarPacientes(ids, archivar){
@@ -3002,6 +3040,7 @@ function viewAgenda(){
           <button class="ghost small" onclick="ui.agFecha = new Date(); render()">Hoy</button>
           <button class="ghost small" onclick="navAgenda(1)">Siguiente</button>
           <input type="date" aria-label="Ir a una fecha" style="width:auto" value="${iso(ui.agFecha)}" onchange="if(this.value){ ui.agFecha = fromIso(this.value); render(); }">
+          <input type="search" id="buscarAgenda" aria-label="Buscar paciente en la agenda" placeholder="Buscar paciente" style="width:auto;min-width:200px" value="${esc(ui.qAg || '')}" oninput="ui.qAg=this.value; refrescarAgenda()">
         </div>
         <div class="tabs" id="vistaAgenda">
           <button class="${v === 'dia' ? 'on' : ''}" aria-pressed="${v === 'dia'}" onclick="ui.agVista='dia'; render()">Día</button>
@@ -3015,17 +3054,22 @@ function viewAgenda(){
     </div>`;
 }
 function refrescarAgenda(){ const c = $('#agendaCuerpo'); if (c){ c.innerHTML = ui.agVista === 'mes' ? agendaMesHTML() : agendaCuerpoHTML(); situarAgenda(); } }
+// Las sesiones que casan con el buscador de pacientes de la agenda (todas si está vacío).
+function citasAgenda(){
+  const q = norm(ui.qAg).split(/\s+/).filter(Boolean);
+  return q.length ? db.citas.filter(c => { const txt = norm(nombrePac(getP(c.patientId))); return q.every(x => txt.includes(x)); }) : db.citas;
+}
 // Vista de mes: una casilla por día con sus citas (las primeras; «+N más» lleva al día).
 const MAX_CITAS_MES = 4;
 function agendaMesHTML(){
   const f = ui.agFecha, primero = new Date(f.getFullYear(), f.getMonth(), 1), ultimo = iso(new Date(f.getFullYear(), f.getMonth() + 1, 0));
   const hoy = todayIso(), mes = iso(primero).slice(0, 7), visibles = db.ajustes.agendaDias || '12345';
-  const delMes = db.citas.filter(c => c.fecha.startsWith(mes));
+  const citas = citasAgenda(), delMes = citas.filter(c => c.fecha.startsWith(mes));
   const cols = ['1', '2', '3', '4', '5', '6', '7'].filter(d => visibles.includes(d) || delMes.some(c => digitoDia(c.fecha) === d));
   const semanas = [];
   for (let l = iso(inicioSemana(primero)); l <= ultimo; l = addDays(l, 7)) semanas.push(l);
   const celda = fe => {
-    const cs = db.citas.filter(c => c.fecha === fe).sort(ordenCita), oc = ocupadosDia(fe);
+    const cs = citas.filter(c => c.fecha === fe).sort(ordenCita), oc = ocupadosDia(fe);
     const chips = cs.slice(0, MAX_CITAS_MES).map(c => { const p = getP(c.patientId);
       return `<button class="mes-cita${c.color ? ' con-color' : ''}" style="${estiloColorCita(c.color)}" onclick="event.stopPropagation(); openCita('${c.id}')" title="${esc(`${c.hora}–${finCita(c)} ${nombrePac(p)}${c.nota ? '. ' + c.nota : ''}`)}"><strong>${c.hora}</strong> ${esc(nombrePac(p))}</button>`; }).join('');
     const mas = cs.length > MAX_CITAS_MES ? `<button class="enlace mes-mas" onclick="event.stopPropagation(); verDiaAgenda('${fe}')">+${cs.length - MAX_CITAS_MES} más</button>` : '';
@@ -3083,8 +3127,9 @@ function agendaCuerpoHTML(){
   const ahora = new Date(), mAhora = ahora.getHours() * 60 + ahora.getMinutes();
   const horas = [];
   for (let h = ini; h < fin; h += 60) horas.push(`<div class="ag-h" style="top:${(h - ini) * PX_MIN}px">${horaDe(h)}</div>`);
+  const visibles = citasAgenda();
   const cols = dias.map(f => {
-    const citas = db.citas.filter(c => c.fecha === f).map(c => ({ c, a: minDe(c.hora), b: Math.min(minDe(c.hora) + c.duracion, 1440) }));
+    const citas = visibles.filter(c => c.fecha === f).map(c => ({ c, a: minDe(c.hora), b: Math.min(minDe(c.hora) + c.duracion, 1440) }));
     const pos = columnasSolape(citas);
     const bloques = citas.map(it => {
       const [k, n] = pos.get(it), c = it.c, p = getP(c.patientId);
@@ -3101,7 +3146,7 @@ function agendaCuerpoHTML(){
     return `<div class="ag-col${f === hoy ? ' hoy' : ''}${f < hoy ? ' pasado' : ''}" data-fecha="${f}" style="height:${alto}px" onclick="clicAgenda(event, '${f}', ${ini})">${ocup}${bloques}${linea}</div>`;
   }).join('');
   const cab = dias.map(f => {
-    const d = fromIso(f), n = db.citas.filter(c => c.fecha === f).length;
+    const d = fromIso(f), n = visibles.filter(c => c.fecha === f).length;
     return `<div class="ag-dia${f === hoy ? ' hoy' : ''}"><button class="enlace" onclick="verDiaAgenda('${f}')" title="Ver solo este día">${d.toLocaleDateString('es-ES', { weekday: 'short' })} <strong>${d.getDate()}</strong></button>${n ? `<span class="muted"> · ${plural(n, 'sesión', 'sesiones')}</span>` : ''}</div>`;
   }).join('');
   return `<div class="ag-scroll" onscroll="ui.agScroll = this.scrollTop"><div class="ag-grid${ui.agVista === 'dia' ? ' ag-un-dia' : ''}" style="--px:${PX_MIN}px;--dias:${dias.length}">
@@ -3162,7 +3207,7 @@ function openCita(id, pre = {}){
     <div id="ctSolape" role="status" aria-live="polite"></div>
     <p class="row" style="justify-content:space-between;margin-top:16px">
       <span class="row">${c ? `<button class="danger" onclick="anularCita('${c.id}')">Anular sesión…</button>
-        ${p ? `<button class="ghost" onclick="irFichaCita('${p.id}')">Ver ficha</button>` : ''}` : ''}</span>
+        ${p ? `<button class="ghost" onclick="irFichaCita('${p.id}', '${c.fecha}')">Ver ficha</button>` : ''}` : ''}</span>
       <span class="row"><button class="ghost" onclick="closeModal()">Cancelar</button>
       <button class="btn" onclick="guardarCita()">${c ? 'Guardar' : 'Programar sesión'}</button></span>
     </p>`);
@@ -3352,7 +3397,12 @@ async function anularCita(id){
   render(); if ($('#tabsDia')) refrescarModalDia();
   ofrecerDeshacer(antes, op === 'una' ? 'Sesión anulada' : 'Sesiones anuladas');
 }
-function irFichaCita(pid){ closeModal(); prepararPaciente(pid); ui.tabP = 'citas'; render(); window.scrollTo(0, 0); }
+// «Ver ficha» de una sesión: el calendario del paciente en vista semanal, en la semana de esa sesión.
+function irFichaCita(pid, fecha){
+  closeModal(); prepararPaciente(pid);
+  ui.tabP = 'calendario'; ui.calVista = 'calendario'; ui.vista = 'semana'; ui.fecha = fromIso(fecha || todayIso());
+  render(); window.scrollTo(0, 0);
+}
 // Citas de un paciente un día (para marcarlas en su calendario de ejercicios).
 const citasDia = (pid, s) => db.citas.filter(c => c.patientId === pid && c.fecha === s).sort(ordenCita);
 // Marca discreta en el calendario: un punto por cita, del color de la cita.
@@ -4361,6 +4411,7 @@ function renderExportar(){
       <button class="ghost small" onclick="expPreset('4sem')">Últimas 4 semanas</button>
       <button class="ghost small" onclick="expPreset('todo')">Todo el historial</button>
     </div>
+    <label>Nombre del informe <span class="muted">(opcional)</span><br><input id="expNombre" maxlength="80" value="${esc(e.nombre || '')}" placeholder="Por ejemplo: Valoración de octubre" oninput="ui.exp.nombre=this.value"></label>
     <label class="row" style="gap:6px;margin:12px 0 0;color:var(--ink)"><input type="checkbox" id="expDetalle" style="width:auto" ${e.detalle !== false ? 'checked' : ''} onchange="ui.exp.detalle=this.checked"> Incluir el detalle de cada día (el informe es más largo)</label>
     <p><strong>${pacs.length === 1 ? 'Paciente' : pacs.length + ' pacientes'}:</strong> ${pacs.map(p => esc(p.nombre + ' ' + p.apellidos)).join(', ')}</p>
     <p class="muted">Los PDF contienen datos de salud: guárdalos y compártelos con cuidado.</p>
@@ -4410,10 +4461,11 @@ async function generarExportacion(){
         await new Promise(r => setTimeout(r, 30));   // deja pintar el estado antes del trabajo pesado
         try {
           const bytes = await pdfPaciente(p, e.desde, e.hasta, { detalle: e.detalle !== false });
-          const nombre = nombrePdf([p.apellidos, p.nombre, 'Informe de pautas', e.desde, e.hasta]);
+          const descripcion = (e.nombre || '').trim();
+          const nombre = nombrePdf([p.apellidos, p.nombre, descripcion, 'Informe de pautas', e.desde, e.hasta]);
           const info = await guardarPdf(bytes, nombre, carpeta);   // con carpeta, el servidor no pisa archivos con el mismo nombre
           if (!info){ cancelado = true; break; }
-          hechos.push(registrarInforme(p, 'informe', info, e.desde, e.hasta, ''));
+          hechos.push(registrarInforme(p, 'informe', info, e.desde, e.hasta, descripcion));
         } catch (err){
           fallos.push(`${p.nombre} ${p.apellidos}: ${err.message}`);
         }
@@ -4463,9 +4515,32 @@ function registrarInforme(p, tipo, info, desde, hasta, descripcion){
 }
 const TIPOS_INFORME = { informe: 'Informe de pautas', plan: 'Plan en casa' };
 function informesGeneradosHTML(p){
-  const todos = db.informes.filter(x => x.patientId === p.id).sort((a, b) => (b.fecha || '').localeCompare(a.fecha || ''));
+  const todos = db.informes.filter(x => x.patientId === p.id);
   const f = ui.infTipo || '';
-  const lista = todos.filter(x => !f || x.tipo === f);
+  const filtro = todos.length ? `<div class="tabs" style="margin-bottom:8px">${[['', 'Todos'], ['informe', 'Informes de pautas'], ['plan', 'Planes en casa']].map(([k, t]) =>
+    `<button class="${f === k ? 'on' : ''}" onclick="ui.infTipo='${k}'; render()">${t} (${k ? todos.filter(x => x.tipo === k).length : todos.length})</button>`).join('')}</div>` : '';
+  const buscar = todos.length ? `<div class="row" style="align-items:center;margin-bottom:6px">
+      <input type="search" id="buscarInformes" aria-label="Buscar en los informes" placeholder="Buscar por nombre, nombre del archivo o fecha de generación" value="${esc(ui.infQ || '')}" style="flex:1;min-width:240px" oninput="ui.infQ=this.value; refrescarListaInformes()">
+      <label style="margin:0">Ordenar por</label>
+      <select id="ordenInformes" style="width:auto" aria-label="Orden de los informes" onchange="ui.infOrden=this.value; refrescarListaInformes()">
+        <option value="recientes" ${ui.infOrden !== 'antiguos' ? 'selected' : ''}>Generados: más recientes</option>
+        <option value="antiguos" ${ui.infOrden === 'antiguos' ? 'selected' : ''}>Generados: más antiguos</option>
+      </select></div>` : '';
+  return `<div id="secInformes">
+    ${filtro}${buscar}
+    <div id="listaInformes">${listaInformesHTML(p)}</div>
+  </div>`;
+}
+// Fecha de generación en los formatos en que se suele buscar («28/10/2026», «28 oct 2026», «2026-10-28»…).
+const fechaGeneradoTexto = x => { const d = new Date(x.fecha); return isNaN(d) ? '' : [d.toLocaleDateString('es-ES'), fmt(iso(d)), iso(d), d.toLocaleDateString('es-ES', { day: 'numeric', month: 'long', year: 'numeric' })].join(' '); };
+// Solo esta parte se vuelve a pintar al buscar u ordenar, así el campo de búsqueda no pierde el foco.
+function listaInformesHTML(p){
+  const todos = db.informes.filter(x => x.patientId === p.id);
+  const f = ui.infTipo || '', q = norm(ui.infQ).split(/\s+/).filter(Boolean), antiguos = ui.infOrden === 'antiguos';
+  const lista = todos
+    .filter(x => !f || x.tipo === f)
+    .filter(x => { const txt = norm([x.descripcion, x.nombre, fechaGeneradoTexto(x)].join(' ')); return q.every(t => txt.includes(t)); })
+    .sort((a, b) => (antiguos ? 1 : -1) * (a.fecha || '').localeCompare(b.fecha || ''));
   const ex = ui.infExiste || {};
   const fila = x => `<div class="item infItem" data-id="${x.id}" style="align-items:center;flex-wrap:wrap">
       <div style="flex:1;min-width:220px">
@@ -4479,13 +4554,10 @@ function informesGeneradosHTML(p){
         <button class="ghost small infCarpeta" ${ex[x.id] === false ? 'disabled' : ''} onclick="abrirInforme('${x.id}', 'carpeta')">Mostrar en la carpeta</button>
         <button class="danger small" title="Quita el PDF de esta lista (el archivo no se borra)" onclick="quitarInforme('${x.id}')">Quitar de la lista</button>
       </div></div>`;
-  const filtro = todos.length ? `<div class="tabs" style="margin-bottom:8px">${[['', 'Todos'], ['informe', 'Informes de pautas'], ['plan', 'Planes en casa']].map(([k, t]) =>
-    `<button class="${f === k ? 'on' : ''}" onclick="ui.infTipo='${k}'; render()">${t} (${k ? todos.filter(x => x.tipo === k).length : todos.length})</button>`).join('')}</div>` : '';
-  return `<div id="secInformes">
-    ${filtro}
-    <div id="listaInformes">${lista.length ? (pag => pag.items.map(fila).join('') + pag.html)(paginar('informes', lista, 'render()', p.id + '|' + f)) : `<p class="muted">${todos.length ? 'No hay PDF de este tipo.' : 'Todavía no se ha generado ningún PDF para este paciente. Los informes de pautas y los planes en casa que exportes aparecerán aquí.'}</p>`}</div>
-  </div>`;
+  return lista.length ? (pag => pag.items.map(fila).join('') + pag.html)(paginar('informes', lista, 'render()', [p.id, f, q.join(' '), ui.infOrden || ''].join('|'))) : `<p class="muted">${todos.length ? (q.length ? 'Ningún PDF coincide con la búsqueda.' : 'No hay PDF de este tipo.') : 'Todavía no se ha generado ningún PDF para este paciente. Los informes de pautas y los planes en casa que exportes aparecerán aquí.'}</p>`;
 }
+// Repinta solo la lista de informes (al buscar u ordenar).
+function refrescarListaInformes(){ const el = $('#listaInformes'), p = getP(ui.patientId); if (el && p) el.innerHTML = listaInformesHTML(p); }
 // Pregunta al servidor qué archivos siguen en su sitio y marca los que faltan (sin volver a pintar la pantalla).
 function refrescarExistencia(){
   fetch('/api/informes/existen').then(r => r.json()).then(m => {
