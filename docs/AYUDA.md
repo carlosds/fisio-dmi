@@ -166,7 +166,7 @@ Al pulsar un día del calendario (o **Puntuar hoy**) se abre su ventana, con dos
 
 **Añadir ejercicios** (se abre esta si el día está vacío): marca los bloques o ejercicios y pulsa **Añadir al día** (o **Añadir a la sesión**, si hay sesiones). Se añaden solo a ese día (y solo a la sesión abierta, si hay sesiones). Después se vuelve sola a la pestaña de puntuar.
 
-**Observaciones.** Debajo de las pestañas hay un cuadro para escribir **observaciones** de la sesión (cómo ha ido, incidencias, qué cambiar la próxima vez). Si el día no tiene sesión, son **observaciones del día**. Se guardan solas mientras escribes; para quitarlas, borra el texto. Se ven:
+**Observaciones.** Arriba, antes de las pestañas y de la lista de ejercicios, hay un cuadro para escribir **observaciones** de la sesión (cómo ha ido, incidencias, qué cambiar la próxima vez). Si el día no tiene sesión, son **observaciones del día**. Se guardan solas mientras escribes; para quitarlas, borra el texto. Se ven:
 
 - en el **calendario**: en la vista de semana, el principio del texto debajo de los ejercicios; en la de mes, un ✎ (pon el ratón encima para leerlas); en la de día, completas, con un botón **Observaciones…** para cambiarlas;
 - en la pestaña **Sesiones**, debajo de cada sesión;
