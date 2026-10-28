@@ -57,6 +57,14 @@ label{display:block;font-size:14px;color:var(--muted);margin:10px 0 4px}
 .muted{color:var(--muted);font-size:14px}
 .linea-ses{padding-left:18px;margin-top:2px}
 .search{margin:12px 0 4px}
+.orden-btn{all:unset;cursor:pointer;font-weight:600;color:inherit;display:inline-flex;gap:4px;align-items:center;border-radius:4px}
+.orden-btn:focus-visible{outline:2px solid var(--accent);outline-offset:2px}
+.orden-btn .flecha{font-size:10px;color:var(--muted);opacity:.55}
+.orden-btn.on .flecha{opacity:1;color:var(--accent)}
+.orden-btn:hover .flecha{opacity:1}
+.cab-lista{display:flex;align-items:center;gap:12px;padding:6px 0;border-bottom:1px solid var(--line);font-size:13px;color:var(--muted)}
+.cab-lista .cab-prim{flex:1;min-width:0}
+.cab-lista .cab-col{text-align:right}
 .paginacion{display:flex;flex-wrap:wrap;gap:8px 16px;align-items:center;justify-content:space-between;padding:10px 0 2px;font-size:14px;color:var(--muted)}
 .paginacion label{display:flex;gap:6px;align-items:center;margin:0}
 .paginacion select{width:auto;padding:4px 6px}
@@ -673,6 +681,7 @@ function porPagina(clave){
 // la lista; «firma» resume sus filtros (búsqueda, paciente…): si cambia, se vuelve a la primera página.
 function paginar(clave, items, repintar = 'render()', firma = ''){
   const pp = porPagina(clave), total = items.length;
+  firma += '|' + (db.ajustes['orden.' + clave] || '');   // al cambiar el orden se vuelve a la primera página
   const est = ui.pag[clave] || (ui.pag[clave] = { p: 1, firma });
   if (est.firma !== firma){ est.p = 1; est.firma = firma; }
   const paginas = pp ? Math.max(1, Math.ceil(total / pp)) : 1;
@@ -689,6 +698,60 @@ function paginar(clave, items, repintar = 'render()', firma = ''){
       <button class="ghost small" ${est.p === paginas ? 'disabled' : ''} onclick="${accion(`irPagina('${clave}', 1)`)}">Siguiente ›</button></span>` : ''}
   </div>`;
   return { items: vis, html };
+}
+/* ---------- ordenar listas y tablas pulsando la cabecera de una columna ---------- */
+// Cada lista tiene un orden por defecto [columna, 'asc' | 'desc']. Al pulsar una columna se ordena de forma
+// ascendente; otra vez, descendente; otra vez, se vuelve al orden por defecto. Se recuerda por lista en
+// ajustes['orden.<clave>'] ('columna:asc'), como el tamaño de página.
+const ORDEN_DEFECTO = {
+  pacientes: ['nombre', 'asc'], ejercicios: ['nombre', 'asc'], bloques: ['nivel', 'asc'], plantillas: ['nombre', 'asc'],
+  planes: ['inicio', 'desc'], hitos: ['fecha', 'desc'], evaluaciones: ['fecha', 'desc'], informes: ['generado', 'desc'],
+  copias: ['fecha', 'desc'], resumen: ['orden', 'asc'], sesiones: ['fecha', 'asc'], sesionesPasadas: ['fecha', 'desc']
+};
+function ordenDe(clave){
+  const v = db.ajustes['orden.' + clave], d = ORDEN_DEFECTO[clave] || ['', 'asc'];
+  if (!v) return { col: d[0], dir: d[1], defecto: true };
+  const [col, dir] = v.split(':');
+  return { col, dir: dir === 'desc' ? 'desc' : 'asc', defecto: false };
+}
+function cambiarOrden(clave, col){
+  const o = ordenDe(clave);
+  const sig = o.col !== col ? 'asc' : o.defecto && o.dir === 'desc' ? 'asc' : o.dir === 'asc' ? 'desc' : '';
+  const d = ORDEN_DEFECTO[clave] || [];
+  // Si lo siguiente coincide con el orden por defecto (o toca volver a él), se borra lo guardado.
+  setAjuste('orden.' + clave, !sig || (col === d[0] && sig === d[1]) ? '' : col + ':' + sig);
+  if (!db.ajustes['orden.' + clave]) delete db.ajustes['orden.' + clave];
+}
+// Ordena una copia de la lista. «cols» da, para cada columna, el valor por el que se ordena (texto, número o
+// fecha ISO). Los valores vacíos van siempre al final; «desempate» decide entre iguales (siempre ascendente).
+function ordenarLista(clave, lista, cols, desempate = () => 0){
+  const o = ordenDe(clave), val = cols[o.col];
+  if (!val) return [...lista].sort(desempate);
+  const signo = o.dir === 'desc' ? -1 : 1, vacio = v => v === null || v === undefined || v === '';
+  return [...lista].sort((a, b) => {
+    const x = val(a), y = val(b);
+    if (vacio(x) || vacio(y)) return vacio(x) - vacio(y) || desempate(a, b);
+    const c = typeof x === 'number' && typeof y === 'number' ? x - y : String(x).localeCompare(String(y), 'es', { numeric: true, sensitivity: 'base' });
+    return signo * c || desempate(a, b);
+  });
+}
+// Botón de cabecera de una columna. «repintar» es la llamada que vuelve a pintar la lista.
+function botonOrden(clave, col, texto, repintar){
+  const o = ordenDe(clave), on = o.col === col;
+  const estado = on ? (o.dir === 'asc' ? 'ascendente' : 'descendente') : '';
+  return `<button type="button" class="orden-btn${on ? ' on' : ''}" data-orden="${clave}:${col}" onclick="cambiarOrden('${clave}', '${col}'); ${repintar}"
+    title="Ordenar por ${esc(texto.toLowerCase())}${on ? ` (ahora ${estado}; pulsa para ${o.dir === 'asc' ? 'descendente' : 'volver al orden de la lista'})` : ''}">${esc(texto)}<span class="flecha" aria-hidden="true">${on ? (o.dir === 'asc' ? '▲' : '▼') : '↕'}</span></button>`;
+}
+function thOrden(clave, col, texto, repintar, attrs = ''){
+  const o = ordenDe(clave), on = o.col === col;
+  return `<th ${attrs} aria-sort="${on ? (o.dir === 'asc' ? 'ascending' : 'descending') : 'none'}">${botonOrden(clave, col, texto, repintar)}</th>`;
+}
+// Cabecera de una lista que no es una tabla: la primera columna a la izquierda y el resto a la derecha.
+// cols: [[columna, texto, ancho opcional]]. «antes» va delante (por ejemplo, la casilla de marcar todos).
+function cabListaHTML(clave, cols, repintar, antes = ''){
+  const [prim, ...resto] = cols;
+  return `<div class="cab-lista" role="group" aria-label="Ordenar la lista">${antes}<span class="cab-prim">${botonOrden(clave, prim[0], prim[1], repintar)}</span>
+    ${resto.map(([c, t, w]) => `<span class="cab-col"${w ? ` style="min-width:${w}"` : ''}>${botonOrden(clave, c, t, repintar)}</span>`).join('')}</div>`;
 }
 function irPagina(clave, d){ const est = ui.pag[clave]; if (est) est.p += d; }
 // Al cambiar cuántos se ven, la página nueva es la que contiene el primero que se estaba viendo.
@@ -1006,12 +1069,6 @@ function viewPacientes(){
         <select id="filtroPac" style="width:auto" aria-label="Qué pacientes mostrar" onchange="ui.filtroPac=this.value; ui.selected.clear(); refrescarPacientes()">
           ${[['activos', 'Activos'], ['archivados', 'Archivados'], ['todos', 'Todos']].map(([v, t]) => `<option value="${v}" ${(ui.filtroPac || 'activos') === v ? 'selected' : ''}>${t} (${v === 'todos' ? db.patients.length : db.patients.filter(p => v === 'archivados' ? p.archivado : !p.archivado).length})</option>`).join('')}
         </select>
-        <label style="margin:0">Ordenar por</label>
-        <select id="ordenPac" style="width:auto" onchange="ui.ordenPac=this.value;refrescarPacientes()">
-          <option value="nombre" ${(ui.ordenPac || 'nombre') === 'nombre' ? 'selected' : ''}>Apellidos</option>
-          <option value="sesion" ${ui.ordenPac === 'sesion' ? 'selected' : ''}>Última sesión</option>
-          <option value="proxima" ${ui.ordenPac === 'proxima' ? 'selected' : ''}>Próxima sesión</option>
-        </select>
       </div>
       <div class="row" style="align-items:center;margin-bottom:6px">
         <span class="muted">Con sesiones:</span>
@@ -1036,14 +1093,12 @@ function refrescarPacientes(){
   const ultima = ultimasSesiones(), hastaCasa = finPlanesCasa(), proximas = {};
   for (const c of [...db.citas].sort(ordenCita)) if (c.fecha >= t && !proximas[c.patientId] && (c.fecha > t || minDe(c.hora) + c.duracion >= new Date().getHours() * 60 + new Date().getMinutes())) proximas[c.patientId] = c;
   const porNombre = (a, b) => (a.apellidos + a.nombre).localeCompare(b.apellidos + b.nombre, 'es');
-  // Sin próxima sesión, al final de la lista.
-  const porProxima = (a, b) => proximas[a.id] && proximas[b.id] ? ordenCita(proximas[a.id], proximas[b.id]) || porNombre(a, b) : proximas[a.id] ? -1 : proximas[b.id] ? 1 : porNombre(a, b);
-  const orden = { sesion: (a, b) => (ultima[b.id] || '').localeCompare(ultima[a.id] || '') || porNombre(a, b), proxima: porProxima }[ui.ordenPac] || porNombre;
-  const list = pacientesVisibles()
+  // Orden por la cabecera; los pacientes sin última o próxima sesión van al final.
+  const list = ordenarLista('pacientes', pacientesVisibles()
     .filter(p => { const txt = norm([p.nombre, p.apellidos, p.telefono, p.email].join(' ')); return q.every(x => txt.includes(x)); })
-    .filter(p => !sesFiltro.length || sesFiltro.some(k => tipos[p.id] && tipos[p.id].has(k)))
-    .sort(orden);
-  const pag = paginar('pacientes', list, 'refrescarPacientes()', [ui.qP, ui.filtroPac, ui.ordenPac, sesFiltro.join(',')].join('|'));
+    .filter(p => !sesFiltro.length || sesFiltro.some(k => tipos[p.id] && tipos[p.id].has(k))),
+    { nombre: p => p.apellidos + ' ' + p.nombre, ultima: p => ultima[p.id], proxima: p => proximas[p.id] ? proximas[p.id].fecha + ' ' + proximas[p.id].hora : '' }, porNombre);
+  const pag = paginar('pacientes', list, 'refrescarPacientes()', [ui.qP, ui.filtroPac, sesFiltro.join(',')].join('|'));
   const rows = pag.items.map(p => {
     const { total: nHoy, hechos } = cuentaDia(p.id, t);   // cada sesión de hoy cuenta aparte
     const datos = [
@@ -1072,7 +1127,8 @@ function refrescarPacientes(){
     </div>`; }).join('');
   const todosMarcados = list.length && list.every(p => ui.selected.has(p.id));
   const cab = list.length ? `<div class="item" style="padding:6px 0"><label style="display:flex;gap:12px;align-items:center;margin:0;color:var(--muted)"><input type="checkbox" style="width:auto" ${todosMarcados ? 'checked' : ''} onchange="marcarTodosPac(this.checked)"> ${todosMarcados ? 'Quitar la selección de' : 'Seleccionar'} los ${list.length} ${list.length === 1 ? 'paciente' : 'pacientes'} ${q.length ? 'de la búsqueda' : 'de la lista'}</label></div>` : '';
-  $('#listaPacientes').innerHTML = rows ? cab + rows + pag.html : (!db.patients.length
+  const cabOrden = list.length ? cabListaHTML('pacientes', [['nombre', 'Paciente'], ['ultima', 'Última sesión'], ['proxima', 'Próxima sesión']], 'refrescarPacientes()') : '';
+  $('#listaPacientes').innerHTML = rows ? cab + cabOrden + rows + pag.html : (!db.patients.length
     ? '<p class="muted">Aún no hay pacientes. Pulsa «Nuevo paciente» para empezar.</p>'
     : !pacientesVisibles().length
       ? `<p class="muted">${(ui.filtroPac || 'activos') === 'archivados' ? 'No hay pacientes archivados.' : 'No hay pacientes activos: todos están archivados.'}</p>`
@@ -1663,7 +1719,13 @@ function idsOrdenResumen(datos){
   return Object.keys(datos.stats).filter(id => getE(id)).sort((a, b) => (datos.stats[a].orden - datos.stats[b].orden) || byName(getE(a), getE(b)));
 }
 function listadoResumen(datos){
-  const ids = idsOrdenResumen(datos);
+  // Por defecto, en orden de ejecución. Al ordenar por una columna, los ejercicios siguen agrupados por bloque
+  // (los bloques en su orden) y se ordenan dentro de cada uno.
+  const base = idsOrdenResumen(datos), grupos = [...new Set(base.map(id => datos.stats[id].bloqueId || ''))];
+  const media = st => st.scores && st.scores.length ? st.scores.reduce((a, b) => a + b, 0) / st.scores.length : null;
+  const ids = ordenarLista('resumen', base, {
+    nombre: id => getE(id).nombre, exp: id => datos.stats[id].exp, puntuados: id => datos.stats[id].puntuados || 0, media: id => media(datos.stats[id])
+  }, (a, b) => base.indexOf(a) - base.indexOf(b)).sort((a, b) => grupos.indexOf(datos.stats[a].bloqueId || '') - grupos.indexOf(datos.stats[b].bloqueId || ''));
   if (!ids.length) return '<p class="muted">Sin ejercicios previstos en este periodo.</p>';
   const hayBloques = ids.some(id => datos.stats[id].bloqueId), hayReps = ids.some(id => datos.stats[id].maxRep > 1);
   let rows = '', actual = null;
@@ -1685,7 +1747,7 @@ function listadoResumen(datos){
   }
   return `${hayReps ? `<label class="row" style="gap:6px;margin:0 0 6px;color:var(--ink)"><input type="checkbox" style="width:auto" ${ui.resReps ? 'checked' : ''} onchange="ui.resReps=this.checked;refrescarResumen()"> Ver cada repetición</label>` : ''}
     <table>
-    <thead><tr><th>Ejercicio</th><th class="num">Días previstos</th><th class="num">Puntuados</th><th class="num">Media (0 a 3)</th></tr></thead>
+    <thead><tr>${thOrden('resumen', 'nombre', 'Ejercicio', 'refrescarResumen()')}${thOrden('resumen', 'exp', 'Días previstos', 'refrescarResumen()', 'class="num"')}${thOrden('resumen', 'puntuados', 'Puntuados', 'refrescarResumen()', 'class="num"')}${thOrden('resumen', 'media', 'Media (0 a 3)', 'refrescarResumen()', 'class="num"')}</tr></thead>
     <tbody>${rows}</tbody></table>
     <p class="muted" style="margin-top:6px">Solo cuentan los días hasta hoy.</p>`;
 }
@@ -2683,10 +2745,12 @@ function refrescarBloques(){
   const lista = db.bloques
     .filter(b => { const t = norm(b.nombre + ' ' + b.ejercicios.map(id => (getE(id) || {}).nombre || '').join(' ')); return q.every(x => t.includes(x)); })
     .filter(b => ui.nivelB === '' || (ui.nivelB === '__sin' ? !b.nivel : b.nivel === ui.nivelB))
-    // Primero por nivel (los que no tienen nivel, al final) y después por nombre.
-    .sort((a, b) => (!a.nivel - !b.nivel) || (a.nivel || '').localeCompare(b.nivel || '', 'es') || a.nombre.localeCompare(b.nombre, 'es', { numeric: true }));
+    ;
+  // Por defecto, por nivel (los que no tienen nivel, al final) y después por nombre.
+  const porNombreB = (a, b) => a.nombre.localeCompare(b.nombre, 'es', { numeric: true });
+  const listaOrd = ordenarLista('bloques', lista, { nivel: b => b.nivel, nombre: b => b.nombre, ejercicios: b => b.ejercicios.length }, porNombreB);
   const detalle = db.ajustes.bloquesDetalle !== '0';
-  const pag = paginar('bloques', lista, 'refrescarBloques()', ui.qB + '|' + ui.nivelB);
+  const pag = paginar('bloques', listaOrd, 'refrescarBloques()', ui.qB + '|' + ui.nivelB);
   const filas = pag.items.map(b => `
     <div class="item" style="align-items:flex-start">
       <div style="flex:1;min-width:0"><strong>${esc(b.nombre)}</strong> ${b.nivel ? `<span class="nivel">Nivel ${esc(b.nivel)}</span>` : ''}
@@ -2696,7 +2760,8 @@ function refrescarBloques(){
       <button class="danger small" onclick="delBloque('${b.id}')">Eliminar</button>
     </div>`).join('');
   const cuenta = db.bloques.length && lista.length !== db.bloques.length ? `<p class="muted">Mostrando ${lista.length} de ${db.bloques.length} bloques.</p>` : '';
-  el.innerHTML = cuenta + (filas ? filas + pag.html : (db.bloques.length
+  const cab = cabListaHTML('bloques', [['nombre', 'Bloque'], ['nivel', 'Nivel'], ['ejercicios', 'Ejercicios']], 'refrescarBloques()');
+  el.innerHTML = cuenta + (filas ? cab + filas + pag.html : (db.bloques.length
     ? '<p class="muted">Ningún bloque coincide con la búsqueda.</p>'
     : '<p class="muted">Todavía no hay bloques.</p>'));
 }
@@ -2894,10 +2959,10 @@ function badgeBloques(eid){
 }
 function refrescarEjercicios(){
   const q = norm(ui.qE).split(/\s+/).filter(Boolean);
-  const list = [...biblioteca()].filter(e => q.every(x => norm(e.nombre).includes(x))).sort(byName);
+  const list = ordenarLista('ejercicios', biblioteca().filter(e => q.every(x => norm(e.nombre).includes(x))), { nombre: e => e.nombre, bloques: e => bloquesDe(e.id).length }, byName);
   const pag = paginar('ejercicios', list, 'refrescarEjercicios()', ui.qE);
   // Las acciones de cada ejercicio van en un menú «⋯» para no llenar la lista de botones.
-  $('#listaEjercicios').innerHTML = (pag.items.map(e => `
+  $('#listaEjercicios').innerHTML = (list.length ? cabListaHTML('ejercicios', [['nombre', 'Ejercicio'], ['bloques', 'En bloques']], 'refrescarEjercicios()') : '') + (pag.items.map(e => `
     <div class="item">
       <div class="ej-nom">${esc(e.nombre)} ${badgeBloques(e.id)}</div>
       <div class="menu-sub menu-claro menu-fila">
@@ -3593,11 +3658,13 @@ function citasSeccionHTML(p){
 function listaSesionesPacHTML(p){
   const hoy = todayIso(), f = filtroSes();
   const base = citasDe(p.id).filter(c => f.ver === 'todas' || (f.ver === 'pasadas' ? c.fecha < hoy : c.fecha >= hoy));
-  const lista = base.filter(c => (!f.desde || c.fecha >= f.desde) && (!f.hasta || c.fecha <= f.hasta) && (!f.mes || c.fecha.slice(5, 7) === f.mes) && (!f.anio || c.fecha.startsWith(f.anio + '-'))).sort(ordenCita);
-  if (f.ver === 'pasadas') lista.reverse();   // las pasadas, de la más reciente a la más antigua
+  // Las pasadas tienen su propio orden (por defecto, de la más reciente a la más antigua).
+  const clave = f.ver === 'pasadas' ? 'sesionesPasadas' : 'sesiones';
+  const lista = ordenarLista(clave, base.filter(c => (!f.desde || c.fecha >= f.desde) && (!f.hasta || c.fecha <= f.hasta) && (!f.mes || c.fecha.slice(5, 7) === f.mes) && (!f.anio || c.fecha.startsWith(f.anio + '-'))),
+    { fecha: c => c.fecha + ' ' + c.hora, estado: c => { const e = estadoSesion(p, c); return e.total ? e.hechos / e.total : -1; } }, ordenCita);
   if (!lista.length) return `<p class="muted">${base.length ? 'Ninguna sesión coincide con las fechas elegidas.' : { proximas: 'No tiene sesiones próximas.', pasadas: 'No tiene sesiones pasadas.', todas: 'Todavía no tiene sesiones.' }[f.ver]}</p>`;
   const pag = paginar('sesiones', lista, 'refrescarSesionesPac()', p.id + '|' + JSON.stringify(f));
-  return pag.items.map(c => filaSesionHTML(p, c)).join('') + pag.html;
+  return cabListaHTML(clave, [['fecha', 'Sesión'], ['estado', 'Ejercicios y puntuaciones']], 'refrescarSesionesPac()') + pag.items.map(c => filaSesionHTML(p, c)).join('') + pag.html;
 }
 function refrescarSesionesPac(){
   const p = getP(ui.patientId), c = $('#listaSesiones'); if (!p || !c) return;
@@ -3964,7 +4031,7 @@ function viewAjustes(){
 /* ---------- ayuda: manual (AYUDA.md) e iconos «?» ---------- */
 // Textos cortos de los iconos de ayuda. «ancla» es la sección del manual a la que lleva «Ver en el manual».
 const AYUDA_CORTA = {
-  pacientes: { t: 'Pacientes', ancla: 'pacientes', txt: 'Pulsa un nombre para abrir su ficha o «Puntuar hoy» para ir directa a la puntuación de hoy. Marca pacientes para asignarles ejercicios, sacar informes de pautas, archivarlos o eliminarlos a la vez. Los archivados se ven con el filtro «Archivados».' },
+  pacientes: { t: 'Pacientes', ancla: 'pacientes', txt: 'Pulsa un nombre para abrir su ficha o «Puntuar hoy» para ir directa a la puntuación de hoy. Marca pacientes para asignarles ejercicios, sacar informes de pautas, archivarlos o eliminarlos a la vez. Los archivados se ven con el filtro «Archivados». Pulsa el nombre de una columna de la cabecera para ordenar la lista (otra vez, al revés; otra más, como estaba).' },
   pautas: { t: 'Pautas', ancla: 'pautas', txt: 'Bloques y ejercicios que el paciente trabaja en la clínica, en el orden en que se hacen. Con «Editar» cambias las fechas de inicio y fin y los días de la semana. Las pautas terminadas quedan plegadas al final.' },
   asignar: { t: 'Asignar ejercicios', ancla: 'pautas', txt: 'Marca bloques o ejercicios, elige desde qué fecha, la duración (continua, hasta una fecha o solo ese día) y los días de la semana, y pulsa «Asignar». Si el paciente tiene sesiones, a la derecha eliges en qué sesiones tocan.' },
   calendario: { t: 'Calendario', ancla: 'calendario', txt: 'Los días con sesión llevan un punto del color de la sesión junto al número. En la semana, cada ejercicio sale del color de su puntuación (con borde de puntos, aún no está puntuado). En el mes, cada día resume su media y cuántos están puntuados. Pulsa un día para añadir, quitar o puntuar sus ejercicios.' },
@@ -4214,8 +4281,9 @@ function loadCopias(){
     .then(list => {
       const el = $('#listaCopias');
       if (!el) return;
-      const pag = paginar('copias', list, 'loadCopias()');
-      el.innerHTML = list.length ? pag.items.map(c => `
+      const lista = ordenarLista('copias', list, { fecha: c => c.fecha, tipo: c => c.auto ? 'Automática' : 'Manual' }, (a, b) => (b.fecha || '').localeCompare(a.fecha || ''));
+      const pag = paginar('copias', lista, 'loadCopias()');
+      el.innerHTML = list.length ? cabListaHTML('copias', [['fecha', 'Fecha'], ['tipo', 'Tipo']], 'loadCopias()') + pag.items.map(c => `
         <div class="item">
           <div style="flex:1">${esc(new Date(c.fecha).toLocaleString('es-ES'))} ${c.auto ? '<span class="nivel">Automática</span>' : ''}<div class="muted">${esc(c.nombre)}</div></div>
           <button class="danger small" title="Sustituye los datos actuales por los de esta copia" onclick="restaurarCopia('${esc(c.nombre)}')">Restaurar</button>
@@ -4652,12 +4720,7 @@ function informesGeneradosHTML(p){
   const filtro = todos.length ? `<div class="tabs" style="margin-bottom:8px">${[['', 'Todos'], ['informe', 'Informes de pautas'], ['plan', 'Planes en casa']].map(([k, t]) =>
     `<button class="${f === k ? 'on' : ''}" onclick="ui.infTipo='${k}'; render()">${t} (${k ? todos.filter(x => x.tipo === k).length : todos.length})</button>`).join('')}</div>` : '';
   const buscar = todos.length ? `<div class="row" style="align-items:center;margin-bottom:6px">
-      <input type="search" id="buscarInformes" aria-label="Buscar en los informes" placeholder="Buscar por nombre, nombre del archivo o fecha de generación" value="${esc(ui.infQ || '')}" style="flex:1;min-width:240px" oninput="ui.infQ=this.value; refrescarListaInformes()">
-      <label style="margin:0">Ordenar por</label>
-      <select id="ordenInformes" style="width:auto" aria-label="Orden de los informes" onchange="ui.infOrden=this.value; refrescarListaInformes()">
-        <option value="recientes" ${ui.infOrden !== 'antiguos' ? 'selected' : ''}>Generados: más recientes</option>
-        <option value="antiguos" ${ui.infOrden === 'antiguos' ? 'selected' : ''}>Generados: más antiguos</option>
-      </select></div>` : '';
+      <input type="search" id="buscarInformes" aria-label="Buscar en los informes" placeholder="Buscar por nombre, nombre del archivo o fecha de generación" value="${esc(ui.infQ || '')}" style="flex:1;min-width:240px" oninput="ui.infQ=this.value; refrescarListaInformes()"></div>` : '';
   return `<div id="secInformes">
     ${filtro}${buscar}
     <div id="listaInformes">${listaInformesHTML(p)}</div>
@@ -4668,11 +4731,11 @@ const fechaGeneradoTexto = x => { const d = new Date(x.fecha); return isNaN(d) ?
 // Solo esta parte se vuelve a pintar al buscar u ordenar, así el campo de búsqueda no pierde el foco.
 function listaInformesHTML(p){
   const todos = db.informes.filter(x => x.patientId === p.id);
-  const f = ui.infTipo || '', q = norm(ui.infQ).split(/\s+/).filter(Boolean), antiguos = ui.infOrden === 'antiguos';
-  const lista = todos
+  const f = ui.infTipo || '', q = norm(ui.infQ).split(/\s+/).filter(Boolean);
+  const lista = ordenarLista('informes', todos
     .filter(x => !f || x.tipo === f)
-    .filter(x => { const txt = norm([x.descripcion, x.nombre, fechaGeneradoTexto(x)].join(' ')); return q.every(t => txt.includes(t)); })
-    .sort((a, b) => (antiguos ? 1 : -1) * (a.fecha || '').localeCompare(b.fecha || ''));
+    .filter(x => { const txt = norm([x.descripcion, x.nombre, fechaGeneradoTexto(x)].join(' ')); return q.every(t => txt.includes(t)); }),
+    { titulo: x => x.descripcion || x.nombre, tipo: x => TIPOS_INFORME[x.tipo] || 'PDF', periodo: x => x.desde, generado: x => x.fecha }, (a, b) => (b.fecha || '').localeCompare(a.fecha || ''));
   const ex = ui.infExiste || {};
   const fila = x => `<div class="item infItem" data-id="${x.id}" style="align-items:center;flex-wrap:wrap">
       <div style="flex:1;min-width:220px">
@@ -4686,7 +4749,8 @@ function listaInformesHTML(p){
         <button class="ghost small infCarpeta" ${ex[x.id] === false ? 'disabled' : ''} onclick="abrirInforme('${x.id}', 'carpeta')">Mostrar en la carpeta</button>
         <button class="danger small" title="Quita el PDF de esta lista (el archivo no se borra)" onclick="quitarInforme('${x.id}')">Quitar de la lista</button>
       </div></div>`;
-  return lista.length ? (pag => pag.items.map(fila).join('') + pag.html)(paginar('informes', lista, 'render()', [p.id, f, q.join(' '), ui.infOrden || ''].join('|'))) : `<p class="muted">${todos.length ? (q.length ? 'Ningún PDF coincide con la búsqueda.' : 'No hay PDF de este tipo.') : 'Todavía no se ha generado ningún PDF para este paciente. Los informes de pautas y los planes en casa que exportes aparecerán aquí.'}</p>`;
+  const cab = cabListaHTML('informes', [['titulo', 'Informe'], ['tipo', 'Tipo'], ['periodo', 'Periodo'], ['generado', 'Generado']], 'refrescarListaInformes()');
+  return lista.length ? (pag => cab + pag.items.map(fila).join('') + pag.html)(paginar('informes', lista, 'render()', [p.id, f, q.join(' ')].join('|'))) : `<p class="muted">${todos.length ? (q.length ? 'Ningún PDF coincide con la búsqueda.' : 'No hay PDF de este tipo.') : 'Todavía no se ha generado ningún PDF para este paciente. Los informes de pautas y los planes en casa que exportes aparecerán aquí.'}</p>`;
 }
 // Repinta solo la lista de informes (al buscar u ordenar).
 function refrescarListaInformes(){ const el = $('#listaInformes'), p = getP(ui.patientId); if (el && p) el.innerHTML = listaInformesHTML(p); }
@@ -4828,8 +4892,7 @@ function refrescarHitos(){
   const cont = $('#listaHitos'); if (!cont) return;
   const todos = hitosDe(ui.patientId);
   const q = norm(ui.qH).split(/\s+/).filter(Boolean);
-  const lista = todos.filter(h => q.every(x => norm(h.nota).includes(x)))
-    .map((h, i) => ({ h, i })).sort((a, b) => b.h.fecha.localeCompare(a.h.fecha) || b.i - a.i).map(x => x.h);
+  const lista = ordenarLista('hitos', todos.filter(h => q.every(x => norm(h.nota).includes(x))), { fecha: h => h.fecha, nota: h => h.nota }, (a, b) => todos.indexOf(b) - todos.indexOf(a));
   $('#hTitulo').textContent = `(${todos.length})`;
   $('#hCuenta').textContent = todos.length ? `Mostrando ${lista.length} de ${todos.length}` : '';
   if (!lista.length){
@@ -4837,7 +4900,7 @@ function refrescarHitos(){
     return;
   }
   const pag = paginar('hitos', lista, 'refrescarHitos()', ui.patientId + '|' + ui.qH);
-  cont.innerHTML = `<table class="tabla-h"><thead><tr><th style="width:160px">Fecha</th><th>Notas</th><th style="width:100px">Fotos</th><th style="width:170px"></th></tr></thead><tbody>${
+  cont.innerHTML = `<table class="tabla-h"><thead><tr>${thOrden('hitos', 'fecha', 'Fecha', 'refrescarHitos()', 'style="width:160px"')}${thOrden('hitos', 'nota', 'Notas', 'refrescarHitos()')}<th style="width:100px">Fotos</th><th style="width:170px"></th></tr></thead><tbody>${
     pag.items.map(h => `<tr><td>${fmt(h.fecha)}</td><td class="nota">${esc(h.nota)}</td><td>${fotosCeldaHTML('hitos', h)}</td>
       <td><span class="row" style="gap:6px;justify-content:flex-end"><button class="ghost small" onclick="openHito('${h.id}')">Editar</button><button class="danger small" onclick="delHito('${h.id}')">Eliminar</button></span></td></tr>`).join('')
   }</tbody></table>${pag.html}`;
@@ -4906,8 +4969,7 @@ function refrescarEvaluaciones(){
   const cont = $('#listaEvaluaciones'); if (!cont) return;
   const todos = evaluacionesDe(ui.patientId);
   const q = norm(ui.qEv).split(/\s+/).filter(Boolean);
-  const lista = todos.filter(h => q.every(x => norm(h.evaluacion).includes(x)))
-    .map((h, i) => ({ h, i })).sort((a, b) => b.h.fecha.localeCompare(a.h.fecha) || b.i - a.i).map(x => x.h);
+  const lista = ordenarLista('evaluaciones', todos.filter(h => q.every(x => norm(h.evaluacion).includes(x))), { fecha: h => h.fecha, evaluacion: h => h.evaluacion }, (a, b) => todos.indexOf(b) - todos.indexOf(a));
   $('#evTitulo').textContent = `(${todos.length})`;
   $('#evCuenta').textContent = todos.length ? `Mostrando ${lista.length} de ${todos.length}` : '';
   if (!lista.length){
@@ -4915,7 +4977,7 @@ function refrescarEvaluaciones(){
     return;
   }
   const pag = paginar('evaluaciones', lista, 'refrescarEvaluaciones()', ui.patientId + '|' + ui.qEv);
-  cont.innerHTML = `<table class="tabla-h"><thead><tr><th style="width:160px">Fecha</th><th>Evaluación</th><th style="width:100px">Fotos</th><th style="width:170px"></th></tr></thead><tbody>${
+  cont.innerHTML = `<table class="tabla-h"><thead><tr>${thOrden('evaluaciones', 'fecha', 'Fecha', 'refrescarEvaluaciones()', 'style="width:160px"')}${thOrden('evaluaciones', 'evaluacion', 'Evaluación', 'refrescarEvaluaciones()')}<th style="width:100px">Fotos</th><th style="width:170px"></th></tr></thead><tbody>${
     pag.items.map(h => `<tr><td>${fmt(h.fecha)}</td><td class="nota">${esc(h.evaluacion)}</td><td>${fotosCeldaHTML('evaluaciones', h)}</td>
       <td><span class="row" style="gap:6px;justify-content:flex-end"><button class="ghost small" onclick="openEvaluacion('${h.id}')">Editar</button><button class="danger small" onclick="delEvaluacion('${h.id}')">Eliminar</button></span></td></tr>`).join('')
   }</tbody></table>${pag.html}`;
@@ -5011,6 +5073,8 @@ function sumarMeses(s, n){ const [y, m, d] = s.split('-').map(Number); return is
 const finDuracion = (inicio, n, u) => u === 'dias' ? addDays(inicio, n - 1) : u === 'meses' ? addDays(sumarMeses(inicio, n), -1) : addDays(inicio, 7 * n - 1);
 const textoDuracion = (n, u) => u === 'dias' ? plural(n, 'día', 'días') : u === 'meses' ? plural(n, 'mes', 'meses') : plural(n, 'semana', 'semanas');
 const textoDuracionDe = x => textoDuracion(duracionDe(x), unidadDe(x));
+// Duración aproximada en días (para ordenar plantillas de distinta unidad).
+const diasPlantilla = x => duracionDe(x) * ({ dias: 1, semanas: 7, meses: 30 }[unidadDe(x)] || 7);
 // Semanas de lunes a domingo de una plantilla con esa duración (un mes cuenta como 4 semanas).
 const semanasDeDuracion = (n, u) => Math.min(104, u === 'dias' ? Math.ceil(n / 7) : u === 'meses' ? 4 * n : n);
 function duracionHTML(id, n, u, cambio){
@@ -5121,7 +5185,8 @@ function filtrarPlanes(lista, f){
 function tablaPlanesHTML(p){
   const todos = planesDe(p.id);
   if (!todos.length) return '<p class="muted">Este paciente todavía no tiene planes en casa. Pulsa «Nuevo plan» o «Usar una plantilla…».</p>';
-  const lista = filtrarPlanes(todos, filtroPlanes()).sort((a, b) => b.inicio.localeCompare(a.inicio) || (b.creado || '').localeCompare(a.creado || ''));
+  const lista = ordenarLista('planes', filtrarPlanes(todos, filtroPlanes()), { nombre: x => x.nombre, inicio: x => x.inicio, fin: x => x.fin, duracion: x => diasEntre(x.inicio, x.fin) },
+    (a, b) => b.inicio.localeCompare(a.inicio) || (b.creado || '').localeCompare(a.creado || ''));
   if (!lista.length) return '<p class="muted">Ningún plan coincide con la búsqueda.</p>';
   const pag = paginar('planes', lista, 'refrescarPlanes()', p.id + '|' + JSON.stringify(filtroPlanes()));
   const filas = pag.items.map(pl => {
@@ -5138,7 +5203,8 @@ function tablaPlanesHTML(p){
         <button class="ghost small" onclick="exportarPlan('${p.id}', '${pl.id}')" ${hay && !exportandoPlan ? '' : 'disabled'}>Exportar a PDF</button>
         <button class="danger small" onclick="delPlanCasa('${pl.id}')">Eliminar</button></span></td></tr>`;
   }).join('');
-  return `<table class="tabla-planes"><thead><tr><th>Plan</th><th>Empieza</th><th>Termina</th><th>Duración</th><th>Contenido</th><th><span class="sr">Acciones</span></th></tr></thead><tbody>${filas}</tbody></table>${pag.html}`;
+  const th = (c, t) => thOrden('planes', c, t, 'refrescarPlanes()');
+  return `<table class="tabla-planes"><thead><tr>${th('nombre', 'Plan')}${th('inicio', 'Empieza')}${th('fin', 'Termina')}${th('duracion', 'Duración')}<th>Contenido</th><th><span class="sr">Acciones</span></th></tr></thead><tbody>${filas}</tbody></table>${pag.html}`;
 }
 function refrescarPlanes(){
   const p = getP(ui.patientId), c = $('#listaPlanes'); if (!p || !c) return;
@@ -5455,14 +5521,15 @@ function viewPlantillas(){
 function refrescarPlantillas(){
   const el = $('#listaPlantillas'); if (!el) return;
   const q = norm(ui.qPl || '').split(/\s+/).filter(Boolean);
-  const lista = db.plantillas.filter(t => { const txt = textoPlantilla(t); return q.every(w => txt.includes(w)); })
-    .sort((a, b) => a.nombre.localeCompare(b.nombre, 'es'));
+  const lista = ordenarLista('plantillas', db.plantillas.filter(t => { const txt = textoPlantilla(t); return q.every(w => txt.includes(w)); }),
+    { nombre: t => t.nombre, duracion: t => diasPlantilla(t), creada: t => t.creada || '', pacientes: t => pacientesDePlantilla(t) }, (a, b) => a.nombre.localeCompare(b.nombre, 'es'));
   const pag = paginar('plantillas', lista, 'refrescarPlantillas()', ui.qPl || '');
   const filas = pag.items.map(t => filaPlantillaHTML(t, `<button class="ghost small" onclick="openAplicarPlantilla('', '${t.id}')" ${t.items.some(i => getE(i.exerciseId)) ? '' : 'disabled title="La plantilla está vacía: añádele ejercicios con «Editar»"'}>Usar con pacientes…</button>
       <button class="ghost small" onclick="openPacientesPlantilla('${t.id}')" title="Pacientes con un plan en curso creado con esta plantilla">Pacientes (${pacientesDePlantilla(t)})</button>
       <button class="ghost small" onclick="verPlantilla('${t.id}')" title="Cambiar el nombre, la duración, las notas y los ejercicios de cada día">Editar</button>
       <button class="danger small" onclick="delPlantilla('${t.id}')">Eliminar</button>`)).join('');
-  el.innerHTML = filas ? filas + pag.html : db.plantillas.length
+  const cab = cabListaHTML('plantillas', [['nombre', 'Plantilla'], ['duracion', 'Duración'], ['creada', 'Creada'], ['pacientes', 'Pacientes']], 'refrescarPlantillas()');
+  el.innerHTML = filas ? cab + filas + pag.html : db.plantillas.length
     ? '<p id="plNada" class="muted">Ninguna plantilla coincide con la búsqueda.</p>' : '<p class="muted">Todavía no hay plantillas.</p>';
 }
 // --- pacientes con un plan creado con una plantilla ---

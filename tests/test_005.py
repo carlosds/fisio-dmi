@@ -72,8 +72,8 @@ with sync_playwright() as pw:
     page.wait_for_timeout(200)
     nombres = lambda: [t.split('\n')[0] for t in page.locator('#listaPacientes .fila-pac a').all_inner_texts()]
     check(nombres() == ['Abad Ruiz, Bea', 'López Pérez, Ana'], f'por defecto, orden por apellidos ({nombres()})')
-    page.select_option('#ordenPac', 'sesion'); page.wait_for_timeout(100)
-    check(nombres()[0] == 'López Pérez, Ana', 'por «Última sesión», primero quien tiene sesión más reciente')
+    page.locator('#listaPacientes .cab-lista').get_by_role('button', name='Última sesión').click(); page.wait_for_timeout(100)
+    check(nombres()[0] == 'López Pérez, Ana', 'al pulsar la cabecera «Última sesión», los que no tienen sesión van al final')
     fila = page.locator('#listaPacientes .fila-pac', has_text='López Pérez')
     check(f'Última sesión: {hoy_fmt}' in fila.inner_text() and 'Hoy: 2 de 3 puntuados' in fila.inner_text(), f'la fila se actualiza ({fila.inner_text()!r})')
     page.locator('#listaPacientes .fila-pac', has_text='Abad Ruiz').locator('input[type=checkbox]').check(); page.wait_for_timeout(100)
@@ -88,7 +88,7 @@ with sync_playwright() as pw:
     page.locator('#listaPacientes .fila-pac').first.locator('input[type=checkbox]').check()
     page.get_by_role('button', name='Recuperar (1)').click(); page.wait_for_timeout(500)
     check([p.get('archivado') for p in st()['patients'] if p['id'] == 'p2'] == [None], '«Recuperar» lo devuelve a activos')
-    page.select_option('#filtroPac', 'activos'); page.select_option('#ordenPac', 'nombre'); page.wait_for_timeout(100)
+    page.select_option('#filtroPac', 'activos'); page.evaluate("setAjuste('orden.pacientes', ''); refrescarPacientes()"); page.wait_for_timeout(100)
     # archivar desde la ficha
     page.evaluate("openPatient('p2')"); page.get_by_role('button', name='Editar datos del paciente').click(); page.get_by_role('button', name='Archivar paciente').click(); page.wait_for_timeout(300)
     check(page.locator('#modal').inner_text().strip() == '', 'desde «Editar datos del paciente» se puede archivar')

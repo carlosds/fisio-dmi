@@ -52,6 +52,16 @@ Merece la pena tener claras estas palabras, porque se repiten en toda la aplicac
 - **Sesión**: un día y una hora reservados para un paciente en la **Agenda**, con sus propios ejercicios y puntuaciones. Una sesión puede **repetirse cada semana** (por ejemplo, martes y jueves a las 17:00): es una **serie** de sesiones.
 - **Paciente archivado**: un paciente que ya no viene. Deja de salir en la lista, pero no se borra nada de lo suyo.
 
+## Ordenar listas y tablas {#ordenar}
+
+Todas las listas (pacientes, ejercicios, bloques, plantillas, sesiones, planes en casa, hitos, evaluaciones, informes, copias de seguridad y el resumen) tienen una **cabecera** con el nombre de sus columnas. Pulsa una columna para ordenar por ella:
+
+- La primera vez, de menor a mayor (**▲**: A→Z, de la fecha más antigua a la más reciente, de menos a más).
+- La segunda vez, al revés (**▼**).
+- La tercera vez, vuelve al orden de siempre de esa lista.
+
+La columna por la que está ordenada la lista lleva la flecha en color; las demás, **↕**. Cada lista recuerda su orden. Lo que no tiene dato (por ejemplo, un paciente sin próxima sesión) va siempre al final. En el **resumen**, los ejercicios se ordenan dentro de cada bloque. Las **pautas** del paciente no se ordenan así: siguen el orden de ejecución que pones con ↑ ↓.
+
 ## Pacientes {#pacientes}
 
 La pantalla **Pacientes** muestra la lista de pacientes. En cada uno ves cuántos ejercicios tiene **hoy** y cuántos están puntuados, la fecha de su **última sesión** puntuada, hasta cuándo tiene **plan en casa**, su **próxima sesión** y su teléfono.
@@ -59,7 +69,7 @@ La pantalla **Pacientes** muestra la lista de pacientes. En cada uno ves cuánto
 - **Nueva sesión**: programa una sesión para ese paciente sin salir de la lista (ver [Agenda y sesiones](#agenda)).
 - **Puntuar hoy**: abre la ventana de puntuación de hoy de ese paciente sin salir de la lista, así puedes ir puntuando a un paciente tras otro (ver [Puntuar un día](#puntuar)). Si quieres ir a su calendario, pulsa **Ver su calendario** en esa ventana. Si ya está todo puntuado, el botón dice **Ver hoy**.
 - **Buscar**: escribe en la caja de búsqueda parte del nombre, del teléfono o del email.
-- **Ordenar por**: **Apellidos** o **Última sesión** (primero los que han venido más recientemente).
+- **Ordenar**: pulsa **Paciente**, **Última sesión** o **Próxima sesión** en la cabecera de la lista (ver [Ordenar listas y tablas](#ordenar)).
 - **Activos / Archivados / Todos**: qué pacientes se ven. Por defecto, solo los activos.
 - **Abrir la ficha**: pulsa el nombre del paciente.
 - **Ver la foto en grande**: pulsa la foto. Para cerrarla, pulsa en cualquier sitio o la tecla Esc.
