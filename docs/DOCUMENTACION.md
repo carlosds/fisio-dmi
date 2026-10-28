@@ -729,3 +729,18 @@ Cada cita de un paciente es una **sesión** con sus propios ejercicios y puntuac
 - No se paginan las listas de elegir dentro de una ventana (Asignar, «Usar una plantilla…», pacientes de «Usar con pacientes…», «Pacientes con la plantilla», exportar varios pacientes), que filtran ocultando filas y tienen «Marcar visibles»; ni el Resumen, la agenda, el manual o las Novedades.
 - La pantalla Plantillas filtra ahora sobre los datos (`ui.qPl`, `refrescarPlantillas()`, llamada desde `render()`), no ocultando filas; la búsqueda se conserva al volver. `filtrarPlantillas` / `buscadorPlantillasHTML` quedan para la ventana de elegir plantilla.
 - Pruebas: `tests/test_paginacion.py`; `test_ui.py` (bloques) y `test_plantillas.py` adaptadas.
+
+## 29. Observaciones al puntuar (modelo 7)
+
+### Modelo
+- Tabla nueva `observaciones(patient_id FK, fecha, sesion, bloque_id, exercise_id, repeticion, texto, PK(patient_id, fecha, sesion, bloque_id, exercise_id, repeticion))`. `schemaVersion = 7` (solo añade una tabla: no hay paso de migración; al abrir datos del modelo 6 se hace antes la copia `copia-previa-actualizacion-…`).
+- El **ámbito** lo dan las columnas: `sesion` = id de la cita (`''` = sin sesión); con `bloque_id = ''`, `exercise_id = ''` y `repeticion = 0` es de **toda la sesión**; con `bloque_id`, de un bloque; con `exercise_id`, de un ejercicio (y `bloque_id`, si se quiere distinguir el mismo ejercicio en dos bloques); con `repeticion > 0` (y `exercise_id`), de una repetición. Así caben las de sesión, bloque, ejercicio y repetición sin cambiar el esquema. **De momento la interfaz solo usa las de sesión.**
+- `saveState` descarta las vacías (solo espacios), las de pacientes o ejercicios que no existen y las de repetición sin ejercicio. `restoreFrom` las copia si la copia tiene la tabla. Sin clave foránea en `sesion`, `bloque_id` ni `exercise_id` (pueden ir vacíos; las citas se reescriben en cada guardado).
+- Estado JSON: `observaciones: [{ patientId, fecha, sesion, bloqueId, exerciseId, repeticion, texto }]`. El texto se guarda tal cual (con saltos de línea).
+
+### Cliente
+- `buscarObs(pid, dia, ses, ambito)`, `textoObs(...)`, `ponerObs(pid, dia, ses, texto, ambito)` (vacío = quitar). `ambito` es `{ bloqueId, exerciseId, repeticion }`; por defecto `AMBITO_SESION`. `obsSesionesDia(pid, dia)`: las de sesión de un día, por hora.
+- Siguen a las puntuaciones: `moverPuntSesion` llama a `moverObsSesion` (si en la sesión de destino ya hay una del mismo ámbito, se juntan los textos). `normalizarSesiones` también mueve a «sin sesión» las observaciones de citas que ya no existen o que cambiaron de día. `sesionesDia` muestra la sesión «sin cita» si tiene observaciones. Al eliminar un paciente se borran las suyas. El aviso de anular una sesión lo menciona (`textoEjerciciosCitas`).
+- Ventana del día: `#obsSesion` debajo de las pestañas (de la sesión elegida, o «del día»); `escribirObsSesion` guarda en el modelo en cada tecla y llama a `save()` 800 ms después; al salir del campo, `save(); render()`.
+- Dónde se ven: semana (`obsDiaHTML`, texto recortado a 2 líneas), mes (icono ✎ con el texto en el `title`), vista de día (`.obs-texto` y botón «Observaciones…»), lista de sesiones (`filaSesionHTML`, `.obs-fila`) e informe de pautas (apartado «Observaciones de las sesiones» tras el resumen, con `obsPeriodoPdf`; casilla `#expObs` / `opciones.observaciones`).
+- Pruebas: `code/observaciones_test.go` (guardar, cargar, descartes y restaurar una copia), `tests/test_observaciones.py`; `tests/test_sql.py` cuenta 23 tablas.

@@ -18,7 +18,7 @@ ses_block = mig[mig.index('`ALTER TABLE puntuaciones RENAME TO puntuaciones_sin_
 MIGR_SES = [m.strip() for m in re.findall(r'`([^`]*)`', ses_block)]
 assert len(MIGR_SES) == 4, len(MIGR_SES)
 print(f"extraídas: {len(STMTS)} CREATE, {len(COLS)} columnas, {len(MIGR)} pasos de migración")
-assert len(STMTS) == 22 and len(COLS) == 24 and len(MIGR) == 4, (len(STMTS), len(COLS), len(MIGR))
+assert len(STMTS) == 23 and len(COLS) == 24 and len(MIGR) == 4, (len(STMTS), len(COLS), len(MIGR))
 
 def tiene_col(c, t, col):
     return c.execute("SELECT COUNT(*) FROM pragma_table_info(?) WHERE name = ?", (t, col)).fetchone()[0] > 0

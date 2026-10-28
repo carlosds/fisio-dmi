@@ -166,6 +166,14 @@ Al pulsar un día del calendario (o **Puntuar hoy**) se abre su ventana, con dos
 
 **Añadir ejercicios** (se abre esta si el día está vacío): marca los bloques o ejercicios y pulsa **Añadir al día** (o **Añadir a la sesión**, si hay sesiones). Se añaden solo a ese día (y solo a la sesión abierta, si hay sesiones). Después se vuelve sola a la pestaña de puntuar.
 
+**Observaciones.** Debajo de las pestañas hay un cuadro para escribir **observaciones** de la sesión (cómo ha ido, incidencias, qué cambiar la próxima vez). Si el día no tiene sesión, son **observaciones del día**. Se guardan solas mientras escribes; para quitarlas, borra el texto. Se ven:
+
+- en el **calendario**: en la vista de semana, el principio del texto debajo de los ejercicios; en la de mes, un ✎ (pon el ratón encima para leerlas); en la de día, completas, con un botón **Observaciones…** para cambiarlas;
+- en la pestaña **Sesiones**, debajo de cada sesión;
+- en el **informe de pautas**, en el apartado **Observaciones de las sesiones**.
+
+Si anulas una sesión con observaciones, no se pierden: pasan a «Sin sesión» de ese día, como sus puntuaciones.
+
 ## Sesiones: ejercicios y puntuaciones de cada sesión {#sesiones}
 
 Cada **sesión** tiene sus propios ejercicios y sus propias puntuaciones. Si un día el paciente no tiene sesión programada, sus ejercicios se puntúan igual, en **Sin sesión**. Así, si un paciente viene dos veces el mismo día, cada visita tiene su puntuación, aunque haga los mismos bloques.
@@ -301,7 +309,7 @@ Arriba ves la lista, con la más reciente primero. Para añadir una, pulsa **Nue
 
 La aplicación crea dos tipos de PDF:
 
-- **Informe de pautas**: los ejercicios de las pautas y sus puntuaciones en un periodo. Lleva arriba los datos de tu clínica, un **resumen por ejercicio** (días previstos, puntuados y media), una gráfica de la evolución y, si marcas **Incluir el detalle de cada día**, una tabla día a día. No incluye teléfono, email ni observaciones.
+- **Informe de pautas**: los ejercicios de las pautas y sus puntuaciones en un periodo. Lleva arriba los datos de tu clínica, un **resumen por ejercicio** (días previstos, puntuados y media), una gráfica de la evolución y, si marcas **Incluir el detalle de cada día**, una tabla día a día. Si marcas **Incluir las observaciones de las sesiones** (marcado de entrada), lleva también las observaciones que escribiste al puntuar en ese periodo. No incluye teléfono, email ni las observaciones de la ficha del paciente.
 - **Plan en casa**: el plan para la familia, con la cabecera de tu clínica, el nombre y las fechas del plan, sus notas, los ejercicios «a elegir», cada día con una casilla por ejercicio y tu firma.
 
 **Dónde se crean:**

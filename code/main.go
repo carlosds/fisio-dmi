@@ -273,6 +273,19 @@ type Evaluacion struct {
 	Fotos      []string `json:"fotos"`
 }
 
+// Observacion es texto libre que se anota al puntuar. Es de un paciente, un día y una sesión (Sesion: id de la cita;
+// vacío = sin sesión) y, si se indica, de un bloque, un ejercicio y una repetición. Con BloqueID y ExerciseID vacíos
+// y Repeticion 0 es una observación de toda la sesión; así caben las de sesión, bloque, ejercicio y repetición.
+type Observacion struct {
+	PatientID  string `json:"patientId"`
+	Fecha      string `json:"fecha"`
+	Sesion     string `json:"sesion"`
+	BloqueID   string `json:"bloqueId"`
+	ExerciseID string `json:"exerciseId"`
+	Repeticion int    `json:"repeticion"`
+	Texto      string `json:"texto"`
+}
+
 type State struct {
 	Exercises       []Exercise        `json:"exercises"`
 	Patients        []Patient         `json:"patients"`
@@ -289,6 +302,7 @@ type State struct {
 	Informes        []Informe         `json:"informes"`
 	Citas           []Cita            `json:"citas"`
 	SeriesCitas     []SerieCitas      `json:"seriesCitas"`
+	Observaciones   []Observacion     `json:"observaciones"`
 }
 
 // Informe registra un PDF generado para un paciente (informe o plan en casa) y dónde lo guardó el usuario.
@@ -606,7 +620,7 @@ func openDataDir(dir string) error {
 // schemaVersion es la versión del modelo de datos que entiende este ejecutable. Se guarda en la propia base de
 // datos (PRAGMA user_version). Súbela en 1 en cada versión que cambie el modelo (tablas, columnas o datos) y,
 // si el cambio no es solo añadir cosas, añade el paso correspondiente en pasosMigracion.
-const schemaVersion = 6 // 2: tabla informes (PDF generados) · 3: pautas.dias y patients.archivado · 4: planes en casa (planes, plan_items) y plantillas.notas · 5: agenda (citas, citas_series) y Google Calendar (google_eventos, google_sync) · 6: sesiones (puntuaciones.sesion en la clave, pautas.sesion, citas_series.raiz)
+const schemaVersion = 7 // 2: tabla informes (PDF generados) · 3: pautas.dias y patients.archivado · 4: planes en casa (planes, plan_items) y plantillas.notas · 5: agenda (citas, citas_series) y Google Calendar (google_eventos, google_sync) · 6: sesiones (puntuaciones.sesion en la clave, pautas.sesion, citas_series.raiz) · 7: observaciones (texto libre por sesión, bloque, ejercicio o repetición)
 
 // pasosMigracion[v] convierte los datos de la versión v a la v+1, dentro de una transacción, después de que
 // migrateDB haya añadido las tablas y columnas nuevas. Solo hacen falta para cambios que no sean aditivos
@@ -696,6 +710,17 @@ func migrateDB(d *sql.DB) error {
 			repeticion INTEGER NOT NULL DEFAULT 1,
 			valor INTEGER CHECK (valor IS NULL OR valor BETWEEN 0 AND 3),
 			PRIMARY KEY (patient_id, fecha, exercise_id, sesion, repeticion))`,
+		// Observaciones al puntuar (modelo 7). bloque_id / exercise_id vacíos y repeticion 0 = de toda la sesión.
+		// Sin claves foráneas en sesion, bloque_id ni exercise_id: pueden ir vacíos (y las citas se reescriben en cada guardado).
+		`CREATE TABLE IF NOT EXISTS observaciones (
+			patient_id TEXT NOT NULL REFERENCES patients(id) ON DELETE CASCADE,
+			fecha TEXT NOT NULL,
+			sesion TEXT NOT NULL DEFAULT '',
+			bloque_id TEXT NOT NULL DEFAULT '',
+			exercise_id TEXT NOT NULL DEFAULT '',
+			repeticion INTEGER NOT NULL DEFAULT 0,
+			texto TEXT NOT NULL,
+			PRIMARY KEY (patient_id, fecha, sesion, bloque_id, exercise_id, repeticion))`,
 		`CREATE TABLE IF NOT EXISTS ajustes (clave TEXT PRIMARY KEY, valor TEXT NOT NULL)`,
 		`CREATE TABLE IF NOT EXISTS bloques (id TEXT PRIMARY KEY, nombre TEXT NOT NULL)`,
 		`CREATE TABLE IF NOT EXISTS bloque_ejercicios (
@@ -1244,6 +1269,7 @@ func loadState() (State, error) {
 		Informes:        []Informe{},
 		Citas:           []Cita{},
 		SeriesCitas:     []SerieCitas{},
+		Observaciones:   []Observacion{},
 	}
 	err := eachRow(`SELECT id, nombre, libre FROM exercises ORDER BY nombre COLLATE NOCASE`, func(r *sql.Rows) error {
 		var e Exercise
@@ -1312,6 +1338,17 @@ func loadState() (State, error) {
 		} else {
 			st.Puntuaciones[clave] = nil
 		}
+		return nil
+	})
+	if err != nil {
+		return st, err
+	}
+	err = eachRow(`SELECT patient_id, fecha, sesion, bloque_id, exercise_id, repeticion, texto FROM observaciones ORDER BY patient_id, fecha, sesion`, func(r *sql.Rows) error {
+		var o Observacion
+		if err := r.Scan(&o.PatientID, &o.Fecha, &o.Sesion, &o.BloqueID, &o.ExerciseID, &o.Repeticion, &o.Texto); err != nil {
+			return err
+		}
+		st.Observaciones = append(st.Observaciones, o)
 		return nil
 	})
 	if err != nil {
@@ -1587,7 +1624,7 @@ func saveState(st State) error {
 	}
 	defer tx.Rollback()
 
-	for _, q := range []string{"DELETE FROM citas", "DELETE FROM citas_series", "DELETE FROM puntuaciones", "DELETE FROM pautas", "DELETE FROM plan_casa", "DELETE FROM hitos", "DELETE FROM evaluaciones", "DELETE FROM planes_guardados_items", "DELETE FROM planes_guardados", "DELETE FROM plan_items", "DELETE FROM planes", "DELETE FROM plantilla_aplicaciones", "DELETE FROM plantilla_items", "DELETE FROM plantillas", "DELETE FROM bloque_ejercicios", "DELETE FROM bloques", "DELETE FROM informes", "DELETE FROM patients", "DELETE FROM exercises", "DELETE FROM ajustes"} {
+	for _, q := range []string{"DELETE FROM citas", "DELETE FROM citas_series", "DELETE FROM observaciones", "DELETE FROM puntuaciones", "DELETE FROM pautas", "DELETE FROM plan_casa", "DELETE FROM hitos", "DELETE FROM evaluaciones", "DELETE FROM planes_guardados_items", "DELETE FROM planes_guardados", "DELETE FROM plan_items", "DELETE FROM planes", "DELETE FROM plantilla_aplicaciones", "DELETE FROM plantilla_items", "DELETE FROM plantillas", "DELETE FROM bloque_ejercicios", "DELETE FROM bloques", "DELETE FROM informes", "DELETE FROM patients", "DELETE FROM exercises", "DELETE FROM ajustes"} {
 		if _, err := tx.Exec(q); err != nil {
 			return err
 		}
@@ -1841,6 +1878,18 @@ func saveState(st State) error {
 		}
 	}
 
+	// Observaciones: se descartan las vacías, las de pacientes o ejercicios que ya no existen y las de repetición sin ejercicio.
+	for _, o := range st.Observaciones {
+		if o.Fecha == "" || !patIDs[o.PatientID] || strings.TrimSpace(o.Texto) == "" || o.Repeticion < 0 ||
+			(o.ExerciseID != "" && !exIDs[o.ExerciseID]) || (o.Repeticion > 0 && o.ExerciseID == "") {
+			continue
+		}
+		if _, err := tx.Exec(`INSERT OR REPLACE INTO observaciones (patient_id, fecha, sesion, bloque_id, exercise_id, repeticion, texto) VALUES (?, ?, ?, ?, ?, ?, ?)`,
+			o.PatientID, o.Fecha, o.Sesion, o.BloqueID, o.ExerciseID, o.Repeticion, o.Texto); err != nil {
+			return err
+		}
+	}
+
 	for k, v := range st.Ajustes {
 		if _, err := tx.Exec(`INSERT OR REPLACE INTO ajustes (clave, valor) VALUES (?, ?)`, k, v); err != nil {
 			return err
@@ -2083,6 +2132,7 @@ func restoreFrom(path string) error {
 	base := []string{
 		"DELETE FROM citas",
 		"DELETE FROM citas_series",
+		"DELETE FROM observaciones",
 		"DELETE FROM puntuaciones",
 		"DELETE FROM pautas",
 		"DELETE FROM plan_casa",
@@ -2318,6 +2368,14 @@ func restoreFrom(path string) error {
 		SELECT patient_id, fecha, exercise_id, %s, %s, valor FROM src.puntuaciones
 		WHERE patient_id IN (SELECT id FROM patients) AND exercise_id IN (SELECT id FROM exercises)`, sesionPu, rep)); err != nil {
 		return err
+	}
+	// Las copias anteriores al modelo 7 no tienen observaciones.
+	if srcTabla(tx, "observaciones") {
+		if _, err := tx.Exec(`INSERT INTO observaciones (patient_id, fecha, sesion, bloque_id, exercise_id, repeticion, texto)
+			SELECT patient_id, fecha, sesion, bloque_id, exercise_id, repeticion, texto FROM src.observaciones
+			WHERE patient_id IN (SELECT id FROM patients) AND (exercise_id = '' OR exercise_id IN (SELECT id FROM exercises))`); err != nil {
+			return err
+		}
 	}
 	if srcTabla(tx, "ajustes") {
 		if _, err := tx.Exec("DELETE FROM ajustes"); err != nil {
