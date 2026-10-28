@@ -130,7 +130,7 @@ Pulsa **Guardar** para aplicar los cambios.
 La pestaña **Calendario** tiene dos vistas, que se cambian con los botones de arriba: **Calendario** y **Resumen**.
 
 - **Día / Semana / Mes**: cambia cuánto tiempo ves a la vez. **Anterior**, **Hoy** y **Siguiente** mueven las fechas.
-- **Días con sesión**: junto al número del día sale un punto del color de la sesión (al poner el ratón encima, la hora). Así se ve de un vistazo qué días vino o viene el paciente. Las sesiones se programan en la [Agenda](#agenda).
+- **Días con sesión**: tienen todo el borde del color de la sesión (al poner el ratón encima, la hora). Así se ve de un vistazo qué días vino o viene el paciente. Las sesiones se programan en la [Agenda](#agenda).
 - **Buscar**: escribe el nombre de un bloque o ejercicio para ver solo esos.
 
 **Vista Semana.** Cada día muestra sus ejercicios, agrupados bajo el nombre de su bloque:
@@ -337,7 +337,7 @@ En **Agenda** (menú de arriba) están las sesiones de todos los pacientes en un
 - **Cambiar o anular una sesión**: púlsala. En su ventana también está **Ver ficha**.
 - Las sesiones que se solapan se ven una al lado de la otra. La línea roja marca la hora actual.
 
-**Colores.** Cada sesión puede tener un color (los mismos que Google Calendar, así se ven igual allí). En la pestaña **Sesiones** de la ficha del paciente eliges el **color de sus sesiones**: es el que llevan por defecto las sesiones nuevas de ese paciente. Al cambiarlo, la aplicación pregunta si cambiar también sus próximas sesiones o solo las nuevas. En la ventana de cada sesión (y de cada serie) se puede poner otro color.
+**Colores.** Cada sesión puede tener un color (los mismos que Google Calendar, así se ven igual allí). En los datos del paciente (**Editar datos del paciente**) eliges el **color de sus sesiones**: es el que llevan por defecto las sesiones nuevas de ese paciente. Al cambiarlo, la aplicación pregunta si cambiar también sus próximas sesiones o solo las nuevas. En la ventana de cada sesión (y de cada serie) se puede poner otro color.
 
 **Huecos ocupados.** Al elegir día y hora, la ventana avisa si ese hueco ya está ocupado por otra sesión (o por algo de tu Google Calendar, si está conectado, ver [Google Calendar](#google-calendar)). Puedes programarla igualmente: la aplicación te lo pregunta antes.
 
@@ -350,10 +350,10 @@ Al **cambiar** o **anular** una sesión que se repite, la aplicación pregunta:
 
 **En la ficha del paciente**, la pestaña **Sesiones** muestra:
 
-- **Color de sus sesiones**: el color por defecto de sus sesiones nuevas.
 - **Se repiten cada semana**: sus series. **Cambiar…** cambia días, hora, duración o fecha de fin a partir del día que elijas. **Terminar…** anula las sesiones de la serie desde mañana (las anteriores se quedan).
-- **Próximas**: sus sesiones a partir de hoy. **Cambiar…** abre la sesión y **Puntuar** (si ese día tiene ejercicios) abre directamente la puntuación de ese día, sin pasar por la sesión.
-- **Sesiones pasadas**: el historial, plegado.
+- **Próximas**, **Pasadas** o **Todas**: con estos botones eliges qué sesiones ver. Se pueden buscar **entre dos fechas**, por **mes** y por **año** (**Quitar filtros** vuelve a verlas todas).
+- Cada sesión dice si **no tiene ejercicios**, cuántos tiene **sin puntuar** o **cuántos están puntuados** (en verde, si están todos).
+- **Puntuar** abre directamente la puntuación de esa sesión, sin pasar por el calendario. Si todavía no tiene ejercicios, se abre en **Añadir ejercicios** para ponérselos ahí mismo. **Cambiar…** abre la sesión.
 - **Nueva sesión** (ya con el paciente elegido) y **Ver en la agenda**.
 
 **Horario de la agenda.** En **Ajustes → Agenda** eliges desde qué hora y hasta qué hora se ve la cuadrícula, qué días de la semana salen (un día sin marcar sale igualmente si tiene alguna sesión) y cuánto duran las sesiones nuevas.

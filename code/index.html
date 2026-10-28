@@ -7,9 +7,9 @@
 <title>Ejercicios de fisioterapia</title>
 <style>
 :root{--paper:#EEF2EF;--card:#FFFFFF;--field:#FFFFFF;--bar:#14302B;--ink:#14302B;--muted:#5B6F6A;--line:#D3DDD8;--accent:#2E6F5E;--danger:#A8432F;
---s0:#B5533C;--s1:#D89B3A;--s2:#8DB48E;--s3:#2E6F5E;--pend:#E3ECF6;--pend-line:#7A93B0;--zebra:#F4F7F5;color-scheme:light}
+--s0:#B5533C;--s1:#D89B3A;--s2:#8DB48E;--s3:#2E6F5E;--pend:#E3ECF6;--pend-line:#7A93B0;--zebra:#F4F7F5;--ses:#3F51B5;color-scheme:light}
 :root[data-theme="dark"]{--paper:#0E1513;--card:#17211E;--field:#1E2B27;--bar:#0A0F0E;--ink:#E6EFEB;--muted:#9FB2AC;--line:#30403B;--accent:#3C8F78;--danger:#E58468;
---s0:#B5533C;--s1:#D89B3A;--s2:#8DB48E;--s3:#2E6F5E;--pend:#243241;--pend-line:#6F8AA9;--zebra:#1B2724;color-scheme:dark}
+--s0:#B5533C;--s1:#D89B3A;--s2:#8DB48E;--s3:#2E6F5E;--pend:#243241;--pend-line:#6F8AA9;--zebra:#1B2724;--ses:#8C9EFF;color-scheme:dark}
 *{box-sizing:border-box}
 body{margin:0;background:var(--paper);color:var(--ink);font:16px/1.5 system-ui,-apple-system,"Segoe UI",sans-serif}
 h1,h2,h3{font-family:Iowan Old Style,Palatino,Georgia,serif;font-weight:600;margin:0 0 .5em}
@@ -358,8 +358,8 @@ button.enlace{background:none;border:0;padding:0;font:inherit;font-weight:600;co
 .ses-btn.on{border-color:var(--ink);border-left-color:var(--cc,var(--accent));box-shadow:0 0 0 1px var(--ink)}
 .ses-vista{border-left:4px solid var(--line);padding-left:10px;margin:0 0 16px}
 .ses-titulo{border-left:4px solid var(--cc,var(--accent));padding-left:6px}
-.marca-cita{display:inline-flex;gap:2px;align-items:center;vertical-align:middle}
-.marca-cita i{width:7px;height:7px;border-radius:50%;background:var(--cc,var(--accent));box-shadow:0 0 0 1px color-mix(in srgb,var(--ink) 20%,transparent)}
+.day.con-sesion{border:2px solid var(--cc,var(--ses))}
+.day.today.con-sesion{box-shadow:inset 0 0 0 2px var(--accent)}
 .colores-cita{display:flex;flex-wrap:wrap;gap:6px;margin:4px 0}
 .colores-cita button{width:28px;height:28px;padding:0;border-radius:50%;border:2px solid var(--card);background:var(--sw,var(--accent));box-shadow:0 0 0 1px var(--line);cursor:pointer}
 .colores-cita button.normal{background:linear-gradient(135deg,var(--accent) 50%,color-mix(in srgb,var(--accent) 82%,#4A6FA5) 50%)}
@@ -389,6 +389,13 @@ button.enlace{background:none;border:0;padding:0;font:inherit;font-weight:600;co
 .rep-op{border-left:3px solid var(--line);padding:4px 0 4px 12px;margin:4px 0 8px}
 .guia-google{line-height:1.6;padding-left:22px}.guia-google li{margin:4px 0}
 .cita-fila{padding:6px 0}
+.ses-estado{font-size:12px;font-weight:600;padding:2px 8px;border-radius:10px;border:1px solid var(--line);white-space:nowrap}
+.ses-estado.vacia{border-style:dashed;color:var(--muted)}
+.ses-estado.prevista{border-color:var(--pend-line);background:var(--pend)}
+.ses-estado.pend{border-color:var(--s1);background:color-mix(in srgb,var(--s1) 20%,transparent)}
+.ses-estado.parcial{border-color:var(--s2);background:color-mix(in srgb,var(--s2) 25%,transparent)}
+.ses-estado.hecha{border-color:var(--accent);background:var(--accent);color:#fff}
+.muestra-color{display:inline-block;width:12px;height:12px;border-radius:50%;background:var(--cc,var(--accent));vertical-align:-1px;box-shadow:0 0 0 1px color-mix(in srgb,var(--ink) 20%,transparent)}
 .aviso-import{background:var(--field);border:1px solid var(--warn, #D89B3A);border-left-width:5px;border-radius:8px;padding:8px 12px;margin:10px 0}
 .lista-import{margin:10px 0;padding-left:20px;line-height:1.7}
 .nivel{font-size:12px;font-weight:600;padding:1px 8px;border-radius:10px;border:1px solid var(--accent);color:var(--accent);white-space:nowrap;margin-left:4px}
@@ -920,7 +927,7 @@ document.addEventListener('keydown', e => {
 function openPatient(id){ prepararPaciente(id); render(); window.scrollTo(0, 0); }
 // Deja la ficha de un paciente lista para verse (pestaña Pautas, sin búsquedas de otro paciente).
 function prepararPaciente(id){
-  ui.patientId = id; ui.tabP = 'pautas'; ui.calVista = 'calendario'; ui.planCasaId = null; ui.fPlanes = null; ui.qH = ''; ui.qEv = ''; ui.qPautas = ''; ui.qCal = ''; ui.qRes = ''; ui.qCasa = ''; ui.infQ = ''; ui.casaExpMsg = null; fotosPend = { hitos: [], evaluaciones: [] }; ui.view = 'paciente'; ui.fecha = new Date(); ui.res.fecha = new Date(); ui.res.vista = 'mes';
+  ui.patientId = id; ui.tabP = 'pautas'; ui.calVista = 'calendario'; ui.planCasaId = null; ui.fPlanes = null; ui.qH = ''; ui.qEv = ''; ui.qPautas = ''; ui.qCal = ''; ui.qRes = ''; ui.qCasa = ''; ui.infQ = ''; ui.fSes = null; ui.casaExpMsg = null; fotosPend = { hitos: [], evaluaciones: [] }; ui.view = 'paciente'; ui.fecha = new Date(); ui.res.fecha = new Date(); ui.res.vista = 'mes';
 }
 function render(){
   if (loaded) normalizarSesiones();
@@ -1093,6 +1100,8 @@ function openPatientForm(id){
       <div><label>Primera visita</label><input type="date" id="fAlta" value="${p.fechaAlta}"></div>
       <div><label>Teléfono</label><input type="tel" id="fTel" value="${esc(p.telefono)}"></div>
       <div style="grid-column:1/-1"><label>Email</label><input type="email" id="fEmail" value="${esc(p.email)}"></div>
+      <div style="grid-column:1/-1"><label>Color de sus sesiones</label>${selectorColorHTML('pacColor', p.colorCita || '')}
+        <div class="muted" style="margin-top:4px">Es el color con que se programan sus sesiones nuevas; en cada sesión se puede cambiar.</div></div>
     </div>
     <div class="split" style="margin-top:4px">
       <div><label>Observaciones</label><textarea id="fObs" rows="5">${esc(p.observaciones)}</textarea></div>
@@ -1166,7 +1175,7 @@ async function delPacientes(ids){
   closeModal(); ui.view = 'pacientes'; render(); window.scrollTo(0, 0);
   ofrecerDeshacer(antes, ps.length === 1 ? `${ps[0].nombre} ${ps[0].apellidos} eliminado` : `${ps.length} pacientes eliminados`);
 }
-function savePatient(id){
+async function savePatient(id){
   const nombre = $('#fNombre').value.trim();
   if (!nombre){ avisar('El nombre es obligatorio.'); return; }
   const data = {
@@ -1175,10 +1184,11 @@ function savePatient(id){
     fechaAlta: $('#fAlta').value || todayIso(),
     telefono: $('#fTel').value.trim(),
     email: $('#fEmail').value.trim(),
-    observaciones: $('#fObs').value.trim()
+    observaciones: $('#fObs').value.trim(),
+    colorCita: leerColor('pacColor')
   };
-  if (id){
-    const p = getP(id);
+  const p = id && getP(id), colorAntes = p ? p.colorCita || '' : '';
+  if (p){
     Object.assign(p, data);
     if (pendingPhoto !== undefined) p.foto = pendingPhoto;
   } else {
@@ -1186,6 +1196,7 @@ function savePatient(id){
   }
   pendingPhoto = undefined;
   closeModal(); render();
+  if (p && data.colorCita !== colorAntes) await proponerColorProximas(p, colorAntes, data.colorCita);
 }
 
 /* ---------- vista de paciente ---------- */
@@ -1400,7 +1411,7 @@ function celdaDia(p, s, max, out, etiqueta){
   }
   const more = items.length > max ? `<span class="muted">+${items.length - max} más</span>` : '';
   const badge = pendientes ? `<span class="badge">${pendientes} sin puntuar</span>` : '';
-  return `<div class="day ${out ? 'out' : ''} ${s === t ? 'today' : ''}"
+  return `<div class="day ${out ? 'out' : ''} ${s === t ? 'today' : ''}${claseSesionDia(p.id, s, true)}
             role="button" tabindex="0" onclick="openDay('${s}')" onkeydown="if(event.key==='Enter')openDay('${s}')">
             <div class="n"><span>${etiqueta} ${marcaCitasDia(p.id, s)}</span>${badge}</div>${chips}${more}</div>`;
 }
@@ -1417,7 +1428,7 @@ function celdaMes(p, s, out, etiqueta){
   const cs = citasDia(p.id, s);
   const tip = (items.length ? `${fmtLong(s)}: ${items.length} ejercicios${futuro ? '' : `, ${cd.hechos} de ${cd.total} puntuados${media !== null ? ', media ' + fmtPunt(Math.round(media * 10) / 10) : ''}`}` : fmtLong(s))
     + (cs.length ? ` · ${cs.length === 1 ? 'sesión' : cs.length + ' sesiones'}: ${cs.map(c => c.hora).join(', ')}` : '');
-  return `<div class="day mes ${out ? 'out' : ''} ${s === t ? 'today' : ''}" title="${esc(tip)}"
+  return `<div class="day mes ${out ? 'out' : ''} ${s === t ? 'today' : ''}${claseSesionDia(p.id, s)} title="${esc(tip)}"
             role="button" tabindex="0" onclick="openDay('${s}')" onkeydown="if(event.key==='Enter')openDay('${s}')">
             <div class="n"><span>${etiqueta} ${marcaCitasDia(p.id, s)}</span></div>${cuerpo}</div>`;
 }
@@ -3405,17 +3416,22 @@ function irFichaCita(pid, fecha){
 }
 // Citas de un paciente un día (para marcarlas en su calendario de ejercicios).
 const citasDia = (pid, s) => db.citas.filter(c => c.patientId === pid && c.fecha === s).sort(ordenCita);
-// Marca discreta en el calendario: un punto por cita, del color de la cita.
+// Los días con sesión llevan todo el borde del color de su (primera) sesión. Cierra el atributo class.
+function claseSesionDia(pid, s, conTitulo){
+  const cs = citasDia(pid, s);
+  return cs.length ? ` con-sesion" style="${estiloColorCita(cs[0].color)}"${conTitulo ? ` title="${esc(textoSesionesDia(cs))}"` : ''}` : '"';
+}
+const textoSesionesDia = cs => (cs.length === 1 ? 'Sesión: ' : cs.length + ' sesiones: ') + cs.map(c => `${c.hora}–${finCita(c)}`).join(' · ');
+// Texto de las sesiones del día para lectores de pantalla y al pasar el ratón (el borde no lo dice).
 function marcaCitasDia(pid, s){
   const cs = citasDia(pid, s);
   if (!cs.length) return '';
-  const horas = cs.map(c => `${c.hora}–${finCita(c)}`).join(' · ');
-  const t = cs.length === 1 ? `Sesión: ${horas}` : `${cs.length} sesiones: ${horas}`;
-  return `<span class="marca-cita" title="${esc(t)}" aria-label="${esc(t)}">${cs.slice(0, 3).map(c => `<i style="${estiloColorCita(c.color)}"></i>`).join('')}</span>`;
+  const t = textoSesionesDia(cs);
+  return `<span class="marca-cita sr" title="${esc(t)}">${esc(t)}</span>`;
 }
 function puntuarCita(pid, fecha, citaId){
   if (ui.patientId !== pid){ if (ui.view === 'paciente') prepararPaciente(pid); else ui.patientId = pid; }
-  openDay(fecha, 'puntuar', citaId);
+  openDay(fecha, undefined, citaId);   // sin ejercicios se abre en «Añadir ejercicios»
 }
 // Al dar la primera cita de un día que ya tiene ejercicios sin sesión, se pregunta qué hacer con ellos:
 //   'vacia'   la cita empieza sin ejercicios; los de antes siguen sin sesión (con sus puntuaciones);
@@ -3484,44 +3500,76 @@ function aplicarSinSesion(con, serie, op){
 /* citas en la ficha del paciente */
 const proximaCita = pid => db.citas.filter(c => c.patientId === pid && (c.fecha > todayIso() || c.fecha === todayIso() && minDe(c.hora) + c.duracion >= new Date().getHours() * 60 + new Date().getMinutes())).sort(ordenCita)[0];
 const textoProximaCita = c => `${fechaCita(c.fecha)}, ${c.hora}`;
+// Filtro de la lista de sesiones del paciente: qué sesiones (próximas, pasadas o todas) y entre qué fechas, mes y año.
+const filtroSes = () => ui.fSes || (ui.fSes = { ver: 'proximas', desde: '', hasta: '', mes: '', anio: '' });
 function citasSeccionHTML(p){
-  const hoy = todayIso(), todas = citasDe(p.id).sort(ordenCita);
-  const prox = todas.filter(c => c.fecha >= hoy), pasadas = todas.filter(c => c.fecha < hoy).reverse();
+  const hoy = todayIso(), todas = citasDe(p.id), f = filtroSes();
   const series = db.seriesCitas.filter(s => s.patientId === p.id && (!s.hasta || s.hasta >= hoy));
-  const fila = c => {
-    const n = exercisesSesion(p.id, c.fecha, c.id).length;
-    return `<div class="item cita-fila"><div style="flex:1;min-width:0"><strong>${esc(fechaCita(c.fecha))}</strong> · ${c.hora}–${finCita(c)}${c.serieId ? ' <span title="Se repite cada semana" aria-label="se repite cada semana">↻</span>' : ''}${c.nota ? ` <span class="muted">· ${esc(c.nota)}</span>` : ''}</div>
-      ${n ? `<button class="ghost small" onclick="puntuarCita('${p.id}', '${c.fecha}', '${c.id}')" title="Puntuar los ${n} ejercicios de esta sesión">Puntuar</button>` : ''}
-      <button class="ghost small" onclick="openCita('${c.id}')">Cambiar…</button>
-      <button class="danger small" onclick="anularCita('${c.id}')" title="Anular esta sesión">Anular</button></div>`;
-  };
-  const pp = paginar('sesionesProximas', prox, 'render()', p.id), pa = paginar('sesionesPasadas', pasadas, 'render()', p.id), ps = paginar('sesionesSeries', series, 'render()', p.id);
+  const n = { proximas: todas.filter(c => c.fecha >= hoy).length, pasadas: todas.filter(c => c.fecha < hoy).length, todas: todas.length };
+  const anios = [...new Set(todas.map(c => c.fecha.slice(0, 4)))].sort();
+  const hayFiltro = f.desde || f.hasta || f.mes || f.anio;
+  const ps = paginar('sesionesSeries', series, 'render()', p.id);
   return `
     <div class="row" style="justify-content:space-between;align-items:center">
-      <h3 class="titulo-sec" style="margin:0">Sesiones <span class="muted">(${plural(prox.length, 'próxima', 'próximas')})</span>${ayudaIco('citas')}</h3>
+      <h3 class="titulo-sec" style="margin:0">Sesiones <span class="muted">(${plural(n.proximas, 'próxima', 'próximas')})</span>${ayudaIco('citas')}</h3>
       <span class="row"><button class="ghost" onclick="verAgendaDe('${p.id}')">Ver en la agenda</button>
       <button class="btn" onclick="openCita(null, { patientId: '${p.id}' })">Nueva sesión</button></span>
     </div>
-    <div class="row" style="margin-top:12px;align-items:center"><span>Color de sus sesiones:</span>${selectorColorHTML('pacColor', p.colorCita || '', `cambiarColorPaciente('${p.id}')`)}</div>
-    <p class="muted" style="margin:2px 0 0">Es el color con que se programan sus sesiones nuevas; en cada sesión se puede cambiar.</p>
+    <p class="muted" style="margin:8px 0 0">Sus sesiones nuevas salen en color <span class="muestra-color" style="${estiloColorCita(p.colorCita)}"></span> ${esc(nombreColorCita(p.colorCita).toLowerCase())}.
+      <button class="enlace" onclick="openPatientForm('${p.id}')">Cambiarlo en sus datos</button></p>
     ${series.length ? `<h4 style="margin:16px 0 4px">Se repiten cada semana</h4>${ps.items.map(s => `<div class="item"><div style="flex:1;min-width:0">${esc(textoSerie(s))}<div class="muted">${esc(periodoSerie(s))}${s.nota ? ' · ' + esc(s.nota) : ''}</div></div>
       <button class="ghost small" onclick="openSerie('${s.id}')">Cambiar…</button><button class="danger small" onclick="anularSerie('${s.id}')">Terminar…</button></div>`).join('')}${ps.html}` : ''}
-    <h4 style="margin:16px 0 4px">Próximas</h4>
-    ${prox.length ? pp.items.map(fila).join('') + pp.html : '<p class="muted">No tiene sesiones próximas.</p>'}
-    ${pasadas.length ? `<details class="sec" style="margin-top:12px" ${ui.verPasadas ? 'open' : ''} ontoggle="ui.verPasadas = this.open"><summary>Sesiones pasadas (${pasadas.length})</summary>${pa.items.map(fila).join('')}${pa.html}</details>` : ''}`;
+    <div class="tabs" id="verSesiones" style="margin:16px 0 8px">${[['proximas', 'Próximas'], ['pasadas', 'Pasadas'], ['todas', 'Todas']].map(([k, t]) =>
+      `<button class="${f.ver === k ? 'on' : ''}" aria-pressed="${f.ver === k}" onclick="filtroSes().ver='${k}'; render()">${t} (${n[k]})</button>`).join('')}</div>
+    ${todas.length ? `<div class="row filtros-planes" role="search" aria-label="Buscar sesiones por fecha">
+      <label>Entre <input type="date" id="fsDesde" value="${f.desde}" onchange="filtroSes().desde=this.value;refrescarSesionesPac()"></label>
+      <label>y <input type="date" id="fsHasta" value="${f.hasta}" onchange="filtroSes().hasta=this.value;refrescarSesionesPac()"></label>
+      <select id="fsMes" aria-label="Mes" onchange="filtroSes().mes=this.value;refrescarSesionesPac()"><option value="">Cualquier mes</option>${MESES_NOM.map((m, i) => { const v = String(i + 1).padStart(2, '0'); return `<option value="${v}" ${f.mes === v ? 'selected' : ''}>${m}</option>`; }).join('')}</select>
+      <select id="fsAnio" aria-label="Año" onchange="filtroSes().anio=this.value;refrescarSesionesPac()"><option value="">Cualquier año</option>${anios.map(y => `<option ${f.anio === y ? 'selected' : ''}>${y}</option>`).join('')}</select>
+      <button class="ghost small" id="fsQuitar" onclick="ui.fSes = { ver: filtroSes().ver, desde: '', hasta: '', mes: '', anio: '' }; render()" ${hayFiltro ? '' : 'hidden'}>Quitar filtros</button>
+    </div>` : ''}
+    <div id="listaSesiones">${listaSesionesPacHTML(p)}</div>`;
 }
-// Cambia el color por defecto de las citas de un paciente y ofrece aplicarlo también a sus próximas citas
+function listaSesionesPacHTML(p){
+  const hoy = todayIso(), f = filtroSes();
+  const base = citasDe(p.id).filter(c => f.ver === 'todas' || (f.ver === 'pasadas' ? c.fecha < hoy : c.fecha >= hoy));
+  const lista = base.filter(c => (!f.desde || c.fecha >= f.desde) && (!f.hasta || c.fecha <= f.hasta) && (!f.mes || c.fecha.slice(5, 7) === f.mes) && (!f.anio || c.fecha.startsWith(f.anio + '-'))).sort(ordenCita);
+  if (f.ver === 'pasadas') lista.reverse();   // las pasadas, de la más reciente a la más antigua
+  if (!lista.length) return `<p class="muted">${base.length ? 'Ninguna sesión coincide con las fechas elegidas.' : { proximas: 'No tiene sesiones próximas.', pasadas: 'No tiene sesiones pasadas.', todas: 'Todavía no tiene sesiones.' }[f.ver]}</p>`;
+  const pag = paginar('sesiones', lista, 'refrescarSesionesPac()', p.id + '|' + JSON.stringify(f));
+  return pag.items.map(c => filaSesionHTML(p, c)).join('') + pag.html;
+}
+function refrescarSesionesPac(){
+  const p = getP(ui.patientId), c = $('#listaSesiones'); if (!p || !c) return;
+  c.innerHTML = listaSesionesPacHTML(p);
+  const f = filtroSes(), b = $('#fsQuitar'); if (b) b.hidden = !(f.desde || f.hasta || f.mes || f.anio);
+}
+// Estado de una sesión: sin ejercicios, con ejercicios (previstos o sin puntuar), a medias o puntuada del todo.
+function estadoSesion(p, c){
+  const its = exercisesSesion(p.id, c.fecha, c.id), total = its.length;
+  const hechos = its.filter(it => puntuadoEn(p.id, c.fecha, it.exercise.id, c.id)).length;
+  if (!total) return { total, hechos, clase: 'vacia', texto: 'Sin ejercicios' };
+  if (!hechos) return c.fecha > todayIso()
+    ? { total, hechos, clase: 'prevista', texto: `${plural(total, 'ejercicio', 'ejercicios')}, sin puntuar todavía` }
+    : { total, hechos, clase: 'pend', texto: `${plural(total, 'ejercicio', 'ejercicios')}, sin puntuar` };
+  return { total, hechos, clase: hechos === total ? 'hecha' : 'parcial', texto: `${hechos === total ? '✓ ' : ''}${hechos} de ${total} puntuados` };
+}
+function filaSesionHTML(p, c){
+  const e = estadoSesion(p, c);
+  return `<div class="item cita-fila"><div style="flex:1;min-width:0"><strong>${esc(fechaCita(c.fecha))}</strong> · ${c.hora}–${finCita(c)}${c.serieId ? ' <span title="Se repite cada semana" aria-label="se repite cada semana">↻</span>' : ''}${c.nota ? ` <span class="muted">· ${esc(c.nota)}</span>` : ''}</div>
+      <span class="ses-estado ${e.clase}">${e.texto}</span>
+      <button class="${e.total && e.hechos < e.total && c.fecha <= todayIso() ? 'btn' : 'ghost'} small" onclick="puntuarCita('${p.id}', '${c.fecha}', '${c.id}')" title="${e.total ? `Puntuar los ${e.total} ejercicios de esta sesión` : 'Esta sesión no tiene ejercicios: se abre para añadirlos'}">Puntuar</button>
+      <button class="ghost small" onclick="openCita('${c.id}')">Cambiar…</button>
+      <button class="danger small" onclick="anularCita('${c.id}')" title="Anular esta sesión">Anular</button></div>`;
+}
+// Al cambiar el color de un paciente (en sus datos) se ofrece aplicarlo también a sus próximas sesiones
 // (las que tenían el color anterior; las que se cambiaron a otro color a mano se respetan).
-async function cambiarColorPaciente(pid){
-  const p = getP(pid); if (!p) return;
-  const antes = instantanea(), viejo = p.colorCita || '', nuevo = leerColor('pacColor');
-  if (nuevo === viejo) return;
-  p.colorCita = nuevo;
-  const hoy = todayIso(), proximas = citasDe(pid).filter(c => c.fecha >= hoy && (c.color || '') === viejo);
-  if (proximas.length && await preguntar(`¿Poner también en ${nombreColorCita(nuevo).toLowerCase() === 'normal' ? 'el color normal' : 'color ' + nombreColorCita(nuevo).toLowerCase()} sus ${plural(proximas.length, 'próxima sesión', 'próximas sesiones')}?`, { boton: 'Cambiar también', cancelar: 'Solo las nuevas' })){
-    proximas.forEach(c => { c.color = nuevo; });
-    db.seriesCitas.forEach(s => { if (s.patientId === pid && (s.color || '') === viejo && (!s.hasta || s.hasta >= hoy)) s.color = nuevo; });
-  }
+async function proponerColorProximas(p, viejo, nuevo){
+  const hoy = todayIso(), proximas = citasDe(p.id).filter(c => c.fecha >= hoy && (c.color || '') === viejo);
+  if (!proximas.length || !await preguntar(`¿Poner también en ${nombreColorCita(nuevo).toLowerCase() === 'normal' ? 'el color normal' : 'color ' + nombreColorCita(nuevo).toLowerCase()} sus ${plural(proximas.length, 'próxima sesión', 'próximas sesiones')}?`, { boton: 'Cambiar también', cancelar: 'Solo las nuevas' })) return;
+  const antes = instantanea();
+  proximas.forEach(c => { c.color = nuevo; });
+  db.seriesCitas.forEach(s => { if (s.patientId === p.id && (s.color || '') === viejo && (!s.hasta || s.hasta >= hoy)) s.color = nuevo; });
   render();
   ofrecerDeshacer(antes, 'Color de las sesiones cambiado');
 }
@@ -3870,7 +3918,7 @@ const AYUDA_CORTA = {
   sesiones: { t: 'Sesiones', ancla: 'sesiones', txt: 'Cada sesión tiene sus propias puntuaciones; los días sin sesión se puntúan aparte, en «Sin sesión». «Todas» vale para cualquier sesión y para los días sin sesión. Desmárcala para elegir una o varias sesiones (o series de sesiones); sin ninguna marcada, los ejercicios quedan sin sesión y se puntúan en «Sin sesión».' },
   agenda: { t: 'Agenda', ancla: 'agenda', txt: 'Las sesiones de todos los pacientes, por días, semanas o meses. Pulsa un hueco libre para programar una sesión a esa hora, o una sesión para cambiarla o anularla. Las zonas rayadas son horas ocupadas en tu Google Calendar (si está conectado). El horario y los días que se ven se cambian en Ajustes › Agenda.' },
   cita: { t: 'Sesión', ancla: 'agenda', txt: 'Elige paciente, día, hora y duración. Con «Se repite cada semana» se programan de una vez todas las sesiones de los días marcados hasta la fecha indicada (o sin fecha de fin). Si el hueco no está libre, se avisa antes de guardar. El color sale el del paciente, pero puedes elegir otro. Al cambiar o anular una sesión que se repite, puedes elegir si es solo esa o también las siguientes.' },
-  citas: { t: 'Sesiones del paciente', ancla: 'agenda', txt: '«Color de sus sesiones» es el color con que se programan sus sesiones nuevas. «Puntuar» abre la puntuación de esa sesión (si tiene ejercicios) y «Anular» la anula sin abrirla (avisa si tiene ejercicios o puntuaciones). Debajo, sus próximas sesiones y las que se repiten cada semana. «Cambiar…» en una serie cambia días, hora o duración a partir del día que elijas; «Terminar…» anula sus sesiones desde mañana. Las sesiones pasadas quedan en la lista de abajo.' },
+  citas: { t: 'Sesiones del paciente', ancla: 'agenda', txt: 'Con los botones Próximas, Pasadas y Todas eliges qué sesiones ver, y puedes buscarlas entre dos fechas, por mes y por año. Cada sesión dice si tiene ejercicios y cuántos están puntuados. «Puntuar» abre la puntuación de esa sesión; si aún no tiene ejercicios, se abre para añadirlos. «Anular» la anula sin abrirla (avisa si tiene ejercicios o puntuaciones). «Cambiar…» en una serie cambia días, hora o duración a partir del día que elijas; «Terminar…» anula sus sesiones desde mañana. El color de sus sesiones se elige en los datos del paciente.' },
   google: { t: 'Google Calendar', ancla: 'google-calendar', txt: 'Copia las sesiones en un calendario «Fisioterapia · sesiones» de tu cuenta de Google y, si allí mueves o borras una, también cambia aquí. De tus otros calendarios trae solo las horas ocupadas, para no programar sesiones encima. Hay que configurarlo una vez (ver el manual).' },
   maestros: { t: 'Exportar e importar', ancla: 'exportar-importar', txt: 'Exportar guarda los ejercicios y los bloques (sin pacientes) en un archivo. Importar lo añade a la biblioteca de esta carpeta de datos: si ya tiene ejercicios o bloques, se avisa y se combinan, sin borrar ni cambiar nada y sin duplicar lo que ya existe.' },
   exportar: { t: 'Informe de pautas', ancla: 'informes', txt: 'Crea un PDF por paciente con los datos de tu clínica, un resumen por ejercicio, una gráfica del periodo y, si lo marcas, el detalle de cada día. Al generarlo eliges dónde guardarlo; esa ventana a veces aparece detrás del navegador.' },
