@@ -275,7 +275,11 @@ button.btn:disabled{opacity:.45;cursor:default}
 .grp-titulo .ord-ses{margin-left:auto}
 .orden-add .ord{display:flex;justify-content:space-between;align-items:center;gap:8px;padding:4px 8px;border-bottom:1px solid var(--line)}
 .orden-add .ord.nuevo{background:var(--zebra)}
-#ordenAdd{border:1px solid var(--line);border-radius:8px;max-height:min(36vh,320px);overflow:auto}
+#ordenAdd{border:1px solid var(--line);border-radius:8px;max-height:min(60vh,560px);overflow:auto;background:var(--card)}
+.add-cols{display:grid;grid-template-columns:minmax(0,1fr) minmax(260px,360px);gap:16px;align-items:start}
+.add-der{position:sticky;top:0;padding-top:12px}
+.add-der .orden-add label{display:block;margin-bottom:6px}
+@media(max-width:820px){.add-cols{grid-template-columns:1fr}.add-der{position:static}}
 .grp-dia .ej-dia{margin-left:6px;padding:6px 0 6px 14px;border-left:3px solid var(--line);border-bottom:1px solid var(--line)}
 .pc-semana{display:grid;grid-template-columns:repeat(7,minmax(0,1fr));gap:8px}
 @media(max-width:1250px){.pc-semana{grid-template-columns:repeat(4,minmax(0,1fr))}}
@@ -1032,9 +1036,14 @@ function normalizarSesiones(){
     const c = getCita(ses), [pid, day] = kd.split('|');
     if (!c || c.fecha !== day || c.patientId !== pid) mover.push([pid, day, ses]);
   }
-  for (const k of Object.keys(db.ordenSesiones)){   // el orden de una cita que ya no está en ese día se olvida
+  // El orden de una cita que ya no está en ese día pasa a su «sin sesión» (con sus ejercicios y puntuaciones),
+  // si esta no tenía uno propio; si no, se olvida.
+  for (const k of Object.keys(db.ordenSesiones)){
     const [pid, day, ses] = k.split('|'), c = ses && getCita(ses);
-    if (ses && (!c || c.fecha !== day || c.patientId !== pid)) delete db.ordenSesiones[k];
+    if (!ses || (c && c.fecha === day && c.patientId === pid)) continue;
+    const sin = claveOrdenSes(pid, day, '');
+    if (!db.ordenSesiones[sin]) db.ordenSesiones[sin] = db.ordenSesiones[k];
+    delete db.ordenSesiones[k];
   }
   for (const o of db.observaciones){   // una sesión con observaciones pero sin puntuaciones
     if (!o.sesion) continue;
@@ -2446,8 +2455,7 @@ function renderDayModal(){
     ${tab === 'anadir' ? `<div id="secAdd">
       ${varias ? `<p class="muted" style="margin-top:0">Se añaden solo a esta sesión (${esc(etiquetaSesion(sesion).toLowerCase())}) de este día.</p>` : ''}
       ${hayMas ? `
-        ${selectorEjerciciosHTML(used)}
-        ${panelOrdenAddHTML(unidadesSesion(items).map(textoUnidad))}
+        ${colsAddHTML(selectorEjerciciosHTML(used), panelOrdenAddHTML(unidadesSesion(items).map(textoUnidad)))}
         <p class="row" style="justify-content:flex-end;margin-top:10px"><button class="btn" onclick="addDayEx()">${varias ? 'Añadir a la sesión' : 'Añadir al día'}</button></p>`
       : '<p class="muted">No hay más ejercicios disponibles para añadir.</p>'}
     </div>` : `<div id="secPun">
@@ -2650,8 +2658,10 @@ function marcarVisibles(valor){
 // Panel «Orden» de las ventanas de añadir (sesión del día, días del plan en casa y de las plantillas): lo que ya hay
 // (cada bloque entero o ejercicio suelto, con clave «x:N») y, al final, lo que se marca en la lista («b:bloque» o
 // «e:ejercicio»), para colocarlo con ↑ ↓ antes de añadirlo.
+// Ventanas de añadir: la lista para elegir a la izquierda y, a la derecha (debajo en pantallas estrechas), el orden.
+const colsAddHTML = (izq, der) => `<div class="add-cols"><div class="add-izq">${izq}</div><div class="add-der">${der}</div></div>`;
 function panelOrdenAddHTML(existentes){
-  return `<div class="orden-add" style="margin-top:12px"><label style="margin-top:0">Orden <span class="muted">(lo que marques sale al final; colócalo con ↑ ↓)</span></label>
+  return `<div class="orden-add"><label style="margin-top:0"><strong>Orden</strong> <span class="muted">· lo que marques sale al final; colócalo con ↑ ↓</span></label>
     <div id="ordenAdd">${existentes.map((t, i) => ordenAddItemHTML('x:' + i, t, false)).join('')}${existentes.length ? '' : '<p class="muted vacio" style="margin:6px 8px">Marca bloques o ejercicios para ordenarlos.</p>'}</div></div>`;
 }
 function ordenAddItemHTML(clave, texto, nuevo){
@@ -3713,6 +3723,12 @@ async function resolverSinSesion(citas, serie){
 }
 function aplicarSinSesion(con, serie, op){
   const pid = con[0].patientId, fechas = con.map(c => c.fecha).sort();
+  // El orden elegido sin sesión pasa a la sesión que se queda con sus ejercicios (copiados o asignados).
+  if (op !== 'vacia') for (const c of con){
+    const o = db.ordenSesiones[claveOrdenSes(pid, c.fecha, '')];
+    if (o) db.ordenSesiones[claveOrdenSes(pid, c.fecha, c.id)] = [...o];
+    if (o && op === 'asignar') delete db.ordenSesiones[claveOrdenSes(pid, c.fecha, '')];
+  }
   const token = serie ? 's:' + raizSerie(serie) : 'c:' + con[0].id;
   const cubre = (p, d) => p.desde <= d && (!p.hasta || d <= p.hasta) && tocaDia(p, d);
   const afectadas = db.pautas.filter(p => p.patientId === pid && pautaEnSesion(p, '') && fechas.some(d => cubre(p, d)));
@@ -5861,8 +5877,7 @@ function openAddPl(dia, volver){
   const grupos = gruposPlantilla(t, dia);
   showModal(`
     <h3>Añadir ${esPlan(t) ? 'al plan' : 'a la plantilla'} · ${esc(nombreDiaPl(t, dia))}</h3>
-    ${selectorEjerciciosHTML(usados)}
-    ${panelOrdenAddHTML(grupos.map(g => g.clave ? ((db.bloques.find(b => b.id === g.bloqueId) || {}).nombre || 'Bloque') : getE(g.items[0].exerciseId).nombre))}
+    ${colsAddHTML(selectorEjerciciosHTML(usados), panelOrdenAddHTML(grupos.map(g => g.clave ? ((db.bloques.find(b => b.id === g.bloqueId) || {}).nombre || 'Bloque') : getE(g.items[0].exerciseId).nombre)))}
     ${textoLibreHTML(t)}
     <div style="margin-top:12px"><label for="acNota">Notas (opcional)</label>
       <textarea id="acNota" rows="2" placeholder="Por ejemplo: 3 series de 10 repeticiones, sin dolor. Se aplican a cada bloque o ejercicio que añadas; podrás editarlas después."></textarea></div>

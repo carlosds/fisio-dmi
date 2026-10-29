@@ -177,7 +177,7 @@ Al pulsar un día del calendario (o **Puntuar hoy**) se abre su ventana, con dos
 - Las flechas **↑** y **↓** cambian de fila.
 - La tecla **+** añade una repetición al ejercicio marcado.
 
-**Añadir ejercicios** (se abre esta si el día está vacío): marca los bloques o ejercicios y pulsa **Añadir al día** (o **Añadir a la sesión**, si hay sesiones). Se añaden solo a ese día (y solo a la sesión abierta, si hay sesiones). Antes de añadirlos, en **Orden** ves lo que ya tiene la sesión y, al final, lo que has marcado (como «Nuevo»): colócalo con ↑ ↓ donde quieras. Después se vuelve sola a la pestaña de puntuar.
+**Añadir ejercicios** (se abre esta si el día está vacío): marca los bloques o ejercicios y pulsa **Añadir al día** (o **Añadir a la sesión**, si hay sesiones). Se añaden solo a ese día (y solo a la sesión abierta, si hay sesiones). Antes de añadirlos, en **Orden** (a la derecha de la lista; debajo, en pantallas estrechas) ves lo que ya tiene la sesión y, al final, lo que has marcado (como «Nuevo»): colócalo con ↑ ↓ donde quieras. Después se vuelve sola a la pestaña de puntuar.
 
 **Observaciones.** Arriba, antes de las pestañas y de la lista de ejercicios, hay un cuadro para escribir **observaciones** de la sesión (cómo ha ido, incidencias, qué cambiar la próxima vez). Si el día no tiene sesión, son **observaciones del día**. Se guardan solas mientras escribes; para quitarlas, borra el texto. Se ven:
 
@@ -259,7 +259,7 @@ Todo se guarda solo. Debajo están los ejercicios:
 **Añadir ejercicios.** Pulsa **+ Añadir** en un día (o en «A elegir»):
 
 1. Marca bloques o ejercicios de la biblioteca, o escribe un **ejercicio a mano** si no está en la biblioteca.
-2. En **Orden** ves lo que ya tiene ese día (o «A elegir») y, al final, lo que has marcado: colócalo con ↑ ↓ donde quieras. (Lo escrito a mano se añade al final.)
+2. En **Orden**, a la derecha, ves lo que ya tiene ese día (o «A elegir») y, al final, lo que has marcado: colócalo con ↑ ↓ donde quieras. (Lo escrito a mano se añade al final.)
 3. Escribe **notas** si quieres (repeticiones, cómo hacerlo, material…).
 4. Si quieres, marca otros días del plan para añadirlo a la vez (en esos días, lo nuevo va al final).
 5. Pulsa **Añadir**.

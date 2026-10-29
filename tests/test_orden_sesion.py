@@ -12,7 +12,7 @@ st = lambda: json.loads(urllib.request.urlopen(BASE + '/__state').read())
 
 with sync_playwright() as pw:
     b = pw.chromium.launch(); page = b.new_page(viewport={'width': 1300, 'height': 900})
-    errs = []; page.on('pageerror', lambda e: errs.append(str(e))); page.on('dialog', lambda d: d.accept())
+    errs = []; page.on('pageerror', lambda e: errs.append(str(e))); resp = []; page.on('dialog', lambda d: d.accept(resp.pop(0)) if resp else d.accept())   # resp: respuesta a la próxima ventana de elegir
     page.goto(BASE + '/'); page.wait_for_selector('#listaPacientes')
     ev = page.evaluate
     hoy = ev('todayIso()'); man = ev("addDays(todayIso(), 1)")
@@ -102,6 +102,25 @@ with sync_playwright() as pw:
     page.locator('#ordenAdd .ord', has_text='Estiramiento isquios').get_by_role('button', name='Subir Estiramiento isquios').click()
     page.get_by_role('button', name='Añadir', exact=True).click(); page.wait_for_timeout(200)
     check(ev("gruposPlantilla(docActual(), 1).map(g => getE(g.items[0].exerciseId).nombre)") == ['Estiramiento isquios', 'Puente glúteo'], 'en las plantillas también')
+
+    print('\n[7] El orden sin sesión pasa a la sesión que se crea ese día')
+    nom = lambda d, ses: ev(f"exercisesSesion('p1', '{d}', '{ses}').map(i => i.exercise.nombre)")
+    def dar_sesion(d, hora, op):
+        resp[:] = [op]
+        ev(f"closeModal(); openCita(null, {{ patientId: 'p1', fecha: '{d}', hora: '{hora}' }})"); page.wait_for_selector('#ctHora')
+        page.locator('#modal').get_by_role('button', name='Programar sesión').click(); page.wait_for_timeout(400)
+        return ev(f"db.citas.find(c => c.fecha === '{d}' && c.hora === '{hora}').id")
+    esperado = ['Estiramiento isquios', 'Puente glúteo', 'Plancha lateral']
+    for n, op in [(2, 'asignar'), (3, 'copiar')]:
+        d = ev(f"addDays(todayIso(), {n})")
+        ev(f"ui.patientId = 'p1'; moverUnidadSesion('{d}', '', 'e3', -1)")
+        check(nom(d, '') == esperado, f'{op}: sin sesión, ordenado a mano')
+        cid = dar_sesion(d, '11:00', op)
+        check(nom(d, cid) == esperado, f'«{op}»: la sesión nueva conserva ese orden ({nom(d, cid)})')
+    d2 = ev("addDays(todayIso(), 2)"); cid = ev(f"db.citas.find(c => c.fecha === '{d2}' && c.hora === '11:00').id")
+    resp[:] = []
+    ev(f"anularCita('{cid}')"); page.wait_for_timeout(400)
+    check(ev(f"!getCita('{cid}')") and nom(d2, '') == esperado, f'al anular la sesión, su orden vuelve a «sin sesión» ({nom(d2, "")})')
 
     check(not errs, f'sin errores JS {errs}')
     b.close()
