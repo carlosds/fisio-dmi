@@ -148,8 +148,10 @@ with sync_playwright() as pw:
     page.get_by_role('tab', name='Sesiones').click(); page.wait_for_timeout(150)
     check(page.evaluate('location.hash') == '#/paciente/p2/citas', 'pestaña Citas con su dirección')
     sec = page.locator('#sec-citas')
-    check('Se repiten cada semana' in sec.inner_text() and sec.get_by_role('button', name='Terminar…').count() == 3 and 'martes y viernes' in sec.inner_text(), 'muestra sus series (la de martes y jueves, partida en tres)')
-    check(sec.locator('.cita-fila').count() == len([c for c in citas() if c['patientId'] == 'p2']), 'y sus próximas citas')
+    check(sec.locator('.cita-fila').count() == len([c for c in citas() if c['patientId'] == 'p2']), 'muestra sus próximas citas')
+    check(sec.get_by_role('button', name='Terminar…').count() == 0, 'las series no ocupan sitio encima de la lista')
+    sec.locator('#verSesiones').get_by_role('button', name='↻ Se repiten (3)').click(); page.wait_for_timeout(150)
+    check(sec.get_by_role('button', name='Terminar…').count() == 3 and 'martes y viernes' in sec.inner_text(), 'en la pestaña «Se repiten», sus series (la de martes y jueves, partida en tres)')
 
     print('\n[12] Cambiar una serie desde la ficha')
     sid2 = page.evaluate("db.seriesCitas.find(x => x.patientId === 'p2' && x.dias === '25').id")

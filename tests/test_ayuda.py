@@ -19,7 +19,9 @@ with sync_playwright() as p:
     sin = page.evaluate("Object.entries(AYUDA_CORTA).filter(([k, a]) => !document.getElementById('ay-' + a.ancla)).map(([k]) => k)")
     check(sin == [], f'cada ayuda corta apunta a una sección del manual {sin}')
     # índice: salta a la sección
-    page.locator('#ayudaIndice a', has_text='Copias de seguridad').click(); page.wait_for_timeout(700)
+    page.locator('#ayudaIndice a', has_text='Copias de seguridad').click()
+    try: page.wait_for_function("document.getElementById('ay-copias').getBoundingClientRect().top < 200", timeout=4000)   # el desplazamiento es suave
+    except Exception: pass
     top = page.evaluate("document.getElementById('ay-copias').getBoundingClientRect().top")
     check(0 <= top < 200, f'el índice lleva a la sección ({top:.0f}px)')
     # buscador

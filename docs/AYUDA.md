@@ -69,6 +69,7 @@ La pantalla **Pacientes** muestra la lista de pacientes. En cada uno ves cuánto
 - **Nueva sesión**: programa una sesión para ese paciente sin salir de la lista (ver [Agenda y sesiones](#agenda)).
 - **Puntuar hoy**: abre la ventana de puntuación de hoy de ese paciente sin salir de la lista, así puedes ir puntuando a un paciente tras otro (ver [Puntuar un día](#puntuar)). Si quieres ir a su calendario, pulsa **Ver su calendario** en esa ventana. Si ya está todo puntuado, el botón dice **Ver hoy**.
 - **Buscar**: escribe en la caja de búsqueda parte del nombre, del teléfono o del email.
+- **Última sesión** y **Próxima sesión**: púlsalas para ir a la sesión. La última abre sus puntuaciones; la próxima, la ventana de la sesión (para cambiarla o anularla).
 - **Ordenar**: pulsa **Paciente**, **Última sesión** o **Próxima sesión** en la cabecera de la lista (ver [Ordenar listas y tablas](#ordenar)).
 - **Activos / Archivados / Todos**: qué pacientes se ven. Por defecto, solo los activos.
 - **Abrir la ficha**: pulsa el nombre del paciente.
@@ -127,7 +128,7 @@ En la pestaña **Pautas** ves los bloques y ejercicios que el paciente tiene asi
 
 Pulsa **Guardar** para aplicar los cambios.
 
-**Pautas terminadas.** Las que ya acabaron se guardan aparte, plegadas, en **Pautas terminadas (N)** al final de la lista. Pulsa para verlas.
+**Vigentes, terminadas o todas.** Con los botones **Vigentes** (las que están en curso o empiezan más adelante), **Terminadas** y **Todas** eliges qué pautas ver; en **Todas**, las terminadas van al final. Además del buscador de bloque o ejercicio, puedes buscar las pautas que había **entre dos fechas**, en un **mes** o en un **año** (**Quitar filtros** vuelve a verlas todas).
 
 **Quitar pautas.** **Eliminar** quita una pauta; **Quitar todas las pautas** las quita todas.
 
@@ -142,6 +143,7 @@ La pestaña **Calendario** tiene dos vistas, que se cambian con los botones de a
 - **Día / Semana / Mes**: cambia cuánto tiempo ves a la vez. **Anterior**, **Hoy** y **Siguiente** mueven las fechas.
 - **Días con sesión**: tienen todo el borde del color de la sesión (al poner el ratón encima, la hora). Así se ve de un vistazo qué días vino o viene el paciente. Las sesiones se programan en la [Agenda](#agenda).
 - **Buscar**: escribe el nombre de un bloque o ejercicio para ver solo esos.
+- Al bajar por el calendario, la barra de arriba (**Anterior**, **Hoy**, **Siguiente**, el mes o la semana que ves, **Día / Semana / Mes**, el buscador y la leyenda) se queda fija debajo de la cabecera del paciente.
 
 **Vista Semana.** Cada día muestra sus ejercicios, agrupados bajo el nombre de su bloque:
 
@@ -331,6 +333,8 @@ La aplicación crea dos tipos de PDF:
 
 > **Consejo:** sin el detalle de cada día, el informe de pautas suele caber en una sola página: es lo más cómodo para entregar a la familia o a otro profesional.
 
+**Buscar informes.** En la pestaña **Informes** del paciente puedes buscar por el nombre del informe, el nombre del archivo o la fecha, y ver solo los generados **entre dos fechas**, en un **mes** o en un **año**.
+
 **Dónde se guardan.** Al generar un PDF se abre la ventana **Guardar como** del ordenador para que elijas carpeta y nombre. La próxima vez empieza en la misma carpeta. Si haces informes de varios pacientes a la vez, eliges la carpeta una sola vez.
 
 > **Consejo:** la ventana de «Guardar como» a veces aparece detrás del navegador. Si no la ves, busca en la barra de tareas o en el Dock.
@@ -368,10 +372,10 @@ Al **cambiar** o **anular** una sesión que se repite, la aplicación pregunta:
 
 **En la ficha del paciente**, la pestaña **Sesiones** muestra:
 
-- **Se repiten cada semana**: sus series. **Cambiar…** cambia días, hora, duración o fecha de fin a partir del día que elijas. **Terminar…** anula las sesiones de la serie desde mañana (las anteriores se quedan).
 - **Próximas**, **Pasadas** o **Todas**: con estos botones eliges qué sesiones ver. Se pueden buscar **entre dos fechas**, por **mes** y por **año** (**Quitar filtros** vuelve a verlas todas).
 - Cada sesión dice si **no tiene ejercicios**, cuántos tiene **sin puntuar** o **cuántos están puntuados** (en verde, si están todos).
 - **Puntuar** abre directamente la puntuación de esa sesión, sin pasar por el calendario. Si todavía no tiene ejercicios, se abre en **Añadir ejercicios** para ponérselos ahí mismo. **Cambiar…** abre la sesión.
+- **↻ Se repiten (N)**: si tiene sesiones que se repiten cada semana, este botón muestra sus series, una por línea. **Cambiar…** cambia días, hora, duración o fecha de fin a partir del día que elijas. **Terminar…** anula las sesiones de la serie desde mañana (las anteriores se quedan). Sus sesiones salen también en **Próximas**, marcadas con ↻.
 - **Nueva sesión** (ya con el paciente elegido) y **Ver en la agenda**.
 
 **Horario de la agenda.** En **Ajustes → Agenda** eliges desde qué hora y hasta qué hora se ve la cuadrícula, qué días de la semana salen (un día sin marcar sale igualmente si tiene alguna sesión) y cuánto duran las sesiones nuevas.

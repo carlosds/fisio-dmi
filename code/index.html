@@ -56,6 +56,7 @@ label{display:block;font-size:14px;color:var(--muted);margin:10px 0 4px}
 .avatar.empty{display:flex;align-items:center;justify-content:center;color:var(--muted);font-family:Georgia,serif}
 .muted{color:var(--muted);font-size:14px}
 .linea-ses{padding-left:18px;margin-top:2px}
+.linea-ses .enlace{font-weight:400;color:inherit;font-size:inherit}
 .search{margin:12px 0 4px}
 .orden-btn{all:unset;cursor:pointer;font-weight:600;color:inherit;display:inline-flex;gap:4px;align-items:center;border-radius:4px}
 .orden-btn:focus-visible{outline:2px solid var(--accent);outline-offset:2px}
@@ -81,6 +82,13 @@ label{display:block;font-size:14px;color:var(--muted);margin:10px 0 4px}
 .bex{margin:6px 0 2px;padding-left:22px;font-size:14px;color:var(--ink)}
 .bex li{margin:1px 0}
 .sec summary{cursor:pointer;font-family:Iowan Old Style,Palatino,Georgia,serif;font-size:18px;font-weight:600}
+/* Barra del calendario (navegación, título, leyenda y buscador): se queda fija debajo de la cabecera del paciente. */
+.cal-fija{position:sticky;top:calc(var(--hh,60px) + var(--ph,0px));z-index:4;background:var(--card);margin:0 -16px 8px;padding:8px 16px 2px;box-shadow:0 8px 8px -8px #0002}
+.cal-fija .cal-titulo{margin:0 0 0 8px;font-size:17px}
+.cal-fija .cal-fila2{gap:6px 16px;align-items:center}
+.cal-fija .cal-fila2 .search{flex:1 1 220px;max-width:340px!important;margin:0 0 6px!important}
+.cal-fija .legend{margin:0 0 6px}
+@media(max-width:1000px){.cal-fija .leyenda-texto{display:none}}
 .sticky-head{position:sticky;top:var(--hh,60px);z-index:5;background:var(--paper);padding:12px 0 10px;margin-bottom:6px;box-shadow:0 8px 8px -8px #0003}
 .cal{display:grid;grid-template-columns:repeat(7,minmax(0,1fr));gap:4px}
 .cal .dow{font-size:13px;color:var(--muted);text-align:center;padding:4px}
@@ -260,7 +268,7 @@ button.btn:disabled{opacity:.45;cursor:default}
 .dias-sel label input:checked + span{background:var(--accent);border-color:var(--accent);color:#fff}
 .dias-sel input:focus-visible + span{outline:2px solid var(--accent);outline-offset:2px}
 .fila-pauta.terminada{opacity:.75}
-.pautas-terminadas{margin-top:10px}
+.pautas-terminadas{margin:14px 0 2px;font-size:14px;color:var(--muted)}
 .grp-dia{margin:14px 0 6px}
 .grp-titulo{font-weight:700;font-size:16px;margin-bottom:4px}
 .grp-dia .ej-dia{margin-left:6px;padding:6px 0 6px 14px;border-left:3px solid var(--line);border-bottom:1px solid var(--line)}
@@ -810,6 +818,16 @@ function ajustarCabecera(){
   if (h) document.documentElement.style.setProperty('--hh', h.offsetHeight + 'px');
 }
 window.addEventListener('resize', ajustarCabecera);
+// En la ficha también es fija la cabecera del paciente (y cambia de alto al bajar): su altura (--ph) coloca debajo
+// la barra del calendario, que también se queda fija.
+let roCabPac = null;
+function observarCabeceraPac(){
+  if (roCabPac) roCabPac.disconnect();
+  const h = document.querySelector('.sticky-head'); if (!h) return;
+  const medir = () => document.documentElement.style.setProperty('--ph', h.offsetHeight + 'px');
+  medir();
+  if (window.ResizeObserver){ roCabPac = new ResizeObserver(medir); roCabPac.observe(h); }
+}
 
 // ---------- imágenes de la clínica (logo y firma) ----------
 function imagenAPng(file, maxW, maxH){
@@ -1032,7 +1050,7 @@ document.addEventListener('keydown', e => {
 function openPatient(id){ prepararPaciente(id); render(); window.scrollTo(0, 0); }
 // Deja la ficha de un paciente lista para verse (pestaña Pautas, sin búsquedas de otro paciente).
 function prepararPaciente(id){
-  ui.patientId = id; ui.tabP = 'pautas'; ui.calVista = 'calendario'; ui.planCasaId = null; ui.fPlanes = null; ui.qH = ''; ui.qEv = ''; ui.qPautas = ''; ui.qCal = ''; ui.qRes = ''; ui.qCasa = ''; ui.infQ = ''; ui.fSes = null; ui.casaExpMsg = null; fotosPend = { hitos: [], evaluaciones: [] }; ui.view = 'paciente'; ui.fecha = new Date(); ui.res.fecha = new Date(); ui.res.vista = 'mes';
+  ui.patientId = id; ui.tabP = 'pautas'; ui.calVista = 'calendario'; ui.planCasaId = null; ui.fPlanes = null; ui.qH = ''; ui.qEv = ''; ui.qPautas = ''; ui.qCal = ''; ui.qRes = ''; ui.qCasa = ''; ui.infQ = ''; ui.fSes = null; ui.fPautas = null; ui.fInf = null; ui.casaExpMsg = null; fotosPend = { hitos: [], evaluaciones: [] }; ui.view = 'paciente'; ui.fecha = new Date(); ui.res.fecha = new Date(); ui.res.vista = 'mes';
 }
 function render(){
   if (loaded) normalizarSesiones();
@@ -1044,7 +1062,7 @@ function render(){
   if (ui.view === 'pacientes'){ m.innerHTML = viewPacientes(); refrescarPacientes(); }
   else if (ui.view === 'ejercicios'){ m.innerHTML = viewEjercicios(); refrescarEjercicios(); }
   else if (ui.view === 'bloques'){ m.innerHTML = bloquesHTML(); refrescarBloques(); }
-  else if (ui.view === 'paciente' && getP(ui.patientId)){ m.innerHTML = viewPaciente(); if (scrollY > 180) document.querySelector('.sticky-head').classList.add('compacta'); refrescarHitos(); refrescarEvaluaciones(); if (ui.tabP === 'informes') refrescarExistencia(); }
+  else if (ui.view === 'paciente' && getP(ui.patientId)){ m.innerHTML = viewPaciente(); if (scrollY > 180) document.querySelector('.sticky-head').classList.add('compacta'); observarCabeceraPac(); refrescarHitos(); refrescarEvaluaciones(); if (ui.tabP === 'informes') refrescarExistencia(); }
   else if (ui.view === 'plantilla' && plantillaActual()) m.innerHTML = viewPlantilla();
   else if (ui.view === 'plantillas' || ui.view === 'plantilla'){ ui.view = 'plantillas'; m.innerHTML = viewPlantillas(); refrescarPlantillas(); }
   else if (ui.view === 'agenda'){ m.innerHTML = viewAgenda(); situarAgenda(); }
@@ -1108,9 +1126,11 @@ function refrescarPacientes(){
     ].filter(Boolean).join(' · ');
     // Última y próxima sesión, una debajo de otra. La última no sale si es el mismo día que la próxima.
     const prox = proximas[p.id], mostrarUltima = ultima[p.id] && (!prox || prox.fecha !== ultima[p.id]);
+    // La última abre su puntuación (la de su sesión, si ese día tuvo); la próxima, la ventana de la sesión.
+    const citaUltima = mostrarUltima ? citasDia(p.id, ultima[p.id]).at(-1) : null;
     const lineasSes = [
-      mostrarUltima ? `Última sesión: ${esc(fmt(ultima[p.id]))}` : '',
-      prox ? `Próxima sesión: ${esc(textoProximaCita(prox))}` : ''
+      mostrarUltima ? `<button class="enlace" onclick="puntuarCita('${p.id}', '${ultima[p.id]}'${citaUltima ? `, '${citaUltima.id}'` : ''})" title="Ver las puntuaciones de esa sesión">Última sesión: ${esc(fmt(ultima[p.id]))}</button>` : '',
+      prox ? `<button class="enlace" onclick="openCita('${prox.id}')" title="Ver la sesión (cambiarla o anularla)">Próxima sesión: ${esc(textoProximaCita(prox))}</button>` : ''
     ].filter(Boolean).map(l => `<div class="muted linea-ses">${l}</div>`).join('');
     return `
     <div class="item fila-pac">
@@ -1122,8 +1142,8 @@ function refrescarPacientes(){
         <div class="muted">${datos}${p.telefono ? ' · ' + esc(p.telefono) : ''}</div>
         ${lineasSes}
       </div>
-      ${p.archivado ? '' : `<button class="ghost small" onclick="openCita(null, { patientId: '${p.id}' })" title="Programar una sesión para ${esc(p.nombre)} ${esc(p.apellidos)}">Nueva sesión</button>`}
       ${nHoy && !p.archivado ? `<button class="${hechos < nHoy ? 'btn' : 'ghost'} small" onclick="puntuarHoy('${p.id}')">${hechos < nHoy ? 'Puntuar hoy' : 'Ver hoy'}</button>` : ''}
+      ${p.archivado ? '' : `<button class="ghost small" onclick="openCita(null, { patientId: '${p.id}' })" title="Programar una sesión para ${esc(p.nombre)} ${esc(p.apellidos)}">Nueva sesión</button>`}
     </div>`; }).join('');
   const todosMarcados = list.length && list.every(p => ui.selected.has(p.id));
   const cab = list.length ? `<div class="item" style="padding:6px 0"><label style="display:flex;gap:12px;align-items:center;margin:0;color:var(--muted)"><input type="checkbox" style="width:auto" ${todosMarcados ? 'checked' : ''} onchange="marcarTodosPac(this.checked)"> ${todosMarcados ? 'Quitar la selección de' : 'Seleccionar'} los ${list.length} ${list.length === 1 ? 'paciente' : 'pacientes'} ${q.length ? 'de la búsqueda' : 'de la lista'}</label></div>` : '';
@@ -1326,18 +1346,22 @@ function gruposPautas(p){
   // Las pautas se listan en su orden de ejecución (el mismo que usan calendarios y puntuaciones).
   return { pautas, grupos, ordenados: [...grupos.entries()].sort((a, b) => ordenGrupo(a[1]) - ordenGrupo(b[1])) };
 }
+// Qué pautas se ven: vigentes (en curso o que empiezan más adelante), terminadas o todas; y entre qué fechas, mes y año.
+const filtroPautas = () => ui.fPautas || (ui.fPautas = { ver: 'vigentes', desde: '', hasta: '', mes: '', anio: '' });
+function cambiarFiltroPautas(k, v){ filtroPautas()[k] = v; refrescarPautas(); const b = $('#fpaQuitar'); if (b) b.hidden = !hayFiltroFechas(filtroPautas()); }
+function quitarFiltroPautas(){ ui.fPautas = { ver: filtroPautas().ver, desde: '', hasta: '', mes: '', anio: '' }; render(); }
 function listaPautasHTML(p){
   const { ordenados } = gruposPautas(p);
-  const q = ui.qPautas || '';
+  const q = ui.qPautas || '', f = filtroPautas();
   const texto = xs => { const b = xs[0].bloqueId ? db.bloques.find(x => x.id === xs[0].bloqueId) : null; return (b ? b.nombre + ' ' : '') + xs.map(x => (getE(x.exerciseId) || {}).nombre || '').join(' '); };
-  // Las pautas que ya terminaron van aparte, plegadas, para que la lista muestre lo que se trabaja ahora.
   const activas = ordenados.filter(([, xs]) => !pautaTerminada(xs)), terminadas = ordenados.filter(([, xs]) => pautaTerminada(xs));
-  const filtra = l => l.map(([k, xs], i) => [k, xs, i]).filter(([k, xs]) => !q.trim() || coincideQ(q, texto(xs)));
-  const fa = filtra(activas), ft = filtra(terminadas);
-  if (!fa.length && !ft.length) return `<p class="muted">${ordenados.length ? 'Ninguna pauta coincide con la búsqueda.' : 'Sin pautas asignadas todavía.'}</p>`;
-  const firma = p.id + '|' + q, pa = paginar('pautas', fa, 'refrescarPautas()', firma), pt = paginar('pautasTerminadas', ft, 'refrescarPautas()', firma);
-  return (fa.length ? pa.items.map(([k, xs, i]) => filaPauta(k, xs, i, activas.length)).join('') + pa.html : '<p class="muted">No hay pautas en curso.</p>')
-    + (ft.length ? `<details class="sec pautas-terminadas" ${q.trim() || ui.verTerminadas ? 'open' : ''} ontoggle="ui.verTerminadas = this.open"><summary>Pautas terminadas (${ft.length})</summary>${pt.items.map(([k, xs, i]) => filaPauta(k, xs, i, terminadas.length, false)).join('')}${pt.html}</details>` : '');
+  const filtra = l => l.map(([k, xs], i) => [k, xs, i]).filter(([k, xs]) => (!q.trim() || coincideQ(q, texto(xs))) && (({ ini, fin }) => coincideFechas(ini, fin, f))(periodoPauta(xs)));
+  const fa = f.ver === 'terminadas' ? [] : filtra(activas), ft = f.ver === 'vigentes' ? [] : filtra(terminadas);
+  if (!fa.length && !ft.length) return `<p class="muted">${!ordenados.length ? 'Sin pautas asignadas todavía.' : q.trim() || hayFiltroFechas(f) ? 'Ninguna pauta coincide con la búsqueda.' : f.ver === 'terminadas' ? 'No hay pautas terminadas.' : 'No hay pautas vigentes.'}</p>`;
+  const firma = p.id + '|' + q + '|' + JSON.stringify(f), pa = paginar('pautas', fa, 'refrescarPautas()', firma), pt = paginar('pautasTerminadas', ft, 'refrescarPautas()', firma);
+  // En «Todas», las terminadas van detrás, con su título (y sin flechas: el orden de ejecución es el de las vigentes).
+  return (fa.length ? pa.items.map(([k, xs, i]) => filaPauta(k, xs, i, activas.length)).join('') + pa.html : '')
+    + (ft.length ? `${fa.length ? `<h4 class="pautas-terminadas">Terminadas (${ft.length})</h4>` : ''}${pt.items.map(([k, xs, i]) => filaPauta(k, xs, i, terminadas.length, false)).join('')}${pt.html}` : '');
 }
 function panelPautas(p){
   const { pautas, grupos } = gruposPautas(p);
@@ -1350,6 +1374,12 @@ function panelPautas(p){
       </div>
       <p class="muted" style="margin:6px 0 0">Las pautas se ejecutan en el orden indicado; usa las flechas para cambiarlo.</p>
       ${buscadorPacHTML('qPautas', ui.qPautas, 'ui.qPautas=this.value;refrescarPautas()')}
+      ${pautas.length ? (() => {
+        const f = filtroPautas(), gs = [...grupos.values()], n = { vigentes: gs.filter(xs => !pautaTerminada(xs)).length, terminadas: gs.filter(pautaTerminada).length, todas: gs.length };
+        const anios = [...new Set(pautas.flatMap(x => [x.desde.slice(0, 4), (x.hasta || todayIso()).slice(0, 4)]))].sort();
+        return `<div class="tabs" id="verPautas" style="margin:4px 0 8px">${[['vigentes', 'Vigentes'], ['terminadas', 'Terminadas'], ['todas', 'Todas']].map(([k, t]) =>
+          `<button class="${f.ver === k ? 'on' : ''}" aria-pressed="${f.ver === k}" onclick="filtroPautas().ver='${k}'; render()">${t} (${n[k]})</button>`).join('')}</div>
+          ${filtroFechasHTML('fpa', f, 'cambiarFiltroPautas', anios, 'quitarFiltroPautas()')}`; })() : ''}
       <div class="pautas-scroll" id="pautasLista">${listaPautasHTML(p)}</div>
     </div>`;
 }
@@ -1387,11 +1417,13 @@ function panelCalendario(p){
   return `
     <div class="card" id="sec-calendario">
       ${subCalHTML()}
-      <div class="row" style="justify-content:space-between;margin-bottom:10px">
+      <div class="cal-fija">
+      <div class="row" style="justify-content:space-between;margin-bottom:6px">
         <div class="row">
           <button class="ghost small" onclick="navegar(-1)">Anterior</button>
           <button class="ghost small" onclick="irHoy()">Hoy</button>
           <button class="ghost small" onclick="navegar(1)">Siguiente</button>
+          <h3 class="cal-titulo">${tituloCalendario()}</h3>
         </div>
         <div class="tabs">
           <button class="${ui.vista === 'dia' ? 'on' : ''}" onclick="cambiarVista('dia')">Día</button>
@@ -1399,16 +1431,18 @@ function panelCalendario(p){
           <button class="${ui.vista === 'mes' ? 'on' : ''}" onclick="cambiarVista('mes')">Mes</button>
         </div>
       </div>
-      <h3 style="margin:0 0 10px">${tituloCalendario()}</h3>
-      <div class="legend">
-        <span><i class="sw" style="background:var(--pend);border:1px dashed var(--pend-line)"></i>Sin puntuar</span>
-        <span><i class="sw" style="background:var(--s0)"></i>0</span>
-        <span><i class="sw" style="background:var(--s1)"></i>1</span>
-        <span><i class="sw" style="background:var(--s2)"></i>2</span>
-        <span><i class="sw" style="background:var(--s3)"></i>3</span>
-        <span>${ui.vista === 'mes' ? 'Cada día muestra la media de sus puntuaciones y cuántos ejercicios están puntuados' : 'Puntuación de 0 a 3 junto a cada ejercicio; entre paréntesis, las repeticiones'}</span>
+      <div class="row cal-fila2">
+        ${buscadorPacHTML('qCal', ui.qCal, 'ui.qCal=this.value;refrescarCal()')}
+        <div class="legend">
+          <span><i class="sw" style="background:var(--pend);border:1px dashed var(--pend-line)"></i>Sin puntuar</span>
+          <span><i class="sw" style="background:var(--s0)"></i>0</span>
+          <span><i class="sw" style="background:var(--s1)"></i>1</span>
+          <span><i class="sw" style="background:var(--s2)"></i>2</span>
+          <span><i class="sw" style="background:var(--s3)"></i>3</span>
+          <span class="leyenda-texto">${ui.vista === 'mes' ? 'Cada día muestra la media de sus puntuaciones y cuántos ejercicios están puntuados' : 'Puntuación de 0 a 3 junto a cada ejercicio; entre paréntesis, las repeticiones'}</span>
+        </div>
       </div>
-      ${buscadorPacHTML('qCal', ui.qCal, 'ui.qCal=this.value;refrescarCal()')}
+      </div>
       <div id="calCuerpo">${calCuerpoHTML(p)}</div>
     </div>`;
 }
@@ -3629,11 +3663,12 @@ const textoProximaCita = c => `${fechaCita(c.fecha)}, ${c.hora}`;
 const filtroSes = () => ui.fSes || (ui.fSes = { ver: 'proximas', desde: '', hasta: '', mes: '', anio: '' });
 function citasSeccionHTML(p){
   const hoy = todayIso(), todas = citasDe(p.id), f = filtroSes();
-  const series = db.seriesCitas.filter(s => s.patientId === p.id && (!s.hasta || s.hasta >= hoy));
-  const n = { proximas: todas.filter(c => c.fecha >= hoy).length, pasadas: todas.filter(c => c.fecha < hoy).length, todas: todas.length };
+  const series = seriesVigentes(p.id);
+  if (f.ver === 'series' && !series.length) f.ver = 'proximas';
+  const n = { proximas: todas.filter(c => c.fecha >= hoy).length, pasadas: todas.filter(c => c.fecha < hoy).length, todas: todas.length, series: series.length };
   const anios = [...new Set(todas.map(c => c.fecha.slice(0, 4)))].sort();
-  const hayFiltro = f.desde || f.hasta || f.mes || f.anio;
-  const ps = paginar('sesionesSeries', series, 'render()', p.id);
+  // Las series semanales van en su propia pestaña de la botonera, para no ocupar sitio encima de la lista.
+  const botones = [['proximas', 'Próximas'], ['pasadas', 'Pasadas'], ['todas', 'Todas']].concat(series.length ? [['series', '↻ Se repiten']] : []);
   return `
     <div class="row" style="justify-content:space-between;align-items:center">
       <h3 class="titulo-sec" style="margin:0">Sesiones <span class="muted">(${plural(n.proximas, 'próxima', 'próximas')})</span>${ayudaIco('citas')}</h3>
@@ -3642,18 +3677,19 @@ function citasSeccionHTML(p){
     </div>
     <p class="muted" style="margin:8px 0 0">Sus sesiones nuevas salen en color <span class="muestra-color" style="${estiloColorCita(p.colorCita)}"></span> ${esc(nombreColorCita(p.colorCita).toLowerCase())}.
       <button class="enlace" onclick="openPatientForm('${p.id}')">Cambiarlo en sus datos</button></p>
-    ${series.length ? `<h4 style="margin:16px 0 4px">Se repiten cada semana</h4>${ps.items.map(s => `<div class="item"><div style="flex:1;min-width:0">${esc(textoSerie(s))}<div class="muted">${esc(periodoSerie(s))}${s.nota ? ' · ' + esc(s.nota) : ''}</div></div>
-      <button class="ghost small" onclick="openSerie('${s.id}')">Cambiar…</button><button class="danger small" onclick="anularSerie('${s.id}')">Terminar…</button></div>`).join('')}${ps.html}` : ''}
-    <div class="tabs" id="verSesiones" style="margin:16px 0 8px">${[['proximas', 'Próximas'], ['pasadas', 'Pasadas'], ['todas', 'Todas']].map(([k, t]) =>
-      `<button class="${f.ver === k ? 'on' : ''}" aria-pressed="${f.ver === k}" onclick="filtroSes().ver='${k}'; render()">${t} (${n[k]})</button>`).join('')}</div>
-    ${todas.length ? `<div class="row filtros-planes" role="search" aria-label="Buscar sesiones por fecha">
-      <label>Entre <input type="date" id="fsDesde" value="${f.desde}" onchange="filtroSes().desde=this.value;refrescarSesionesPac()"></label>
-      <label>y <input type="date" id="fsHasta" value="${f.hasta}" onchange="filtroSes().hasta=this.value;refrescarSesionesPac()"></label>
-      <select id="fsMes" aria-label="Mes" onchange="filtroSes().mes=this.value;refrescarSesionesPac()"><option value="">Cualquier mes</option>${MESES_NOM.map((m, i) => { const v = String(i + 1).padStart(2, '0'); return `<option value="${v}" ${f.mes === v ? 'selected' : ''}>${m}</option>`; }).join('')}</select>
-      <select id="fsAnio" aria-label="Año" onchange="filtroSes().anio=this.value;refrescarSesionesPac()"><option value="">Cualquier año</option>${anios.map(y => `<option ${f.anio === y ? 'selected' : ''}>${y}</option>`).join('')}</select>
-      <button class="ghost small" id="fsQuitar" onclick="ui.fSes = { ver: filtroSes().ver, desde: '', hasta: '', mes: '', anio: '' }; render()" ${hayFiltro ? '' : 'hidden'}>Quitar filtros</button>
-    </div>` : ''}
-    <div id="listaSesiones">${listaSesionesPacHTML(p)}</div>`;
+    <div class="tabs" id="verSesiones" style="margin:14px 0 8px">${botones.map(([k, t]) =>
+      `<button class="${f.ver === k ? 'on' : ''}" aria-pressed="${f.ver === k}" onclick="filtroSes().ver='${k}'; render()"${k === 'series' ? ' title="Sesiones que se repiten cada semana"' : ''}>${t} (${n[k]})</button>`).join('')}</div>
+    ${todas.length && f.ver !== 'series' ? filtroFechasHTML('fs', f, 'cambiarFiltroSes', anios, "ui.fSes = { ver: filtroSes().ver, desde: '', hasta: '', mes: '', anio: '' }; render()") : ''}
+    <div id="listaSesiones">${f.ver === 'series' ? seriesPacHTML(p, series) : listaSesionesPacHTML(p)}</div>`;
+}
+const seriesVigentes = pid => db.seriesCitas.filter(s => s.patientId === pid && (!s.hasta || s.hasta >= todayIso()));
+function cambiarFiltroSes(k, v){ filtroSes()[k] = v; refrescarSesionesPac(); }
+// Series que se repiten cada semana: una línea por serie.
+function seriesPacHTML(p, series){
+  const ps = paginar('sesionesSeries', series, 'render()', p.id);
+  return ps.items.map(s => `<div class="item serie-fila"><div style="flex:1;min-width:0"><span aria-hidden="true">↻</span> ${esc(textoSerie(s))} <span class="muted">· ${esc(periodoSerie(s))}${s.nota ? ' · ' + esc(s.nota) : ''}</span></div>
+      <button class="ghost small" onclick="openSerie('${s.id}')">Cambiar…</button><button class="danger small" onclick="anularSerie('${s.id}')">Terminar…</button></div>`).join('') + ps.html
+    + '<p class="muted" style="margin-top:6px">Sus sesiones están también en Próximas, marcadas con ↻.</p>';
 }
 function listaSesionesPacHTML(p){
   const hoy = todayIso(), f = filtroSes();
@@ -3669,7 +3705,7 @@ function listaSesionesPacHTML(p){
 function refrescarSesionesPac(){
   const p = getP(ui.patientId), c = $('#listaSesiones'); if (!p || !c) return;
   c.innerHTML = listaSesionesPacHTML(p);
-  const f = filtroSes(), b = $('#fsQuitar'); if (b) b.hidden = !(f.desde || f.hasta || f.mes || f.anio);
+  const f = filtroSes(), b = $('#fsQuitar'); if (b) b.hidden = !hayFiltroFechas(f);
 }
 // Estado de una sesión: sin ejercicios, con ejercicios (previstos o sin puntuar), a medias o puntuada del todo.
 function estadoSesion(p, c){
@@ -4720,12 +4756,17 @@ function informesGeneradosHTML(p){
   const filtro = todos.length ? `<div class="tabs" style="margin-bottom:8px">${[['', 'Todos'], ['informe', 'Informes de pautas'], ['plan', 'Planes en casa']].map(([k, t]) =>
     `<button class="${f === k ? 'on' : ''}" onclick="ui.infTipo='${k}'; render()">${t} (${k ? todos.filter(x => x.tipo === k).length : todos.length})</button>`).join('')}</div>` : '';
   const buscar = todos.length ? `<div class="row" style="align-items:center;margin-bottom:6px">
-      <input type="search" id="buscarInformes" aria-label="Buscar en los informes" placeholder="Buscar por nombre, nombre del archivo o fecha de generación" value="${esc(ui.infQ || '')}" style="flex:1;min-width:240px" oninput="ui.infQ=this.value; refrescarListaInformes()"></div>` : '';
+      <input type="search" id="buscarInformes" aria-label="Buscar en los informes" placeholder="Buscar por nombre, nombre del archivo o fecha de generación" value="${esc(ui.infQ || '')}" style="flex:1;min-width:240px" oninput="ui.infQ=this.value; refrescarListaInformes()"></div>
+      ${filtroFechasHTML('fin', filtroInf(), 'cambiarFiltroInf', [...new Set(todos.map(x => fechaGenerado(x).slice(0, 4)).filter(Boolean))].sort(), 'ui.fInf = null; render()')}` : '';
   return `<div id="secInformes">
     ${filtro}${buscar}
     <div id="listaInformes">${listaInformesHTML(p)}</div>
   </div>`;
 }
+// Filtro por fecha de generación (entre dos fechas, mes y año).
+const filtroInf = () => ui.fInf || (ui.fInf = { desde: '', hasta: '', mes: '', anio: '' });
+function cambiarFiltroInf(k, v){ filtroInf()[k] = v; refrescarListaInformes(); const b = $('#finQuitar'); if (b) b.hidden = !hayFiltroFechas(filtroInf()); }
+const fechaGenerado = x => { const d = new Date(x.fecha); return isNaN(d) ? '' : iso(d); };   // día local
 // Fecha de generación en los formatos en que se suele buscar («28/10/2026», «28 oct 2026», «2026-10-28»…).
 const fechaGeneradoTexto = x => { const d = new Date(x.fecha); return isNaN(d) ? '' : [d.toLocaleDateString('es-ES'), fmt(iso(d)), iso(d), d.toLocaleDateString('es-ES', { day: 'numeric', month: 'long', year: 'numeric' })].join(' '); };
 // Solo esta parte se vuelve a pintar al buscar u ordenar, así el campo de búsqueda no pierde el foco.
@@ -4734,7 +4775,8 @@ function listaInformesHTML(p){
   const f = ui.infTipo || '', q = norm(ui.infQ).split(/\s+/).filter(Boolean);
   const lista = ordenarLista('informes', todos
     .filter(x => !f || x.tipo === f)
-    .filter(x => { const txt = norm([x.descripcion, x.nombre, fechaGeneradoTexto(x)].join(' ')); return q.every(t => txt.includes(t)); }),
+    .filter(x => { const txt = norm([x.descripcion, x.nombre, fechaGeneradoTexto(x)].join(' ')); return q.every(t => txt.includes(t)); })
+    .filter(x => { const d = fechaGenerado(x); return !hayFiltroFechas(filtroInf()) || (d && coincideFechas(d, d, filtroInf())); }),
     { titulo: x => x.descripcion || x.nombre, tipo: x => TIPOS_INFORME[x.tipo] || 'PDF', periodo: x => x.desde, generado: x => x.fecha }, (a, b) => (b.fecha || '').localeCompare(a.fecha || ''));
   const ex = ui.infExiste || {};
   const fila = x => `<div class="item infItem" data-id="${x.id}" style="align-items:center;flex-wrap:wrap">
@@ -4750,7 +4792,7 @@ function listaInformesHTML(p){
         <button class="danger small" title="Quita el PDF de esta lista (el archivo no se borra)" onclick="quitarInforme('${x.id}')">Quitar de la lista</button>
       </div></div>`;
   const cab = cabListaHTML('informes', [['titulo', 'Informe'], ['tipo', 'Tipo'], ['periodo', 'Periodo'], ['generado', 'Generado']], 'refrescarListaInformes()');
-  return lista.length ? (pag => cab + pag.items.map(fila).join('') + pag.html)(paginar('informes', lista, 'render()', [p.id, f, q.join(' ')].join('|'))) : `<p class="muted">${todos.length ? (q.length ? 'Ningún PDF coincide con la búsqueda.' : 'No hay PDF de este tipo.') : 'Todavía no se ha generado ningún PDF para este paciente. Los informes de pautas y los planes en casa que exportes aparecerán aquí.'}</p>`;
+  return lista.length ? (pag => cab + pag.items.map(fila).join('') + pag.html)(paginar('informes', lista, 'render()', [p.id, f, q.join(' '), JSON.stringify(filtroInf())].join('|'))) : `<p class="muted">${todos.length ? (q.length || hayFiltroFechas(filtroInf()) ? 'Ningún PDF coincide con la búsqueda.' : 'No hay PDF de este tipo.') : 'Todavía no se ha generado ningún PDF para este paciente. Los informes de pautas y los planes en casa que exportes aparecerán aquí.'}</p>`;
 }
 // Repinta solo la lista de informes (al buscar u ordenar).
 function refrescarListaInformes(){ const el = $('#listaInformes'), p = getP(ui.patientId); if (el && p) el.innerHTML = listaInformesHTML(p); }
@@ -5138,6 +5180,31 @@ function planCasaSeccionHTML(p){
   return pl ? planEditorHTML(p, pl) : planesListaHTML(p);
 }
 const msgCasaHTML = () => ui.casaExpMsg ? `<p id="casaExpMsg" role="status" style="margin:8px 0;${ui.casaExpMsg[0] === 'error' ? 'color:var(--danger)' : 'color:var(--muted)'}">${esc(ui.casaExpMsg[1])}</p>` : '';
+// Filtro por fechas común (entre dos fechas, mes y año) de las listas de la ficha. f: { desde, hasta, mes, anio }.
+const hayFiltroFechas = f => !!(f.desde || f.hasta || f.mes || f.anio);
+// ¿El intervalo ini–fin (fin vacío = sin fecha de fin) toca las fechas, el mes y el año elegidos?
+function coincideFechas(ini, fin, f){
+  const hasta = fin || '9999-12-31', toca = (a, b) => !(hasta < a || ini > b), finMes = (y, m) => addDays(iso(new Date(+y, +m, 1)), -1);
+  if (f.desde && hasta < f.desde) return false;
+  if (f.hasta && ini > f.hasta) return false;
+  if (f.anio && f.mes) return toca(`${f.anio}-${f.mes}-01`, finMes(f.anio, f.mes));
+  if (f.anio) return toca(f.anio + '-01-01', f.anio + '-12-31');
+  if (f.mes){
+    for (let y = +ini.slice(0, 4), y1 = Math.min(+hasta.slice(0, 4), new Date().getFullYear() + 1); y <= y1; y++) if (toca(`${y}-${f.mes}-01`, finMes(y, f.mes))) return true;
+    return false;
+  }
+  return true;
+}
+// Fila de filtros por fecha. «cambiar» es una función (campo, valor); «quitar», el código del botón «Quitar filtros».
+function filtroFechasHTML(id, f, cambiar, anios, quitar){
+  return `<div class="row filtros-planes" role="search" aria-label="Buscar por fecha">
+      <label>Entre <input type="date" id="${id}Desde" value="${f.desde}" onchange="${cambiar}('desde', this.value)"></label>
+      <label>y <input type="date" id="${id}Hasta" value="${f.hasta}" onchange="${cambiar}('hasta', this.value)"></label>
+      <select id="${id}Mes" aria-label="Mes" onchange="${cambiar}('mes', this.value)"><option value="">Cualquier mes</option>${MESES_NOM.map((m, i) => { const v = String(i + 1).padStart(2, '0'); return `<option value="${v}" ${f.mes === v ? 'selected' : ''}>${m}</option>`; }).join('')}</select>
+      <select id="${id}Anio" aria-label="Año" onchange="${cambiar}('anio', this.value)"><option value="">Cualquier año</option>${anios.map(y => `<option ${f.anio === String(y) ? 'selected' : ''}>${y}</option>`).join('')}</select>
+      <button class="ghost small" id="${id}Quitar" onclick="${quitar}" ${hayFiltroFechas(f) ? '' : 'hidden'}>Quitar filtros</button>
+    </div>`;
+}
 const filtroPlanes = () => ui.fPlanes || (ui.fPlanes = { q: '', desde: '', hasta: '', mes: '', anio: '' });
 function planesListaHTML(p){
   const lista = planesDe(p.id), f = filtroPlanes();
