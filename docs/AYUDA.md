@@ -60,7 +60,7 @@ Todas las listas (pacientes, ejercicios, bloques, plantillas, sesiones, planes e
 - La segunda vez, al revés (**▼**).
 - La tercera vez, vuelve al orden de siempre de esa lista.
 
-La columna por la que está ordenada la lista lleva la flecha en color; las demás, **↕**. Cada lista recuerda su orden. Lo que no tiene dato (por ejemplo, un paciente sin próxima sesión) va siempre al final. En el **resumen**, los ejercicios se ordenan dentro de cada bloque. Las **pautas** del paciente no se ordenan así: siguen el orden de ejecución que pones con ↑ ↓.
+La columna por la que está ordenada la lista lleva la flecha en color; las demás, **↕**. Cada lista recuerda su orden. Lo que no tiene dato (por ejemplo, un paciente sin próxima sesión) va siempre al final. En el **resumen**, los ejercicios se ordenan dentro de cada bloque. Los ejercicios de una sesión y de los planes en casa no se ordenan así: se colocan con ↑ ↓ (ver [Puntuar un día](#puntuar) y [Planes en casa](#plan-en-casa)).
 
 ## Pacientes {#pacientes}
 
@@ -117,7 +117,7 @@ En la pestaña **Pautas** ves los bloques y ejercicios que el paciente tiene asi
 5. Si el paciente tiene sesiones, a la derecha de la lista sale **En qué sesión**: **Todas** (lo normal), una o varias de sus sesiones o series de sesiones, o **Ninguna** (los ejercicios quedan sin sesión). Ver [Sesiones](#sesiones).
 6. Pulsa **Asignar**.
 
-**Cambiar el orden.** Usa las flechas ↑ ↓ de cada pauta.
+**Orden.** Las pautas no se ordenan aquí: el orden de los ejercicios se elige en cada sesión (ver [Puntuar un día](#puntuar)). Si no lo cambias, salen en el orden en que los asignaste.
 
 **Cambiar fechas o días.** Pulsa **Editar** en la pauta. En la ventana puedes cambiar:
 
@@ -169,6 +169,7 @@ Al pulsar un día del calendario (o **Puntuar hoy**) se abre su ventana, con dos
 - **+ Rep.** añade otra repetición para puntuar ese ejercicio otra vez el mismo día. La **×** quita una repetición.
 - **Quitar** quita ese ejercicio solo de ese día (y de esa sesión, si hay varias); el resto sigue igual.
 - **Quitar todos los ejercicios** (arriba, junto a las pestañas) vacía ese día (o esa sesión).
+- **↑ ↓** cambian el orden: en el título de cada bloque (se mueve el bloque entero) y en cada ejercicio suelto. El orden vale solo para esa sesión de ese día; los demás días siguen igual. También se puede ordenar desde la vista **Día** del calendario.
 
 **Con el teclado** es más rápido: la fila marcada (con un borde de color) es la siguiente por puntuar.
 
@@ -176,7 +177,7 @@ Al pulsar un día del calendario (o **Puntuar hoy**) se abre su ventana, con dos
 - Las flechas **↑** y **↓** cambian de fila.
 - La tecla **+** añade una repetición al ejercicio marcado.
 
-**Añadir ejercicios** (se abre esta si el día está vacío): marca los bloques o ejercicios y pulsa **Añadir al día** (o **Añadir a la sesión**, si hay sesiones). Se añaden solo a ese día (y solo a la sesión abierta, si hay sesiones). Después se vuelve sola a la pestaña de puntuar.
+**Añadir ejercicios** (se abre esta si el día está vacío): marca los bloques o ejercicios y pulsa **Añadir al día** (o **Añadir a la sesión**, si hay sesiones). Se añaden solo a ese día (y solo a la sesión abierta, si hay sesiones). Antes de añadirlos, en **Orden** ves lo que ya tiene la sesión y, al final, lo que has marcado (como «Nuevo»): colócalo con ↑ ↓ donde quieras. Después se vuelve sola a la pestaña de puntuar.
 
 **Observaciones.** Arriba, antes de las pestañas y de la lista de ejercicios, hay un cuadro para escribir **observaciones** de la sesión (cómo ha ido, incidencias, qué cambiar la próxima vez). Si el día no tiene sesión, son **observaciones del día**. Se guardan solas mientras escribes; para quitarlas, borra el texto. Se ven:
 
@@ -258,15 +259,18 @@ Todo se guarda solo. Debajo están los ejercicios:
 **Añadir ejercicios.** Pulsa **+ Añadir** en un día (o en «A elegir»):
 
 1. Marca bloques o ejercicios de la biblioteca, o escribe un **ejercicio a mano** si no está en la biblioteca.
-2. Escribe **notas** si quieres (repeticiones, cómo hacerlo, material…).
-3. Si quieres, marca otros días del plan para añadirlo a la vez.
-4. Pulsa **Añadir**.
+2. En **Orden** ves lo que ya tiene ese día (o «A elegir») y, al final, lo que has marcado: colócalo con ↑ ↓ donde quieras. (Lo escrito a mano se añade al final.)
+3. Escribe **notas** si quieres (repeticiones, cómo hacerlo, material…).
+4. Si quieres, marca otros días del plan para añadirlo a la vez (en esos días, lo nuevo va al final).
+5. Pulsa **Añadir**.
+
+En las **plantillas** se añade igual.
 
 **Cambiar un día.** Dentro de cada día:
 
 - **✎** cambia las notas de un ejercicio o de un bloque.
 - **×** quita ese ejercicio o bloque.
-- **Editar** abre el día entero para reordenar, quitar o añadir.
+- **Editar** abre el día entero para reordenar (↑ ↓), cambiar notas, quitar o añadir.
 - **Vaciar** quita todo lo de ese día.
 
 **Botones de arriba:**

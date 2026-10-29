@@ -46,6 +46,12 @@ func TestObservaciones(t *testing.T) {
 			{PatientID: "p1", Fecha: "2026-10-29", Repeticion: 1, Texto: "repetición sin ejercicio"},
 		},
 	}
+	st.OrdenSesiones = map[string][]string{
+		"p1|2026-10-28|c1": {"e1"},
+		"p1|2026-10-28|":   {"e9", "e1"}, // e9 no existe: se descarta
+		"p9|2026-10-28|":   {"e1"},       // paciente que no existe
+		"mal":              {"e1"},
+	}
 	if err := saveState(st); err != nil {
 		t.Fatal(err)
 	}
@@ -62,6 +68,9 @@ func TestObservaciones(t *testing.T) {
 	}
 	if o := porTexto["Repetición"]; o.ExerciseID != "e1" || o.Repeticion != 2 || o.Sesion != "c1" {
 		t.Errorf("la observación de una repetición no conserva su ámbito: %+v", o)
+	}
+	if len(cargado.OrdenSesiones) != 2 || len(cargado.OrdenSesiones["p1|2026-10-28|"]) != 1 || cargado.OrdenSesiones["p1|2026-10-28|c1"][0] != "e1" {
+		t.Errorf("orden de las sesiones mal guardado: %v", cargado.OrdenSesiones)
 	}
 	if _, ok := porTexto["Ha venido cansada.\nRepetir la semana que viene"]; !ok {
 		t.Error("los saltos de línea del texto deben conservarse")
@@ -80,5 +89,8 @@ func TestObservaciones(t *testing.T) {
 	}
 	if cargado, err = loadState(); err != nil || len(cargado.Observaciones) != 5 {
 		t.Fatalf("al restaurar la copia deben volver las 5 observaciones: %d (%v)", len(cargado.Observaciones), err)
+	}
+	if len(cargado.OrdenSesiones) != 2 {
+		t.Errorf("al restaurar la copia debe volver el orden de las sesiones: %v", cargado.OrdenSesiones)
 	}
 }

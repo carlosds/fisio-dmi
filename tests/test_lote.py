@@ -35,15 +35,11 @@ with sync_playwright() as pw:
     check(vis('.bItem') == 1 and vis('.exItem') == 4, '«Todos» vuelve a mostrar todo')
     page.locator('#modal button', has_text='Cancelar').click()
 
-    print('\n[3] Orden de las pautas y calendarios')
+    print('\n[3] Orden de la sesión de hoy y calendarios')
     nombres = lambda: [t.strip() for t in page.locator('#sec-pautas .item > div:first-child > span:first-child').all_inner_texts()]
     check([re.sub(r'^\d+\.\s*', '', n) for n in nombres()] == ['Core básico', 'Estiramiento isquios'], f'orden inicial {nombres()}')
-    page.locator('#sec-pautas .item').nth(1).get_by_role('button', name='Subir').click(); page.wait_for_timeout(200)
-    check([re.sub(r'^\d+\.\s*', '', n) for n in nombres()] == ['Estiramiento isquios', 'Core básico'], 'subir una pauta suelta la pone la primera')
-    check(page.locator('#sec-pautas .item').first.get_by_role('button', name='Subir').is_disabled(), 'la primera no se puede subir')
-    page.locator('#sec-pautas .item').first.get_by_role('button', name='Bajar').click(); page.wait_for_timeout(200)
-    check([re.sub(r'^\d+\.\s*', '', n) for n in nombres()][0] == 'Core básico', 'bajar la primera la deja segunda')
-    page.locator('#sec-pautas .item').nth(1).get_by_role('button', name='Subir').click(); page.wait_for_timeout(200)
+    check(page.locator('#sec-pautas').get_by_role('button', name='Subir').count() == 0, 'las pautas no se ordenan en su pestaña (se ordena cada sesión)')
+    page.evaluate("ui.patientId = 'p1'; moverUnidadSesion(todayIso(), '', 'e3', -1)"); page.wait_for_timeout(200)   # como el ↑ de la sesión de hoy
     orden = page.evaluate("exercisesOn('p1', todayIso()).map(i => i.exercise.nombre)")
     check(orden == ['Estiramiento isquios', 'Puente glúteo', 'Plancha lateral'], f'exercisesOn respeta el orden: {orden}')
     page.get_by_role('tab', name='Calendario').click(); page.locator('#subCal').get_by_role('button', name='Calendario').click(); page.wait_for_timeout(100)

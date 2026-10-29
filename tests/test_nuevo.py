@@ -128,9 +128,9 @@ with sync_playwright() as pw:
     check(len([x for x in items() if x['dia'] == 3]) == 1, 'quitar un bloque del día quita todos sus ejercicios')
     dia(1).locator('.pc-g button[aria-label="Quitar"]').first.click(); page.wait_for_timeout(200)
     check(len([x for x in items() if x['dia'] == 1]) == 2, 'quitar un ejercicio de un bloque')
-    # editor de día: mismo formulario que Añadir, con lo del día arriba
+    # editor de día: lo del día (ordenar, notas, quitar) y «+ Añadir…», que abre la ventana de añadir con el orden
     dia(1).get_by_role('button', name='Editar', exact=True).click()
-    check(page.locator('#modal .dc-u').count() == 2 and page.locator('#modal .lista-sel').count() == 1, 'el editor de día lista sus unidades y ofrece el selector')
+    check(page.locator('#modal .dc-u').count() == 2 and page.locator('#modal').get_by_role('button', name='+ Añadir a este día…').count() == 1, 'el editor de día lista sus unidades y ofrece «+ Añadir…»')
     page.locator('#modal button', has_text='Cerrar').first.click()
     page.screenshot(path=f'{tmp}/paciente.png', full_page=True)
 

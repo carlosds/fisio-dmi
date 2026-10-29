@@ -270,7 +270,12 @@ button.btn:disabled{opacity:.45;cursor:default}
 .fila-pauta.terminada{opacity:.75}
 .pautas-terminadas{margin:14px 0 2px;font-size:14px;color:var(--muted)}
 .grp-dia{margin:14px 0 6px}
-.grp-titulo{font-weight:700;font-size:16px;margin-bottom:4px}
+.grp-titulo{font-weight:700;font-size:16px;margin-bottom:4px;display:flex;align-items:center;gap:8px;flex-wrap:wrap}
+.ord-ses{display:inline-flex;gap:4px}
+.grp-titulo .ord-ses{margin-left:auto}
+.orden-add .ord{display:flex;justify-content:space-between;align-items:center;gap:8px;padding:4px 8px;border-bottom:1px solid var(--line)}
+.orden-add .ord.nuevo{background:var(--zebra)}
+#ordenAdd{border:1px solid var(--line);border-radius:8px;max-height:min(36vh,320px);overflow:auto}
 .grp-dia .ej-dia{margin-left:6px;padding:6px 0 6px 14px;border-left:3px solid var(--line);border-bottom:1px solid var(--line)}
 .pc-semana{display:grid;grid-template-columns:repeat(7,minmax(0,1fr));gap:8px}
 @media(max-width:1250px){.pc-semana{grid-template-columns:repeat(4,minmax(0,1fr))}}
@@ -612,6 +617,7 @@ function normalizar0(d){
     informes: d.informes || [],
     citas: (d.citas || []).map(c => ({ ...c, duracion: c.duracion || 45, nota: c.nota || '', serieId: c.serieId || '', fechaSerie: c.fechaSerie || '', color: c.color || '' })),
     seriesCitas: (d.seriesCitas || []).map(x => ({ ...x, duracion: x.duracion || 45, hasta: x.hasta || '', nota: x.nota || '', excluidas: x.excluidas || [], color: x.color || '' })),
+    ordenSesiones: d.ordenSesiones || {},
     observaciones: (d.observaciones || []).map(o => ({ patientId: o.patientId, fecha: o.fecha, sesion: o.sesion || '', bloqueId: o.bloqueId || '', exerciseId: o.exerciseId || '', repeticion: o.repeticion || 0, texto: o.texto || '' }))
   };
 }
@@ -924,12 +930,57 @@ function ejerciciosDe(pautas){
   }
   return out.sort((a, b) => ((a.pauta.orden || 0) - (b.pauta.orden || 0)) || byName(a.exercise, b.exercise));
 }
-// Ejercicios de una sesión de un día, en orden de ejecución.
-function exercisesSesion(pid, day, ses){ return ejerciciosDe(activePautas(pid, day).filter(p => pautaEnSesion(p, ses))); }
-// Ejercicios del día, juntando todas sus sesiones (para resúmenes, calendario e informes).
+// Ejercicios de una sesión de un día, en orden de ejecución: el que se haya elegido en esa sesión o, si no, el de las pautas.
+function exercisesSesion(pid, day, ses){ return aplicarOrdenSesion(pid, day, ses, exercisesSesionBase(pid, day, ses)); }
+function exercisesSesionBase(pid, day, ses){ return ejerciciosDe(activePautas(pid, day).filter(p => pautaEnSesion(p, ses))); }
+// Ejercicios del día, juntando todas sus sesiones (para resúmenes, calendario e informes). Con una sola sesión, en su orden.
 function exercisesOn(pid, day){
   const ses = sesionesDia(pid, day);
-  return ejerciciosDe(activePautas(pid, day).filter(p => ses.some(x => pautaEnSesion(p, x.id))));
+  const items = ejerciciosDe(activePautas(pid, day).filter(p => ses.some(x => pautaEnSesion(p, x.id))));
+  return ses.length === 1 ? aplicarOrdenSesion(pid, day, ses[0].id, items) : items;
+}
+// Orden elegido en una sesión: db.ordenSesiones['paciente|día|sesión'] = [ids de ejercicio]. Los que no están en la
+// lista (añadidos después) van detrás, en el orden de las pautas.
+const claveOrdenSes = (pid, day, ses) => `${pid}|${day}|${ses || ''}`;
+function aplicarOrdenSesion(pid, day, ses, items){
+  const o = db.ordenSesiones[claveOrdenSes(pid, day, ses)];
+  if (!o || !o.length) return items;
+  const pos = new Map(o.map((e, i) => [e, i]));
+  return items.map((it, i) => ({ it, k: pos.has(it.exercise.id) ? pos.get(it.exercise.id) : o.length + i })).sort((a, b) => a.k - b.k).map(x => x.it);
+}
+// Lo que se mueve al ordenar una sesión: un bloque entero (sus ejercicios seguidos) o un ejercicio suelto.
+function unidadesSesion(items){
+  const out = [];
+  for (const it of items){
+    const b = it.pauta.bloqueId || '', u = out.at(-1);
+    if (b && u && u.bloqueId === b) u.items.push(it); else out.push({ bloqueId: b, items: [it] });
+  }
+  return out;
+}
+const textoUnidad = u => u.bloqueId ? ((db.bloques.find(b => b.id === u.bloqueId) || {}).nombre || 'Bloque') : u.items[0].exercise.nombre;
+// Sube o baja en su sesión la unidad (bloque o ejercicio suelto) que contiene ese ejercicio.
+function moverUnidadSesion(day, ses, eid, dir){
+  const pid = ui.patientId, us = unidadesSesion(exercisesSesion(pid, day, ses));
+  const i = us.findIndex(u => u.items.some(it => it.exercise.id === eid)), j = i + dir;
+  if (i < 0 || j < 0 || j >= us.length) return;
+  [us[i], us[j]] = [us[j], us[i]];
+  db.ordenSesiones[claveOrdenSes(pid, day, ses)] = us.flatMap(u => u.items.map(it => it.exercise.id));
+  render(); refrescarModalDia();
+}
+// Tras añadir ejercicios a una sesión, guarda el orden elegido en el panel (claves de leerOrdenAdd; «x:N» es la
+// unidad N de las que ya había, «antes»). Si queda igual que el de las pautas, no se guarda nada.
+function guardarOrdenTrasAnadir(pid, day, ses, orden, antes){
+  const ahora = exercisesSesion(pid, day, ses).map(i => i.exercise.id), usados = new Set(), lista = [];
+  const meter = ids => ids.forEach(id => { if (ahora.includes(id) && !usados.has(id)){ usados.add(id); lista.push(id); } });
+  for (const k of orden){
+    if (k.startsWith('x:')) meter((antes[+k.slice(2)] || { items: [] }).items.map(i => i.exercise.id));
+    else if (k.startsWith('b:')){ const b = db.bloques.find(x => x.id === k.slice(2)); if (b) meter(b.ejercicios); }
+    else meter([k.slice(2)]);
+  }
+  meter(ahora);
+  const clave = claveOrdenSes(pid, day, ses), base = exercisesSesionBase(pid, day, ses).map(i => i.exercise.id);
+  if (!db.ordenSesiones[clave] && lista.join() === base.join()) return;
+  db.ordenSesiones[clave] = lista;
 }
 // Sesiones de un paciente un día: una por cita (por hora) y la «sin cita» si no tiene citas ese día, si tiene
 // puntuaciones sin cita o si tiene ejercicios sin sesión (que no tocan en ninguna de sus citas de ese día).
@@ -980,6 +1031,10 @@ function normalizarSesiones(){
     if (!ses) continue;
     const c = getCita(ses), [pid, day] = kd.split('|');
     if (!c || c.fecha !== day || c.patientId !== pid) mover.push([pid, day, ses]);
+  }
+  for (const k of Object.keys(db.ordenSesiones)){   // el orden de una cita que ya no está en ese día se olvida
+    const [pid, day, ses] = k.split('|'), c = ses && getCita(ses);
+    if (ses && (!c || c.fecha !== day || c.patientId !== pid)) delete db.ordenSesiones[k];
   }
   for (const o of db.observaciones){   // una sesión con observaciones pero sin puntuaciones
     if (!o.sesion) continue;
@@ -1287,6 +1342,7 @@ async function delPacientes(ids){
   db.seriesCitas = db.seriesCitas.filter(x => !set.has(x.patientId));
   db.informes = db.informes.filter(x => !set.has(x.patientId));   // los archivos PDF no se borran
   db.observaciones = db.observaciones.filter(x => !set.has(x.patientId));
+  for (const k of Object.keys(db.ordenSesiones)) if (set.has(k.split('|')[0])) delete db.ordenSesiones[k];
   db.plantillas.forEach(t => { t.aplicaciones = (t.aplicaciones || []).filter(a => !set.has(a.patientId)); });
   claves.forEach(k => delete db.puntuaciones[k]);
   set.forEach(id => ui.selected.delete(id));
@@ -1372,7 +1428,6 @@ function panelPautas(p){
         <span class="row" style="gap:8px"><button class="danger" onclick="quitarTodasPautas()" ${pautas.length ? '' : 'disabled'}>Quitar todas las pautas</button>
         <button class="btn" onclick="openAssign(['${p.id}'])">Asignar ejercicios</button></span>
       </div>
-      <p class="muted" style="margin:6px 0 0">Las pautas se ejecutan en el orden indicado; usa las flechas para cambiarlo.</p>
       ${buscadorPacHTML('qPautas', ui.qPautas, 'ui.qPautas=this.value;refrescarPautas()')}
       ${pautas.length ? (() => {
         const f = filtroPautas(), gs = [...grupos.values()], n = { vigentes: gs.filter(xs => !pautaTerminada(xs)).length, terminadas: gs.filter(pautaTerminada).length, todas: gs.length };
@@ -1614,7 +1669,7 @@ function vistaDiaHTML(p){
 // Una fila compacta por ejercicio: nombre · repeticiones (0 a 3) · acciones. Cada repetición es una «fila de
 // puntuación» numerada (data-fila) para poder moverse con el teclado en la ventana del día.
 let contadorFilaDia = 0;
-function filaEjercicioDia(p, s, exercise, bloque, ses = ''){
+function filaEjercicioDia(p, s, exercise, bloque, ses = '', flechas = ''){
   const reps = repsDe(p.id, s, exercise.id, ses);
   const lista = reps.length ? reps : [{ rep: 1, valor: null }];
   const varias = lista.length > 1;
@@ -1630,7 +1685,7 @@ function filaEjercicioDia(p, s, exercise, bloque, ses = ''){
     <div class="ej-dia" data-eid="${exercise.id}">
       <span class="ej-nom-dia">${esc(nombreEnBloque(exercise.nombre, bloque))}</span>
       <div class="ej-reps">${filas}</div>
-      <div class="ej-acc">
+      <div class="ej-acc">${flechas}
         <button class="ghost small" onclick="addRep('${p.id}','${s}','${exercise.id}','${ses}')" aria-label="Añadir repetición" title="Añadir otra repetición para puntuar">+ Rep.</button>
         <button class="ghost small quitar" onclick="ui.selDay='${s}';quitarDeDia('${exercise.id}','${ses}')" aria-label="Quitar de esta sesión" title="Quitar este ejercicio solo de esta sesión de este día">Quitar</button>
       </div>
@@ -1640,6 +1695,13 @@ function filaEjercicioDia(p, s, exercise, bloque, ses = ''){
 function filasDia(p, s, q = '', ses = ''){
   contadorFilaDia = 0;
   const todos = exercisesSesion(p.id, s, ses), items = filtrarItemsQ(todos, q);
+  // ↑ ↓ para ordenar la sesión: en cada bloque (en su título) y en cada ejercicio suelto. No mientras se busca.
+  const us = q.trim() ? [] : unidadesSesion(todos);
+  const flechas = eid => {
+    if (us.length < 2) return '';
+    const k = us.findIndex(u => u.items.some(it => it.exercise.id === eid)), n = esc(textoUnidad(us[k]));
+    return `<span class="ord-ses"><button class="ghost small" ${k === 0 ? 'disabled' : ''} onclick="moverUnidadSesion('${s}', '${ses}', '${eid}', -1)" aria-label="Subir ${n}" title="Subir">↑</button><button class="ghost small" ${k === us.length - 1 ? 'disabled' : ''} onclick="moverUnidadSesion('${s}', '${ses}', '${eid}', 1)" aria-label="Bajar ${n}" title="Bajar">↓</button></span>`;
+  };
   if (!items.length) return `<p class="muted">${q.trim() && todos.length ? 'Ningún ejercicio de esta sesión coincide con la búsqueda.' : 'No hay ejercicios asignados para esta sesión.'}</p>`;
   const hayBloques = items.some(i => i.pauta.bloqueId);
   let html = '', actual = null;
@@ -1649,10 +1711,10 @@ function filasDia(p, s, q = '', ses = ''){
       if (actual !== null) html += '</div>';
       const b = bid ? db.bloques.find(x => x.id === bid) : null;
       const titulo = bid ? (b ? esc(b.nombre) + (b.nivel ? ` <span class="nivel">Nivel ${esc(b.nivel)}</span>` : '') : 'Bloque') : (hayBloques ? 'Ejercicios sueltos' : '');
-      html += `<div class="grp-dia">${titulo ? `<div class="grp-titulo">${titulo}</div>` : ''}`;
+      html += `<div class="grp-dia">${titulo ? `<div class="grp-titulo">${titulo}${bid ? flechas(exercise.id) : ''}</div>` : ''}`;
       actual = bid;
     }
-    html += filaEjercicioDia(p, s, exercise, bid ? db.bloques.find(x => x.id === bid) : null, ses);
+    html += filaEjercicioDia(p, s, exercise, bid ? db.bloques.find(x => x.id === bid) : null, ses, bid ? '' : flechas(exercise.id));
   }
   return html + '</div>';
 }
@@ -2045,7 +2107,8 @@ function gruposOrdenados(pid){
     .forEach(x => { const k = claveAsig(x); if (!m.has(k)) m.set(k, []); m.get(k).push(x); });
   return [...m.entries()].sort((a, b) => ordenGrupo(a[1]) - ordenGrupo(b[1]));
 }
-// Sube o baja una pauta (un bloque completo o un ejercicio suelto) en el orden de ejecución.
+// Sube o baja una pauta (un bloque completo o un ejercicio suelto) en el orden de ejecución. Ya no se ofrece en la
+// pestaña Pautas (el orden se elige en cada sesión), pero el orden de las pautas sigue siendo el de cada sesión por defecto.
 function moverPauta(key, dir){
   const g = gruposOrdenados(ui.patientId);
   const i = g.findIndex(x => x[0] === key);
@@ -2106,14 +2169,11 @@ function filaPauta(k, xs, i, total, activa = true){
   return `
     <div class="item fila-pauta${activa ? '' : ' terminada'}" data-k="${k}">
       <div style="flex:1;min-width:220px">
-        <span style="${bloque ? 'font-weight:700' : ''}">${activa ? `<span class="muted">${i + 1}.</span> ` : ''}${esc(titulo)}</span>${bloque && bloque.nivel ? ` <span class="nivel">Nivel ${esc(bloque.nivel)}</span>` : ''}
+        <span style="${bloque ? 'font-weight:700' : ''}">${esc(titulo)}</span>${bloque && bloque.nivel ? ` <span class="nivel">Nivel ${esc(bloque.nivel)}</span>` : ''}
         <div class="muted periodo">${textoPeriodo(per)}${diasPautaTexto(xs)}${x.sesion ? ' · ' + esc(textoSesionPauta(x.sesion)) : ''}</div>
         ${detalle}
       </div>
       <span class="row" style="gap:6px;flex:none;align-items:center">
-        ${activa ? `<span class="row" style="gap:4px" title="Orden de ejecución">
-          <button class="ghost small" ${i === 0 ? 'disabled' : ''} onclick="moverPauta('${k}',-1)" aria-label="Subir">↑</button>
-          <button class="ghost small" ${i === total - 1 ? 'disabled' : ''} onclick="moverPauta('${k}',1)" aria-label="Bajar">↓</button></span>` : ''}
         <button class="ghost small" onclick="openEditarPauta('${k}')">Editar</button>
         <button class="danger small" onclick="delPauta('${k}')">Eliminar</button>
       </span>
@@ -2387,6 +2447,7 @@ function renderDayModal(){
       ${varias ? `<p class="muted" style="margin-top:0">Se añaden solo a esta sesión (${esc(etiquetaSesion(sesion).toLowerCase())}) de este día.</p>` : ''}
       ${hayMas ? `
         ${selectorEjerciciosHTML(used)}
+        ${panelOrdenAddHTML(unidadesSesion(items).map(textoUnidad))}
         <p class="row" style="justify-content:flex-end;margin-top:10px"><button class="btn" onclick="addDayEx()">${varias ? 'Añadir a la sesión' : 'Añadir al día'}</button></p>`
       : '<p class="muted">No hay más ejercicios disponibles para añadir.</p>'}
     </div>` : `<div id="secPun">
@@ -2584,8 +2645,37 @@ function marcarVisibles(valor){
     if (el.style.display === 'none') return;
     el.querySelector('input[type="checkbox"]').checked = valor;
   });
-  sincronizarOrden();
+  sincronizarOrden(); sincronizarOrdenAdd();
 }
+// Panel «Orden» de las ventanas de añadir (sesión del día, días del plan en casa y de las plantillas): lo que ya hay
+// (cada bloque entero o ejercicio suelto, con clave «x:N») y, al final, lo que se marca en la lista («b:bloque» o
+// «e:ejercicio»), para colocarlo con ↑ ↓ antes de añadirlo.
+function panelOrdenAddHTML(existentes){
+  return `<div class="orden-add" style="margin-top:12px"><label style="margin-top:0">Orden <span class="muted">(lo que marques sale al final; colócalo con ↑ ↓)</span></label>
+    <div id="ordenAdd">${existentes.map((t, i) => ordenAddItemHTML('x:' + i, t, false)).join('')}${existentes.length ? '' : '<p class="muted vacio" style="margin:6px 8px">Marca bloques o ejercicios para ordenarlos.</p>'}</div></div>`;
+}
+function ordenAddItemHTML(clave, texto, nuevo){
+  return `<div class="ord${nuevo ? ' nuevo' : ''}" data-clave="${esc(clave)}"><span>${nuevo ? '<span class="nivel">Nuevo</span> ' : ''}${esc(texto)}</span>
+    <span class="row" style="gap:4px"><button type="button" class="ghost small" onclick="moverOrdenAdd(this, -1)" aria-label="Subir ${esc(texto)}">↑</button><button type="button" class="ghost small" onclick="moverOrdenAdd(this, 1)" aria-label="Bajar ${esc(texto)}">↓</button></span></div>`;
+}
+const textoClaveAdd = k => k[0] === 'b' ? (db.bloques.find(b => b.id === k.slice(2)) || {}).nombre || 'Bloque' : (getE(k.slice(2)) || {}).nombre || '';
+function sincronizarOrdenAdd(){
+  const cont = $('#ordenAdd'); if (!cont) return;
+  const marcadas = [...document.querySelectorAll('#modal .bCheck:checked')].map(c => 'b:' + c.value)
+    .concat([...document.querySelectorAll('#modal .exCheck:checked')].map(c => 'e:' + c.value));
+  cont.querySelectorAll('.ord.nuevo').forEach(el => { if (!marcadas.includes(el.dataset.clave)) el.remove(); });
+  const ya = new Set([...cont.querySelectorAll('.ord.nuevo')].map(el => el.dataset.clave));
+  for (const k of marcadas) if (!ya.has(k)) cont.insertAdjacentHTML('beforeend', ordenAddItemHTML(k, textoClaveAdd(k), true));
+  const v = cont.querySelector('.vacio'); if (v) v.hidden = !!cont.querySelector('.ord');
+}
+function moverOrdenAdd(btn, dir){
+  const el = btn.closest('.ord'), otro = dir < 0 ? el.previousElementSibling : el.nextElementSibling;
+  if (!otro || !otro.classList.contains('ord')) return;
+  if (dir < 0) otro.before(el); else otro.after(el);
+  btn.focus();
+}
+const leerOrdenAdd = () => [...document.querySelectorAll('#ordenAdd .ord')].map(el => el.dataset.clave);
+document.addEventListener('change', e => { if (e.target.matches && e.target.matches('#modal .bCheck, #modal .exCheck')) sincronizarOrdenAdd(); });
 // Un bloque se asigna como un grupo: cada ejercicio es una pauta, y todas comparten la misma clave de asignación.
 // Un ejercicio suelto también es un grupo de una sola pauta. «omitir»: ejercicios que no se añaden.
 function leerSeleccionModal(){
@@ -2642,7 +2732,9 @@ function addDayEx(){
   const dia = ui.selDay, ses = sesionActual();
   // Solo para la sesión abierta: una cita, o la sesión sin cita (si ese día no hay citas, vale para todo el día).
   const sesion = ses ? 'c:' + ses : (citasDia(ui.patientId, dia).length ? '-' : '');
+  const orden = leerOrdenAdd(), antes = unidadesSesion(exercisesSesion(ui.patientId, dia, ses));
   crearPautas([ui.patientId], bloqueIds, exIds, dia, dia, new Set(exercisesSesion(ui.patientId, dia, ses).map(i => i.exercise.id)), '', sesion);
+  guardarOrdenTrasAnadir(ui.patientId, dia, ses, orden, antes);
   ui.diaTab = 'puntuar';   // tras añadir, se pasa a puntuar lo que se acaba de añadir
   render(); renderDayModal();
 }
@@ -5761,19 +5853,22 @@ function otrosDiasHTML(t, dia){
 }
 const textoLibreHTML = t => `<div style="margin-top:12px"><label for="acLibre">Ejercicio escrito a mano (opcional)</label>
   <textarea id="acLibre" rows="2" placeholder="Para algo que no está en la lista. Uno por línea. Solo se añade a ${esPlan(t) ? 'este plan' : 'esta plantilla'}; no se guarda en la biblioteca de ejercicios."></textarea></div>`;
-function openAddPl(dia){
+// «volver»: se abrió desde «Editar» el día, y al terminar se vuelve allí.
+function openAddPl(dia, volver){
   const t = docActual(); if (!t) return;
-  edPl = { dia };
+  edPl = { dia, volver: !!volver };
   const usados = new Set(t.items.filter(i => i.dia === dia).map(i => i.exerciseId));
+  const grupos = gruposPlantilla(t, dia);
   showModal(`
     <h3>Añadir ${esPlan(t) ? 'al plan' : 'a la plantilla'} · ${esc(nombreDiaPl(t, dia))}</h3>
     ${selectorEjerciciosHTML(usados)}
+    ${panelOrdenAddHTML(grupos.map(g => g.clave ? ((db.bloques.find(b => b.id === g.bloqueId) || {}).nombre || 'Bloque') : getE(g.items[0].exerciseId).nombre))}
     ${textoLibreHTML(t)}
     <div style="margin-top:12px"><label for="acNota">Notas (opcional)</label>
       <textarea id="acNota" rows="2" placeholder="Por ejemplo: 3 series de 10 repeticiones, sin dolor. Se aplican a cada bloque o ejercicio que añadas; podrás editarlas después."></textarea></div>
     ${otrosDiasHTML(t, dia)}
     <p class="row" style="justify-content:flex-end;margin-top:16px">
-      <button class="ghost" onclick="closeModal()">Cancelar</button>
+      <button class="ghost" onclick="${volver ? `openDiaPl(${dia})` : 'closeModal()'}">Cancelar</button>
       <button class="btn" onclick="anadirPl()">Añadir</button></p>`, true);
 }
 function anadirPl(){
@@ -5781,18 +5876,20 @@ function anadirPl(){
   const { bloqueIds, exIds } = leerSeleccionModal();
   const libres = $('#acLibre').value.split('\n').map(x => x.trim()).filter(Boolean);
   if (!bloqueIds.length && !exIds.length && !libres.length){ avisar('Selecciona al menos un bloque o un ejercicio, o escribe uno.'); return; }
-  const dias = edPl.edicion || edPl.dia === 0 ? [edPl.dia] : [...document.querySelectorAll('#modal .acDia:checked')].map(c => parseInt(c.value, 10));
+  const dias = edPl.dia === 0 ? [0] : [...document.querySelectorAll('#modal .acDia:checked')].map(c => parseInt(c.value, 10));
   if (!dias.length){ avisar('Marca al menos un día.'); return; }
   const nota = $('#acNota').value.trim();
+  const ordenPanel = leerOrdenAdd(), gruposAntes = gruposPlantilla(t, edPl.dia), nuevos = {};   // nuevos[clave] = items añadidos al día abierto
   for (const dia of dias){
     const presentes = new Set(t.items.filter(i => i.dia === dia).map(i => i.exerciseId));
+    const apuntar = (k, it) => { if (dia === edPl.dia) (nuevos[k] = nuevos[k] || []).push(it); return it; };
     let orden = Math.max(0, ...t.items.filter(i => i.dia === dia).map(i => i.orden)) + 1;
     for (const bid of bloqueIds){
       const b = db.bloques.find(x => x.id === bid); if (!b) continue;
       const eids = b.ejercicios.filter(e => getE(e) && !presentes.has(e));
       if (!eids.length) continue;
       const grupo = uid();
-      for (const eid of eids){ presentes.add(eid); t.items.push({ id: uid(), dia, exerciseId: eid, bloqueId: bid, orden: orden++, nota: '', grupo, notaGrupo: nota }); }
+      for (const eid of eids){ presentes.add(eid); t.items.push(apuntar('b:' + bid, { id: uid(), dia, exerciseId: eid, bloqueId: bid, orden: orden++, nota: '', grupo, notaGrupo: nota })); }
     }
     for (const nombre of libres){
       const eid = uid();
@@ -5802,11 +5899,16 @@ function anadirPl(){
     for (const eid of exIds){
       if (presentes.has(eid)) continue;
       presentes.add(eid);
-      t.items.push({ id: uid(), dia, exerciseId: eid, bloqueId: '', orden: orden++, nota, grupo: '', notaGrupo: '' });
+      t.items.push(apuntar('e:' + eid, { id: uid(), dia, exerciseId: eid, bloqueId: '', orden: orden++, nota, grupo: '', notaGrupo: '' }));
     }
   }
+  // En el día abierto, todo queda en el orden del panel (lo escrito a mano, al final). En los demás días, lo nuevo va al final.
+  const enOrden = [], vistos = new Set();
+  for (const k of ordenPanel) for (const it of (k.startsWith('x:') ? (gruposAntes[+k.slice(2)] || { items: [] }).items : nuevos[k] || [])) if (!vistos.has(it)){ vistos.add(it); enOrden.push(it); }
+  t.items.filter(i => i.dia === edPl.dia).sort((a, b) => a.orden - b.orden).forEach(it => { if (!vistos.has(it)){ vistos.add(it); enOrden.push(it); } });
+  enOrden.forEach((it, i) => { it.orden = i + 1; });
   render();
-  if (edPl.edicion) openDiaPl(edPl.dia); else closeModal();
+  if (edPl.volver) openDiaPl(edPl.dia); else closeModal();
 }
 function itemPl(id){ const t = docActual(); return t ? [t, t.items.find(x => x.id === id)] : [null, null]; }
 function ponerNotaPl(t, it, grupo, v){
@@ -5857,7 +5959,6 @@ function openDiaPl(dia){
   const scroll = document.querySelector('#modal .mwrap > .card');
   const y = scroll ? scroll.scrollTop : 0;
   const grupos = gruposPlantilla(t, dia);
-  const usados = new Set(t.items.filter(i => i.dia === dia).map(i => i.exerciseId));
   const fila = (g, k) => {
     const gid = g.items[0].id;
     const b = g.clave && g.bloqueId ? db.bloques.find(x => x.id === g.bloqueId) : null;
@@ -5877,14 +5978,9 @@ function openDiaPl(dia){
   showModal(`
     <h3>Editar ${esPlan(t) ? 'el plan' : 'la plantilla'} · ${esc(nombreDiaPl(t, dia))}</h3>
     <div class="dc-lista">${grupos.map(fila).join('') || `<p class="muted">${dia === 0 ? 'No hay ejercicios «a elegir».' : 'Este día no tiene ejercicios.'}</p>`}</div>
-    <h4 style="margin:16px 0 0">Añadir ${dia === 0 ? 'a «A elegir»' : 'a este día'}</h4>
-    ${selectorEjerciciosHTML(usados)}
-    ${textoLibreHTML(t)}
-    <div style="margin-top:12px"><label for="acNota">Notas (opcional)</label>
-      <textarea id="acNota" rows="2" placeholder="Se aplican a cada bloque o ejercicio que añadas; podrás editarlas arriba."></textarea></div>
-    <p class="row" style="justify-content:flex-end;margin-top:16px">
-      <button class="ghost" onclick="closeModal()">Cerrar</button>
-      <button class="btn" onclick="anadirPl()">Añadir</button></p>`, true);
+    <p class="row" style="justify-content:space-between;margin-top:16px">
+      <button class="ghost" onclick="openAddPl(${dia}, true)">+ Añadir ${dia === 0 ? 'a «A elegir»' : 'a este día'}…</button>
+      <button class="ghost" onclick="closeModal()">Cerrar</button></p>`, true);
   const c = document.querySelector('#modal .mwrap > .card'); if (c) c.scrollTop = y;
 }
 function notaInlinePl(id, grupo, v){

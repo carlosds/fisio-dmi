@@ -303,6 +303,9 @@ type State struct {
 	Citas           []Cita            `json:"citas"`
 	SeriesCitas     []SerieCitas      `json:"seriesCitas"`
 	Observaciones   []Observacion     `json:"observaciones"`
+	// OrdenSesiones: orden de los ejercicios de una sesión, si se ha cambiado en ella.
+	// Clave «paciente|fecha|sesión» (sesión vacía = sin cita); valor: ids de ejercicio en orden.
+	OrdenSesiones map[string][]string `json:"ordenSesiones"`
 }
 
 // Informe registra un PDF generado para un paciente (informe o plan en casa) y dónde lo guardó el usuario.
@@ -620,7 +623,7 @@ func openDataDir(dir string) error {
 // schemaVersion es la versión del modelo de datos que entiende este ejecutable. Se guarda en la propia base de
 // datos (PRAGMA user_version). Súbela en 1 en cada versión que cambie el modelo (tablas, columnas o datos) y,
 // si el cambio no es solo añadir cosas, añade el paso correspondiente en pasosMigracion.
-const schemaVersion = 7 // 2: tabla informes (PDF generados) · 3: pautas.dias y patients.archivado · 4: planes en casa (planes, plan_items) y plantillas.notas · 5: agenda (citas, citas_series) y Google Calendar (google_eventos, google_sync) · 6: sesiones (puntuaciones.sesion en la clave, pautas.sesion, citas_series.raiz) · 7: observaciones (texto libre por sesión, bloque, ejercicio o repetición)
+const schemaVersion = 8 // 2: tabla informes (PDF generados) · 3: pautas.dias y patients.archivado · 4: planes en casa (planes, plan_items) y plantillas.notas · 5: agenda (citas, citas_series) y Google Calendar (google_eventos, google_sync) · 6: sesiones (puntuaciones.sesion en la clave, pautas.sesion, citas_series.raiz) · 7: observaciones (texto libre por sesión, bloque, ejercicio o repetición) · 8: orden_sesiones (orden de los ejercicios en cada sesión)
 
 // pasosMigracion[v] convierte los datos de la versión v a la v+1, dentro de una transacción, después de que
 // migrateDB haya añadido las tablas y columnas nuevas. Solo hacen falta para cambios que no sean aditivos
@@ -721,6 +724,15 @@ func migrateDB(d *sql.DB) error {
 			repeticion INTEGER NOT NULL DEFAULT 0,
 			texto TEXT NOT NULL,
 			PRIMARY KEY (patient_id, fecha, sesion, bloque_id, exercise_id, repeticion))`,
+		// Orden de los ejercicios en una sesión (modelo 8), cuando se cambia en ella; si no, se usa el de las pautas.
+		// sesion = '' es la sesión sin cita; sin clave foránea (las citas se reescriben en cada guardado).
+		`CREATE TABLE IF NOT EXISTS orden_sesiones (
+			patient_id TEXT NOT NULL REFERENCES patients(id) ON DELETE CASCADE,
+			fecha TEXT NOT NULL,
+			sesion TEXT NOT NULL DEFAULT '',
+			exercise_id TEXT NOT NULL REFERENCES exercises(id) ON DELETE CASCADE,
+			posicion INTEGER NOT NULL,
+			PRIMARY KEY (patient_id, fecha, sesion, exercise_id))`,
 		`CREATE TABLE IF NOT EXISTS ajustes (clave TEXT PRIMARY KEY, valor TEXT NOT NULL)`,
 		`CREATE TABLE IF NOT EXISTS bloques (id TEXT PRIMARY KEY, nombre TEXT NOT NULL)`,
 		`CREATE TABLE IF NOT EXISTS bloque_ejercicios (
@@ -1270,6 +1282,7 @@ func loadState() (State, error) {
 		Citas:           []Cita{},
 		SeriesCitas:     []SerieCitas{},
 		Observaciones:   []Observacion{},
+		OrdenSesiones:   map[string][]string{},
 	}
 	err := eachRow(`SELECT id, nombre, libre FROM exercises ORDER BY nombre COLLATE NOCASE`, func(r *sql.Rows) error {
 		var e Exercise
@@ -1349,6 +1362,18 @@ func loadState() (State, error) {
 			return err
 		}
 		st.Observaciones = append(st.Observaciones, o)
+		return nil
+	})
+	if err != nil {
+		return st, err
+	}
+	err = eachRow(`SELECT patient_id, fecha, sesion, exercise_id FROM orden_sesiones ORDER BY patient_id, fecha, sesion, posicion`, func(r *sql.Rows) error {
+		var pid, fecha, sesion, eid string
+		if err := r.Scan(&pid, &fecha, &sesion, &eid); err != nil {
+			return err
+		}
+		k := pid + "|" + fecha + "|" + sesion
+		st.OrdenSesiones[k] = append(st.OrdenSesiones[k], eid)
 		return nil
 	})
 	if err != nil {
@@ -1624,7 +1649,7 @@ func saveState(st State) error {
 	}
 	defer tx.Rollback()
 
-	for _, q := range []string{"DELETE FROM citas", "DELETE FROM citas_series", "DELETE FROM observaciones", "DELETE FROM puntuaciones", "DELETE FROM pautas", "DELETE FROM plan_casa", "DELETE FROM hitos", "DELETE FROM evaluaciones", "DELETE FROM planes_guardados_items", "DELETE FROM planes_guardados", "DELETE FROM plan_items", "DELETE FROM planes", "DELETE FROM plantilla_aplicaciones", "DELETE FROM plantilla_items", "DELETE FROM plantillas", "DELETE FROM bloque_ejercicios", "DELETE FROM bloques", "DELETE FROM informes", "DELETE FROM patients", "DELETE FROM exercises", "DELETE FROM ajustes"} {
+	for _, q := range []string{"DELETE FROM citas", "DELETE FROM citas_series", "DELETE FROM observaciones", "DELETE FROM orden_sesiones", "DELETE FROM puntuaciones", "DELETE FROM pautas", "DELETE FROM plan_casa", "DELETE FROM hitos", "DELETE FROM evaluaciones", "DELETE FROM planes_guardados_items", "DELETE FROM planes_guardados", "DELETE FROM plan_items", "DELETE FROM planes", "DELETE FROM plantilla_aplicaciones", "DELETE FROM plantilla_items", "DELETE FROM plantillas", "DELETE FROM bloque_ejercicios", "DELETE FROM bloques", "DELETE FROM informes", "DELETE FROM patients", "DELETE FROM exercises", "DELETE FROM ajustes"} {
 		if _, err := tx.Exec(q); err != nil {
 			return err
 		}
@@ -1890,6 +1915,25 @@ func saveState(st State) error {
 		}
 	}
 
+	// Orden de cada sesión: se descartan las claves mal formadas y los pacientes o ejercicios que ya no existen.
+	for k, eids := range st.OrdenSesiones {
+		parts := strings.Split(k, "|")
+		if len(parts) != 3 || parts[1] == "" || !patIDs[parts[0]] {
+			continue
+		}
+		pos := 0
+		for _, eid := range eids {
+			if !exIDs[eid] {
+				continue
+			}
+			pos++
+			if _, err := tx.Exec(`INSERT OR IGNORE INTO orden_sesiones (patient_id, fecha, sesion, exercise_id, posicion) VALUES (?, ?, ?, ?, ?)`,
+				parts[0], parts[1], parts[2], eid, pos); err != nil {
+				return err
+			}
+		}
+	}
+
 	for k, v := range st.Ajustes {
 		if _, err := tx.Exec(`INSERT OR REPLACE INTO ajustes (clave, valor) VALUES (?, ?)`, k, v); err != nil {
 			return err
@@ -2133,6 +2177,7 @@ func restoreFrom(path string) error {
 		"DELETE FROM citas",
 		"DELETE FROM citas_series",
 		"DELETE FROM observaciones",
+		"DELETE FROM orden_sesiones",
 		"DELETE FROM puntuaciones",
 		"DELETE FROM pautas",
 		"DELETE FROM plan_casa",
@@ -2368,6 +2413,14 @@ func restoreFrom(path string) error {
 		SELECT patient_id, fecha, exercise_id, %s, %s, valor FROM src.puntuaciones
 		WHERE patient_id IN (SELECT id FROM patients) AND exercise_id IN (SELECT id FROM exercises)`, sesionPu, rep)); err != nil {
 		return err
+	}
+	// Las copias anteriores al modelo 8 no tienen orden por sesión.
+	if srcTabla(tx, "orden_sesiones") {
+		if _, err := tx.Exec(`INSERT INTO orden_sesiones (patient_id, fecha, sesion, exercise_id, posicion)
+			SELECT patient_id, fecha, sesion, exercise_id, posicion FROM src.orden_sesiones
+			WHERE patient_id IN (SELECT id FROM patients) AND exercise_id IN (SELECT id FROM exercises)`); err != nil {
+			return err
+		}
 	}
 	// Las copias anteriores al modelo 7 no tienen observaciones.
 	if srcTabla(tx, "observaciones") {

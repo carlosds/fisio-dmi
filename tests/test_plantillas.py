@@ -93,7 +93,7 @@ with sync_playwright() as pw:
     page.locator('#modal').get_by_role('button', name='Añadir', exact=True).click(); page.wait_for_timeout(400)
     check(len(st()['plantillas'][0]['items']) == n_it + 2 and any(i['dia'] == 2 and i['nota'] == '10 min' for i in st()['plantillas'][0]['items']), 'añadir ejercicio y texto libre a un día de la plantilla')
     page.locator('.pc-semana .pc-dia').nth(1).get_by_role('button', name='Editar', exact=True).click(); page.wait_for_selector('#modal .dc-u')
-    check(page.locator('#modal .dc-u').count() == 2 and page.locator('#modal input[type=search]').count() == 1, 'Editar un día abre la misma ventana que en el plan en casa (2 unidades)')
+    check(page.locator('#modal .dc-u').count() == 2 and page.locator('#modal').get_by_role('button', name='+ Añadir a este día…').count() == 1, 'Editar un día abre la misma ventana que en el plan en casa (2 unidades y «+ Añadir…»)')
     page.locator('#modal .dc-u').nth(0).get_by_role('button', name='Bajar').click(); page.wait_for_timeout(300)
     page.locator('#modal .dc-u').nth(0).get_by_role('button', name='Quitar').click(); page.wait_for_timeout(300)
     check(len(st()['plantillas'][0]['items']) == n_it + 1 and page.locator('#modal').count() == 1, 'quitar de la plantilla sin cerrar la ventana')
