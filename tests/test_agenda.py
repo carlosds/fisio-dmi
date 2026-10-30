@@ -142,7 +142,7 @@ with sync_playwright() as pw:
     print('\n[11] Citas en la ficha del paciente y en la lista')
     page.evaluate("go('pacientes')"); page.wait_for_timeout(150)
     fila = page.locator('#listaPacientes .fila-pac', has_text='Otero')
-    check('Próxima sesión:' in fila.inner_text(), 'la lista de pacientes muestra su próxima cita')
+    check(fila.get_by_role('button', name='Próxima sesión:').count() == 1, 'la lista de pacientes muestra su próxima cita')
     fila.locator('a').click(); page.wait_for_timeout(150)
     check('Próxima sesión:' in page.locator('.sticky-head').inner_text(), 'la cabecera de la ficha también')
     page.get_by_role('tab', name='Sesiones').click(); page.wait_for_timeout(150)
@@ -151,7 +151,7 @@ with sync_playwright() as pw:
     check(sec.locator('.cita-fila').count() == len([c for c in citas() if c['patientId'] == 'p2']), 'muestra sus próximas citas')
     check(sec.get_by_role('button', name='Terminar…').count() == 0, 'las series no ocupan sitio encima de la lista')
     sec.locator('#verSesiones').get_by_role('button', name='↻ Se repiten (3)').click(); page.wait_for_timeout(150)
-    check(sec.get_by_role('button', name='Terminar…').count() == 3 and 'martes y viernes' in sec.inner_text(), 'en la pestaña «Se repiten», sus series (la de martes y jueves, partida en tres)')
+    check(sec.get_by_role('button', name='Terminar la serie…', include_hidden=True).count() == 3 and 'martes y viernes' in sec.inner_text(), 'en la pestaña «Se repiten», sus series (la de martes y jueves, partida en tres)')
 
     print('\n[12] Cambiar una serie desde la ficha')
     sid2 = page.evaluate("db.seriesCitas.find(x => x.patientId === 'p2' && x.dias === '25').id")
@@ -164,7 +164,8 @@ with sync_playwright() as pw:
     print('\n[13] Terminar una serie')
     n0 = len(citas())
     respuestas[:] = [None]
-    page.locator('#sec-citas .item', has_text='15:30').get_by_role('button', name='Terminar…').click(); page.wait_for_timeout(300)
+    fila = page.locator('#sec-citas .item', has_text='15:30')
+    fila.locator('.menu-mas').click(); fila.get_by_role('button', name='Terminar la serie…').click(); page.wait_for_timeout(300)
     check(any('¿Terminar esta serie?' in x for x in dialogos), 'pide confirmación')
     check(not any(c['hora'] == '15:30' for c in citas()), 'se anulan sus citas (todas eran futuras)')
     check(len(citas()) < n0 and any(c['fecha'] == d(18) for c in citas()), 'las de las otras series se quedan')

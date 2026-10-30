@@ -62,13 +62,21 @@ Todas las listas (pacientes, ejercicios, bloques, plantillas, sesiones, planes e
 
 La columna por la que está ordenada la lista lleva la flecha en color; las demás, **↕**. Cada lista recuerda su orden. Lo que no tiene dato (por ejemplo, un paciente sin próxima sesión) va siempre al final. En el **resumen**, los ejercicios se ordenan dentro de cada bloque. Los ejercicios de una sesión y de los planes en casa no se ordenan así: se colocan con ↑ ↓ (ver [Puntuar un día](#puntuar) y [Planes en casa](#plan-en-casa)).
 
+## Acciones que borran y filtros por fecha {#menus}
+
+**Menú ⋯.** Lo que borra o quita (eliminar una pauta, un bloque, una plantilla, un plan, un hito o una evaluación; anular una sesión; quitar un ejercicio de una sesión; quitar un informe de la lista…) no está a la vista: está en el botón **⋯** de su fila o de su apartado, en rojo. Así es más difícil pulsarlo sin querer. Si te equivocas, pulsa **Deshacer**.
+
+**Filtrar por fecha.** En Pautas, Sesiones, Planes en casa e Informes, los filtros **entre dos fechas**, **mes** y **año** están plegados: pulsa **Filtrar por fecha** para verlos. Si hay alguno puesto, salen abiertos y el botón dice **· activo**.
+
+**Buscar un paciente desde cualquier pantalla.** Escribe en **Buscar paciente**, en la barra de arriba (o pulsa **⌘K** en Mac, **Ctrl+K** en Windows). Con las flechas **↑ ↓** eliges y con **Intro** abres su ficha.
+
 ## Pacientes {#pacientes}
 
-La pantalla **Pacientes** muestra la lista de pacientes. En cada uno ves cuántos ejercicios tiene **hoy** y cuántos están puntuados, la fecha de su **última sesión** puntuada, hasta cuándo tiene **plan en casa**, su **próxima sesión** y su teléfono.
+La pantalla **Pacientes** muestra la lista de pacientes, uno por fila. Debajo del nombre ves cuántos ejercicios tiene **hoy** y cuántos están puntuados, hasta cuándo tiene **plan en casa** y su teléfono; en sus columnas, la fecha de su **última sesión** puntuada y su **próxima sesión**. La casilla de la cabecera marca a todos los de la lista.
 
 - **Nueva sesión**: programa una sesión para ese paciente sin salir de la lista (ver [Agenda y sesiones](#agenda)).
 - **Puntuar hoy**: abre la ventana de puntuación de hoy de ese paciente sin salir de la lista, así puedes ir puntuando a un paciente tras otro (ver [Puntuar un día](#puntuar)). Si quieres ir a su calendario, pulsa **Ver su calendario** en esa ventana. Si ya está todo puntuado, el botón dice **Ver hoy**.
-- **Buscar**: escribe en la caja de búsqueda parte del nombre, del teléfono o del email.
+- **Buscar**: escribe en la caja de búsqueda parte del nombre, del teléfono o del email. Para abrir un paciente desde otra pantalla, usa **Buscar paciente** en la barra de arriba.
 - **Última sesión** y **Próxima sesión**: púlsalas para ir a la sesión. La última abre sus puntuaciones; la próxima, la ventana de la sesión (para cambiarla o anularla).
 - **Ordenar**: pulsa **Paciente**, **Última sesión** o **Próxima sesión** en la cabecera de la lista (ver [Ordenar listas y tablas](#ordenar)).
 - **Activos / Archivados / Todos**: qué pacientes se ven. Por defecto, solo los activos.
@@ -91,7 +99,7 @@ La pantalla **Pacientes** muestra la lista de pacientes. En cada uno ves cuánto
 
 ## La ficha del paciente {#ficha}
 
-Arriba de la ficha están siempre la foto, el nombre, los días de la semana con ejercicios, su **próxima sesión** (púlsala para verla), la fecha de la primera visita, el teléfono y las observaciones, y los botones **Puntuar hoy** y **Editar datos del paciente**. Al bajar por la página, esta cabecera se hace más pequeña para dejar sitio.
+Arriba de la ficha están siempre la foto, el nombre, su **próxima sesión** (púlsala para verla), la fecha de la primera visita, el teléfono y las observaciones, y los botones **Puntuar hoy** y **Editar datos del paciente**. Al bajar por la página, esta cabecera se hace más pequeña para dejar sitio.
 
 Si el paciente está archivado, lo indica debajo del nombre, con el botón **Recuperar paciente**.
 
@@ -130,7 +138,7 @@ Pulsa **Guardar** para aplicar los cambios.
 
 **Vigentes, terminadas o todas.** Con los botones **Vigentes** (las que están en curso o empiezan más adelante), **Terminadas** y **Todas** eliges qué pautas ver; en **Todas**, las terminadas van al final. Además del buscador de bloque o ejercicio, puedes buscar las pautas que había **entre dos fechas**, en un **mes** o en un **año** (**Quitar filtros** vuelve a verlas todas).
 
-**Quitar pautas.** **Eliminar** quita una pauta; **Quitar todas las pautas** las quita todas.
+**Quitar pautas.** En el menú **⋯** de cada pauta, **Eliminar pauta…** la quita; en el **⋯** de arriba, junto a **Asignar ejercicios**, **Quitar todas las pautas…** las quita todas.
 
 > **Importante:** si un ejercicio ya tiene puntuaciones en los días que vas a quitar (por cambiar fechas, días o eliminarlo), la aplicación te avisa antes, porque esas puntuaciones se borrarían.
 
@@ -167,11 +175,11 @@ Al pulsar un día del calendario (o **Puntuar hoy**) se abre su ventana, con dos
 
 - Pulsa **0**, **1**, **2** o **3**. Pulsa el mismo número otra vez para borrar la puntuación.
 - **+ Rep.** añade otra repetición para puntuar ese ejercicio otra vez el mismo día. La **×** quita una repetición.
-- **Quitar** quita ese ejercicio solo de ese día (y de esa sesión, si hay varias); el resto sigue igual.
-- **Quitar todos los ejercicios** (arriba, junto a las pestañas) vacía ese día (o esa sesión).
+- En el **⋯** de cada ejercicio, **Quitar de esta sesión** (o **de este día**) lo quita solo de ahí; el resto sigue igual.
+- En el **⋯** de arriba, junto a las pestañas, **Quitar todos los ejercicios…** vacía ese día (o esa sesión).
 - **↑ ↓** cambian el orden: en el título de cada bloque (se mueve el bloque entero) y en cada ejercicio suelto. El orden vale solo para esa sesión de ese día; los demás días siguen igual. También se puede ordenar desde la vista **Día** del calendario.
 
-**Con el teclado** es más rápido: la fila marcada (con un borde de color) es la siguiente por puntuar.
+**Con el teclado** es más rápido (lo recuerda el **?** de la ventana): la fila marcada (con un borde de color) es la siguiente por puntuar.
 
 - Pulsa **0**, **1**, **2** o **3** en el teclado para puntuarla. Se pasa sola a la fila siguiente.
 - Las flechas **↑** y **↓** cambian de fila.
@@ -241,7 +249,7 @@ La pestaña **Plan en casa** tiene la lista de **planes en casa** del paciente: 
 - **Mes** y **año**: los planes que pasan por ese mes o ese año (o por ese mes de ese año, si eliges los dos).
 - **Quitar filtros** vuelve a mostrarlos todos.
 
-En cada fila: **Editar plan**, **Exportar a PDF** y **Eliminar**.
+En cada fila: **Editar plan**, **Exportar a PDF** y, en el **⋯**, **Eliminar plan…**.
 
 **Crear un plan.** Pulsa **Nuevo plan** (vacío) o **Usar una plantilla…** (con los ejercicios de una plantilla; ver [Plantillas](#plantillas)).
 
@@ -270,8 +278,7 @@ En las **plantillas** se añade igual.
 
 - **✎** cambia las notas de un ejercicio o de un bloque.
 - **×** quita ese ejercicio o bloque.
-- **Editar** abre el día entero para reordenar (↑ ↓), cambiar notas, quitar o añadir.
-- **Vaciar** quita todo lo de ese día.
+- **Editar** abre el día entero para reordenar (↑ ↓), cambiar notas, quitar, añadir (**+ Añadir…**) o vaciarlo (**Vaciar el día…**).
 
 **Botones de arriba:**
 
@@ -279,8 +286,7 @@ En las **plantillas** se añade igual.
 - **Exportar a PDF**: crea el PDF para la familia, con las notas, los ejercicios «a elegir» y cada día con su fecha y una casilla por ejercicio. Ver [Informes](#informes).
 - **Guardar como plantilla…**: copia el plan, sin fechas, para usarlo con otros pacientes.
 - **Duplicar**: crea otro plan igual que empieza justo cuando termina este (por ejemplo, para repetir el mismo plan el mes siguiente). Después puedes cambiarle el nombre y las fechas.
-- **Vaciar**: quita todos los ejercicios, pero conserva el plan.
-- **Eliminar plan**: borra el plan. Los PDF que ya hayas sacado no se borran.
+- En el **⋯**: **Vaciar el plan…** quita todos los ejercicios, pero conserva el plan; **Eliminar el plan…** lo borra (los PDF que ya hayas sacado no se borran).
 
 > **Consejo:** si cambias la fecha de inicio a otra semana, los ejercicios se mueven con el plan (mismo día de la semana). Si algún ejercicio queda fuera de las nuevas fechas, la aplicación te avisa antes de quitarlo.
 
@@ -318,7 +324,7 @@ En la pestaña **Progreso ▾** de la ficha hay dos apartados que funcionan igua
 Arriba ves la lista, con la más reciente primero. Para añadir una, pulsa **Nueva evaluación…** o **Nuevo hito…**, elige la **fecha**, escribe el texto, añade **fotos** si quieres y pulsa **Añadir evaluación** o **Añadir hito**. (Si todavía no hay ninguna, el formulario ya sale abierto.)
 
 - **Buscar** filtra por el texto.
-- **Editar** y **Eliminar** están en cada fila.
+- **Editar** está en cada fila, y **Eliminar** en su **⋯**.
 - Las fotos salen en miniatura en su fila. Pulsa una para verla en grande; con las flechas pasas de una a otra.
 
 ## Informes y PDF {#informes}
@@ -347,7 +353,7 @@ La aplicación crea dos tipos de PDF:
 
 - **Abrir**: lo abre con el programa de PDF del ordenador.
 - **Mostrar en la carpeta**: abre la carpeta donde está.
-- **Quitar de la lista**: lo quita de la lista, pero **no borra el archivo**.
+- **Quitar de la lista** (en el **⋯**): lo quita de la lista, pero **no borra el archivo**.
 
 Si mueves, renombras o borras un PDF fuera de la aplicación, en la lista sale «No se encuentra el archivo».
 
@@ -379,7 +385,7 @@ Al **cambiar** o **anular** una sesión que se repite, la aplicación pregunta:
 - **Próximas**, **Pasadas** o **Todas**: con estos botones eliges qué sesiones ver. Se pueden buscar **entre dos fechas**, por **mes** y por **año** (**Quitar filtros** vuelve a verlas todas).
 - Cada sesión dice si **no tiene ejercicios**, cuántos tiene **sin puntuar** o **cuántos están puntuados** (en verde, si están todos).
 - **Puntuar** abre directamente la puntuación de esa sesión, sin pasar por el calendario. Si todavía no tiene ejercicios, se abre en **Añadir ejercicios** para ponérselos ahí mismo. **Cambiar…** abre la sesión.
-- **↻ Se repiten (N)**: si tiene sesiones que se repiten cada semana, este botón muestra sus series, una por línea. **Cambiar…** cambia días, hora, duración o fecha de fin a partir del día que elijas. **Terminar…** anula las sesiones de la serie desde mañana (las anteriores se quedan). Sus sesiones salen también en **Próximas**, marcadas con ↻.
+- **↻ Se repiten (N)**: si tiene sesiones que se repiten cada semana, este botón muestra sus series, una por línea. **Cambiar…** cambia días, hora, duración o fecha de fin a partir del día que elijas. **Terminar la serie…** (en el **⋯**) anula las sesiones de la serie desde mañana (las anteriores se quedan). Sus sesiones salen también en **Próximas**, marcadas con ↻.
 - **Nueva sesión** (ya con el paciente elegido) y **Ver en la agenda**.
 
 **Horario de la agenda.** En **Ajustes → Agenda** eliges desde qué hora y hasta qué hora se ve la cuadrícula, qué días de la semana salen (un día sin marcar sale igualmente si tiene alguna sesión) y cuánto duran las sesiones nuevas.
@@ -439,7 +445,7 @@ En **Biblioteca ▾ → Bloques** están los grupos de ejercicios.
 - Si falta un ejercicio, escríbelo en **¿Falta alguno?** y pulsa **Crear y añadir**: se crea en la biblioteca y queda marcado en el bloque.
 - **Buscar** y el filtro de **nivel** ayudan a encontrar un bloque.
 - **Mostrar los ejercicios de cada bloque** enseña u oculta la lista de cada uno.
-- **Editar** y **Eliminar** están en cada bloque.
+- **Editar** está en cada bloque, y **Eliminar bloque…** en su **⋯**. Con **Mostrar los ejercicios de cada bloque**, sus ejercicios salen en columnas debajo.
 - **Exportar…** e **Importar…**: guardan los ejercicios y bloques en un archivo, o los cargan desde uno (por ejemplo, el catálogo **bloques_dmi.json**). Ver [Exportar e importar ejercicios y bloques](#exportar-importar).
 
 ## Exportar e importar ejercicios y bloques {#exportar-importar}

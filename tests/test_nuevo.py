@@ -78,7 +78,8 @@ with sync_playwright() as pw:
     page.locator('#listaHitos tr', has_text='Primera valoración').get_by_role('button', name='Editar').click()
     page.fill('#ehFecha', '2026-03-12'); page.fill('#ehNota', 'Valoración inicial corregida'); page.get_by_role('button', name='Guardar', exact=True).click(); page.wait_for_timeout(200)
     check('12 mar 2026' in page.locator('#listaHitos').inner_text() and 'corregida' in page.locator('#listaHitos').inner_text(), 'editar fecha y nota')
-    page.locator('#listaHitos tr', has_text='Segundo hito').get_by_role('button', name='Eliminar').click(); page.wait_for_timeout(200)
+    fila = page.locator('#listaHitos tr', has_text='Segundo hito')
+    fila.locator('.menu-mas').click(); fila.get_by_role('button', name='Eliminar hito…').click(); page.wait_for_timeout(200)
     check(page.locator('#listaHitos tbody tr').count() == 2, 'eliminar un hito')
     check(len(server_state()['hitos']) == 2 and server_state()['hitos'][0]['patientId'], 'los hitos llegan al servidor')
 

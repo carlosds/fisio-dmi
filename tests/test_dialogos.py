@@ -104,7 +104,7 @@ with sync_playwright() as pw:
     print('\n[6] Quitar un ejercicio de un día: ventana propia encima de la del día, teclado bloqueado y Deshacer')
     page.evaluate(f"openDay('{hoy}')"); page.wait_for_selector('#modal .ej-dia')
     n0 = page.locator('#modal .ej-dia').count()
-    page.locator('#modal').get_by_role('button', name='Quitar todos los ejercicios').click(); dlg.wait_for()
+    page.locator('#modal .botonera-dia .menu-mas').click(); page.locator('#modal').get_by_role('button', name='Quitar todos los ejercicios').click(); dlg.wait_for()
     page.keyboard.press('2'); page.wait_for_timeout(150)
     check(page.evaluate(f"Object.keys(db.puntuaciones).filter(k => k.includes('{hoy}')).length") == 0, 'con la ventana abierta, las teclas no puntúan')
     dlg.get_by_role('button', name='Aceptar').click(); page.wait_for_timeout(300)

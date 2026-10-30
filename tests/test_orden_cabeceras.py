@@ -28,7 +28,7 @@ with sync_playwright() as pw:
 
     print('\n[1] Pacientes: cabecera con tres estados')
     nombres = lambda: page.locator('#listaPacientes .fila-pac a').all_inner_texts()
-    cab = page.locator('#listaPacientes .cab-lista')
+    cab = page.locator('#listaPacientes .cab-pac')
     check(nombres() == ['Beltrán, Luis', 'Cruz, Marta', 'López Pérez, Ana'], 'por defecto, por apellidos')
     check(cab.locator('.orden-btn.on').inner_text().startswith('Paciente') and '▲' in cab.locator('.orden-btn.on').inner_text(), 'la cabecera marca la columna y el sentido')
     cab.get_by_role('button', name='Próxima sesión').click(); page.wait_for_timeout(100)
@@ -38,10 +38,10 @@ with sync_playwright() as pw:
     check(st()['ajustes'].get('orden.pacientes') == 'proxima:desc' or ev("db.ajustes['orden.pacientes']") == 'proxima:desc', 'el orden se recuerda en los ajustes')
     ev("go('ejercicios')"); ev("go('pacientes')"); page.wait_for_timeout(100)
     check(nombres() == ['López Pérez, Ana', 'Beltrán, Luis', 'Cruz, Marta'], 'al volver a la pantalla sigue el mismo orden')
-    cab = page.locator('#listaPacientes .cab-lista')
+    cab = page.locator('#listaPacientes .cab-pac')
     cab.get_by_role('button', name='Próxima sesión').click(); page.wait_for_timeout(100)
     check(nombres() == ['Beltrán, Luis', 'Cruz, Marta', 'López Pérez, Ana'] and not ev("db.ajustes['orden.pacientes']"), 'la tercera vez vuelve al orden por defecto')
-    cab = page.locator('#listaPacientes .cab-lista')
+    cab = page.locator('#listaPacientes .cab-pac')
     cab.get_by_role('button', name='Paciente').click(); page.wait_for_timeout(100)
     check(nombres() == ['López Pérez, Ana', 'Cruz, Marta', 'Beltrán, Luis'], 'en la columna por defecto, un clic la invierte')
 

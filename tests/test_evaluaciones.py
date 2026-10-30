@@ -28,7 +28,8 @@ with sync_playwright() as pw:
     page.locator('#listaEvaluaciones tbody tr').first.get_by_role('button', name='Editar').click()
     page.fill('#eevTexto', 'Flexión lumbar 60º'); page.get_by_role('button', name='Guardar', exact=True).click(); page.wait_for_timeout(300)
     check(any(e['evaluacion'] == 'Flexión lumbar 60º' for e in st()['evaluaciones']), 'editar')
-    page.locator('#listaEvaluaciones tbody tr').first.get_by_role('button', name='Eliminar').click(); page.wait_for_timeout(300)
+    fila = page.locator('#listaEvaluaciones tbody tr').first
+    fila.locator('.menu-mas').click(); fila.get_by_role('button', name='Eliminar evaluación…').click(); page.wait_for_timeout(300)
     check(len(st()['evaluaciones']) == 1, 'eliminar')
     page.get_by_role('tab', name='Progreso').click(); page.get_by_role('menuitem', name='Hitos').click(); check(page.locator('#sec-hitos').count() == 1, 'Hitos sigue funcionando')
     check(not errors, 'sin errores JS ' + str(errors))

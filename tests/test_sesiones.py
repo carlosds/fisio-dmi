@@ -82,7 +82,7 @@ with sync_playwright() as pw:
 
     print('\n[5] Quitar y añadir en una sola sesión')
     page.evaluate(f"irTab('calendario'); openDay('{hoy}', 'puntuar', '{c1}')"); page.wait_for_selector('#modal .ej-dia')
-    m.locator('.ej-dia[data-eid="e2"]').get_by_role('button', name='Quitar de esta sesión').click(); page.wait_for_timeout(300)
+    m.locator('.ej-dia[data-eid="e2"] .menu-mas').click(); m.locator('.ej-dia[data-eid="e2"]').get_by_role('button', name='Quitar de esta sesión').click(); page.wait_for_timeout(300)
     f = lambda ses, d=hoy: page.evaluate(f"exercisesSesion('p1', '{d}', '{ses}').map(i => i.exercise.id).sort().join()")
     check(f(c1) == 'e1' and f(c2) == 'e1,e2,e3', f'«Quitar» lo quita solo de esa sesión ({f(c1)} | {f(c2)})')
     manana = page.evaluate("addDays(todayIso(), 1)")

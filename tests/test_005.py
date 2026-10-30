@@ -38,7 +38,7 @@ with sync_playwright() as pw:
 
     print('\n[2] Lista de pacientes')
     fila = page.locator('#listaPacientes .fila-pac', has_text='López Pérez')
-    check('Hoy: 0 de 3 puntuados' in fila.inner_text() and 'Sin sesiones puntuadas' in fila.inner_text(), f'cada paciente muestra lo de hoy y su última sesión ({fila.inner_text()!r})')
+    check('Hoy: 0 de 3 puntuados' in fila.inner_text() and fila.locator('[title="Sin sesiones puntuadas"]').count() == 1, f'cada paciente muestra lo de hoy y su última sesión ({fila.inner_text()!r})')
     check(page.locator('#accionesPac button').all_inner_texts() == ['Nuevo paciente'], 'sin marcar a nadie solo se ve «Nuevo paciente»')
     fila.get_by_role('button', name='Puntuar hoy').click(); page.wait_for_selector('#modal #secPun .rep-fila')
     check(page.evaluate('ui.view') == 'pacientes' and page.evaluate('ui.selDay') == hoy and page.evaluate('ui.patientId') == 'p1', '«Puntuar hoy» abre la ventana de hoy sin salir de la lista')
@@ -72,10 +72,10 @@ with sync_playwright() as pw:
     page.wait_for_timeout(200)
     nombres = lambda: [t.split('\n')[0] for t in page.locator('#listaPacientes .fila-pac a').all_inner_texts()]
     check(nombres() == ['Abad Ruiz, Bea', 'López Pérez, Ana'], f'por defecto, orden por apellidos ({nombres()})')
-    page.locator('#listaPacientes .cab-lista').get_by_role('button', name='Última sesión').click(); page.wait_for_timeout(100)
+    page.locator('#listaPacientes .cab-pac').get_by_role('button', name='Última sesión').click(); page.wait_for_timeout(100)
     check(nombres()[0] == 'López Pérez, Ana', 'al pulsar la cabecera «Última sesión», los que no tienen sesión van al final')
     fila = page.locator('#listaPacientes .fila-pac', has_text='López Pérez')
-    check(f'Última sesión: {hoy_fmt}' in fila.inner_text() and 'Hoy: 2 de 3 puntuados' in fila.inner_text(), f'la fila se actualiza ({fila.inner_text()!r})')
+    check(fila.get_by_role('button', name=f'Última sesión: {hoy_fmt}').count() == 1 and 'Hoy: 2 de 3 puntuados' in fila.inner_text(), f'la fila se actualiza ({fila.inner_text()!r})')
     page.locator('#listaPacientes .fila-pac', has_text='Abad Ruiz').locator('input[type=checkbox]').check(); page.wait_for_timeout(100)
     check(page.locator('#accionesPac button').all_inner_texts() == ['Asignar ejercicios (1)', 'Informe de pautas… (1)', 'Archivar (1)', 'Eliminar (1)', 'Nuevo paciente'], 'al marcar aparecen las acciones en lote')
     page.get_by_role('button', name='Archivar (1)').click(); page.wait_for_timeout(500)

@@ -1,4 +1,4 @@
-import json, os, sys, threading
+import json, os, re, sys, threading
 from urllib.parse import urlparse, parse_qs
 from http.server import BaseHTTPRequestHandler, ThreadingHTTPServer
 INDEX = open(os.path.join(os.path.dirname(os.path.abspath(__file__)), '..', 'code', 'index.html'), encoding='utf-8').read().replace('__APP_VERSION__', 'test-1.5.0')
@@ -36,7 +36,11 @@ class H(BaseHTTPRequestHandler):
         if self.path == '/__bump': STATS['rev'] += 1; return self._send(200, '{}')
         if self.path == '/api/ajustes': return self._send(200, json.dumps({"dataDir": "/tmp/datos", "defaultDir": "/tmp/datos"}))
         if self.path == '/api/ayuda': return self._send(200, open(os.path.join(os.path.dirname(os.path.abspath(__file__)), '..', 'docs', 'AYUDA.md'), encoding='utf-8').read(), 'text/markdown; charset=utf-8')
-        if self.path == '/api/changelog': return self._send(200, json.dumps({"version": os.environ.get('MOCK_VERSION', '0.0.6'), "texto": open(os.path.join(os.path.dirname(os.path.abspath(__file__)), '..', 'docs', 'CHANGELOG.md'), encoding='utf-8').read()}))
+        if self.path == '/api/changelog':
+            # Versión anunciada: MOCK_VERSION o, si no, la primera del CHANGELOG (la que se va a entregar).
+            texto = open(os.path.join(os.path.dirname(os.path.abspath(__file__)), '..', 'docs', 'CHANGELOG.md'), encoding='utf-8').read()
+            m = re.search(r'^## (\S+)', texto, re.M)
+            return self._send(200, json.dumps({"version": os.environ.get('MOCK_VERSION', m.group(1) if m else 'dev'), "texto": texto}))
         if self.path == '/api/copias': return self._send(200, '[]')
         if self.path == '/api/copias-auto': return self._send(200, json.dumps({"error": "", "ultima": None}))
         if self.path == '/api/copiando': return self._send(200, json.dumps({"copiando": bool(STATS.get('copiando'))}))

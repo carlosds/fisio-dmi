@@ -49,11 +49,12 @@ with sync_playwright() as pw:
     ev("irTab('pautas')"); page.wait_for_selector('#verPautas')
     n = lambda: page.locator('#pautasLista > .item').count()
     check(page.locator('#verPautas button.on').inner_text().startswith('Vigentes') and n() == 2, f'por defecto, las vigentes ({n()})')
-    check(page.locator('#sec-pautas details').count() == 0, 'las terminadas ya no van en un plegable')
+    check(page.locator('#sec-pautas details:not(.filtro-fechas)').count() == 0, 'las terminadas ya no van en un plegable')
     page.locator('#verPautas').get_by_role('button', name='Terminadas (1)').click(); page.wait_for_timeout(100)
     check(n() == 1 and 'Respiración' in page.locator('#pautasLista').inner_text(), 'Terminadas: solo la de enero')
     page.locator('#verPautas').get_by_role('button', name='Todas (3)').click(); page.wait_for_timeout(100)
     check(n() == 3 and 'Terminadas (1)' in page.locator('#pautasLista').inner_text(), 'Todas: las vigentes y, debajo, las terminadas')
+    page.locator('#fpaFechas > summary').click()
     page.select_option('#fpaMes', '01'); page.select_option('#fpaAnio', '2026'); page.wait_for_timeout(100)
     check(n() == 3, 'en enero de 2026 estaban las tres (las continuas también)')
     page.fill('#fpaDesde', '2026-02-01'); page.dispatch_event('#fpaDesde', 'change'); page.select_option('#fpaMes', ''); page.select_option('#fpaAnio', ''); page.wait_for_timeout(100)
@@ -64,7 +65,7 @@ with sync_playwright() as pw:
     check(n() == 3 and ev("filtroPautas().ver") == 'todas', '«Quitar filtros» deja la botonera como estaba')
 
     print('\n[4] Informes: buscar por fecha')
-    ev("irTab('informes')"); page.wait_for_selector('#finMes')
+    ev("irTab('informes')"); page.wait_for_selector('#finFechas'); page.locator('#finFechas > summary').click()
     tit = lambda: [t.strip() for t in page.locator('#listaInformes .infItem strong').all_inner_texts()]
     page.select_option('#finMes', '03'); page.wait_for_timeout(100)
     check(tit() == ['Marzo'], 'por mes de generación')

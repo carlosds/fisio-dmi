@@ -46,7 +46,8 @@ with sync_playwright() as p:
     page.locator(f'.infItem[data-id="{inf["id"]}"]').get_by_role('button', name='Abrir').click(); page.wait_for_timeout(500)
     check(page.locator(f'.infItem[data-id="{inf["id"]}"] .infFalta').is_visible(), 'si el archivo desapareció, al abrir se marca como no encontrado')
     # quitar de la lista
-    page.locator(f'.infItem[data-id="{inf["id"]}"]').get_by_role('button', name='Quitar de la lista').click(); page.wait_for_timeout(400)
+    fila = page.locator(f'.infItem[data-id="{inf["id"]}"]')
+    fila.locator('.menu-mas').click(); fila.get_by_role('button', name='Quitar de la lista').click(); page.wait_for_timeout(400)
     check(page.evaluate('db.informes.length') == 2 and page.locator('.infItem').count() == 2, 'Quitar de la lista')
     # lote: carpeta una vez; cancelar no genera nada
     page.evaluate("db.patients.push({id:'p2',nombre:'Ana',apellidos:'Lote',fechaAlta:'2026-01-01',telefono:'',email:'',observaciones:'',foto:''}); save()")

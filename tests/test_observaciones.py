@@ -70,7 +70,7 @@ with sync_playwright() as pw:
     print('\n[6] Al anular la sesión, las observaciones pasan a «Sin sesión»')
     dialogos.clear()
     ev("irTab('citas')"); page.wait_for_selector('#sec-citas .cita-fila')
-    page.locator('#sec-citas .cita-fila').first.get_by_role('button', name='Anular').click(); page.wait_for_timeout(400)
+    page.locator('#sec-citas .cita-fila').first.locator('.menu-mas').click(); page.locator('#sec-citas .cita-fila').first.get_by_role('button', name='Anular sesión…').click(); page.wait_for_timeout(400)
     check(any('observaciones pasan' in x for x in dialogos), f'el aviso lo dice ({dialogos[-1:] })')
     o = [x for x in ev('db.observaciones') if x['patientId'] == 'p1']
     check(len(o) == 1 and o[0]['sesion'] == '' and o[0]['fecha'] == manana, 'la observación sigue, en la sesión sin cita de ese día')

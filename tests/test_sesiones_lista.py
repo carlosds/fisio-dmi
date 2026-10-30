@@ -31,13 +31,15 @@ with sync_playwright() as pw:
 
     print('\n[1] Botonera Próximas / Pasadas / Todas')
     check(sec.locator('#verSesiones button.on').inner_text().startswith('Próximas') and fechas() == [f['c'], f['d']], f'por defecto, las próximas en orden {fechas()}')
-    check(sec.locator('details').count() == 0, 'las pasadas ya no van en un plegable')
+    check(sec.locator('details:not(.filtro-fechas)').count() == 0, 'las pasadas ya no van en un plegable')
     sec.get_by_role('button', name='Pasadas (2)').click(); page.wait_for_timeout(100)
     check(fechas() == [f['b'], f['a']], f'Pasadas: de la más reciente a la más antigua {fechas()}')
     sec.get_by_role('button', name='Todas (4)').click(); page.wait_for_timeout(100)
     check(fechas() == [f['a'], f['b'], f['c'], f['d']], 'Todas: en orden de fecha')
 
     print('\n[2] Buscar por fechas, mes y año')
+    check(not page.locator('#fsDesde').is_visible(), 'los filtros de fecha empiezan plegados')
+    page.locator('#fsFechas > summary').click()
     page.fill('#fsDesde', f['b']); page.dispatch_event('#fsDesde', 'change'); page.fill('#fsHasta', f['c']); page.dispatch_event('#fsHasta', 'change'); page.wait_for_timeout(100)
     check(fechas() == [f['b'], f['c']], 'entre dos fechas')
     check(sec.locator('#fsQuitar').is_visible(), 'aparece «Quitar filtros»')

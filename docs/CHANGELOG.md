@@ -1,5 +1,35 @@
 # Novedades de la aplicación
 
+## 0.0.7 · 30 oct 2026
+
+### Novedades
+- **Observaciones de cada sesión**: al puntuar, arriba de la lista de ejercicios hay un cuadro para escribir cómo ha ido la sesión (o el día, si no tiene sesión). Se guardan solas y se ven en el calendario (en la semana, el principio del texto; en el mes, un ✎; en el día, completas), en la lista de sesiones del paciente y en el informe de pautas, en un apartado propio que se puede quitar al generarlo.
+- **Ordenar los ejercicios de cada sesión**: en la ventana del día y en la vista **Día** del calendario, ↑ ↓ en cada bloque y en cada ejercicio suelto. El orden vale solo para esa sesión; los demás días no cambian. Al **añadir** ejercicios (a una sesión, a un día del plan en casa, a «A elegir» o a una plantilla), el panel **Orden**, a la derecha de la lista, muestra lo que ya hay y lo nuevo, para colocarlo antes de añadirlo.
+- **Ordenar las listas pulsando la cabecera** de cada columna (pacientes, ejercicios, bloques, plantillas, sesiones, planes en casa, hitos, evaluaciones, informes, copias y el resumen): una vez de menor a mayor, otra al revés y otra vuelve al orden de siempre. Cada lista recuerda su orden. Sustituye a los desplegables «Ordenar por».
+- **Buscar un paciente desde cualquier pantalla**, en la barra de arriba (o con ⌘K en Mac, Ctrl+K en Windows).
+- **Lista de pacientes**: una fila por paciente, con columnas para la **última** y la **próxima sesión** (púlsalas para ir a la sesión), filtro **Con sesiones: Pasadas / Hoy / Futuras** y orden por **Próxima sesión**. La última sesión no sale si es el mismo día que la próxima.
+- **Agenda**: buscador de pacientes.
+- **Sesiones del paciente**: botones **Próximas / Pasadas / Todas** (y **↻ Se repiten**, con las sesiones que se repiten cada semana), búsqueda por fechas, mes y año, y el estado de cada sesión (sin ejercicios, sin puntuar, cuántos puntuados). **Puntuar** está en todas: si la sesión aún no tiene ejercicios, se abre para añadirlos.
+- **Pautas**: botones **Vigentes / Terminadas / Todas** y búsqueda por fechas, mes y año, además de por bloque o ejercicio.
+- **Informes de pautas con nombre**: al generarlo puedes ponerle un nombre, que sale en la lista y en el nombre del archivo. La lista de informes se puede buscar por nombre, archivo y fecha, y filtrar por fecha de generación.
+
+### Mejoras
+- En el calendario del paciente, los **días con sesión** llevan todo el borde del color de la sesión, y la barra de arriba (navegación, buscador y leyenda) se queda **fija** al bajar.
+- El **color de las sesiones** de cada paciente se elige en sus datos (**Editar datos del paciente**); en cada sesión se puede seguir cambiando.
+- **Ver ficha**, en la ventana de una sesión, abre el calendario del paciente en la semana de esa sesión.
+- Lo que **borra o quita** (eliminar, anular, vaciar, quitar de la lista…) pasa al menú **⋯** de cada fila o apartado, para no pulsarlo sin querer. «Vaciar» un día del plan está ahora dentro de **Editar** el día.
+- Los **filtros por fecha** salen plegados tras **Filtrar por fecha** (abiertos si hay alguno puesto).
+- La cabecera del paciente ya no muestra los días por semana, y los atajos de teclado de la ventana del día están en su **?**.
+- **Ejercicios** y **bloques** se ven en una sola columna; los ejercicios de cada bloque, en columnas debajo.
+- Las pautas ya no se ordenan en su pestaña: el orden se elige en cada sesión.
+- **Editar** un día del plan en casa o de una plantilla añade con **+ Añadir…**, la misma ventana con el panel de orden.
+
+### Correcciones
+- Al programar la primera sesión de un día que ya tenía ejercicios ordenados, la sesión conserva ese orden (al copiarlos o asignarlos). Al anular una sesión, su orden y sus observaciones pasan a «Sin sesión» de ese día.
+
+### Al actualizar
+- Esta versión añade a tus datos las observaciones y el orden de las sesiones. Al abrirla por primera vez se hace sola una copia de seguridad de tus datos antes de actualizarlos.
+
 ## 0.0.6 · 27 oct 2026
 
 ### Novedades

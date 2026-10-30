@@ -20,6 +20,15 @@ nav button{background:none;border:0;color:#cfe3dc;padding:6px 10px;cursor:pointe
 nav button.on{background:#ffffff22;color:#fff}
 nav .nav-salir{margin-left:8px;border:1px solid #ffffff44}
 nav{display:flex;align-items:center;flex-wrap:wrap;gap:2px}
+.buscador-pac{position:relative;flex:1 1 200px;max-width:340px}
+.buscador-pac input{background:#ffffff1a;border:1px solid #ffffff33;color:#fff;padding:7px 10px;border-radius:8px}
+.buscador-pac input::placeholder{color:#cfe3dc}
+.buscador-pac input:focus{background:#ffffff26;outline:2px solid #ffffff66;outline-offset:1px}
+.busca-res{position:absolute;top:calc(100% + 6px);left:0;min-width:100%;width:max-content;max-width:min(420px,92vw);background:var(--card);color:var(--ink);border:1px solid var(--line);border-radius:10px;box-shadow:0 8px 24px #0004;z-index:30;max-height:60vh;overflow:auto;padding:4px}
+.busca-op{display:flex;gap:10px;align-items:center;width:100%;text-align:left;background:none;border:0;padding:6px 8px;border-radius:8px;cursor:pointer;font:inherit;color:inherit}
+.busca-op .busca-txt{display:flex;flex-direction:column;min-width:0}
+.busca-op .muted{font-size:12px}
+.busca-op.on,.busca-op:hover{background:var(--field)}
 .menu-sub{position:relative;display:inline-block}
 .submenu{display:none;position:absolute;top:calc(100% + 6px);left:0;min-width:170px;flex-direction:column;gap:2px;background:var(--bar);border-radius:10px;padding:6px;box-shadow:0 8px 24px #0004;z-index:20}
 .menu-sub.abierto .submenu{display:flex}
@@ -29,6 +38,7 @@ nav{display:flex;align-items:center;flex-wrap:wrap;gap:2px}
 .menu-claro .submenu button:disabled{color:var(--muted);cursor:default}
 .menu-claro .submenu button.peligro{color:var(--danger)}
 .menu-fila{flex:none}
+.menu-mas{min-width:34px;font-weight:700;letter-spacing:1px}
 .menu-fila .submenu{left:auto;right:0;min-width:150px}
 .submenu button{text-align:left;padding:8px 12px}
 nav .submenu button:hover,nav > button:hover,nav .menu-sub > button:hover{background:#ffffff18;color:#fff}
@@ -55,8 +65,22 @@ label{display:block;font-size:14px;color:var(--muted);margin:10px 0 4px}
 #fotoAmpliada figcaption{margin-top:10px;font-size:16px}
 .avatar.empty{display:flex;align-items:center;justify-content:center;color:var(--muted);font-family:Georgia,serif}
 .muted{color:var(--muted);font-size:14px}
-.linea-ses{padding-left:18px;margin-top:2px}
-.linea-ses .enlace{font-weight:400;color:inherit;font-size:inherit}
+/* Lista de pacientes: una fila por paciente, en columnas alineadas con la cabecera (en pantallas estrechas, apiladas). */
+.item.fila-pac,.cab-pac{display:grid;grid-template-columns:20px 36px minmax(200px,1.6fr) minmax(110px,.8fr) minmax(150px,1fr) 230px;gap:12px;align-items:center}
+.item.fila-pac{padding:7px 0}
+.fila-pac .pac-nom{min-width:0}
+.fila-pac .pac-nom > a{font-weight:600;color:var(--ink)}
+.fila-pac .pac-sub{font-size:13px}
+.fila-pac .pac-ses{font-size:14px}
+.fila-pac .pac-ses .enlace{font-weight:400;color:var(--ink)}
+.fila-pac .pac-acc{display:flex;gap:6px;justify-content:flex-end}
+.cab-pac{padding:6px 0;border-bottom:1px solid var(--line);font-size:13px;color:var(--muted)}
+@media(max-width:760px){
+  .item.fila-pac,.cab-pac{grid-template-columns:20px 36px 1fr;row-gap:2px}
+  .fila-pac .pac-ses,.fila-pac .pac-acc,.cab-pac > span:nth-child(n+4){grid-column:3}
+  .fila-pac .pac-acc{justify-content:flex-start;margin-top:4px}
+  .fila-pac [data-etq]::before{content:attr(data-etq);color:var(--muted)}
+}
 .search{margin:12px 0 4px}
 .orden-btn{all:unset;cursor:pointer;font-weight:600;color:inherit;display:inline-flex;gap:4px;align-items:center;border-radius:4px}
 .orden-btn:focus-visible{outline:2px solid var(--accent);outline-offset:2px}
@@ -192,9 +216,9 @@ body:has(#modal .modal){overflow:hidden}
 .lista-sel.vertical > .bItem > button{padding:2px 10px;font-size:13px}
 .lista-sel.vertical .lista-bloque{margin:2px 0 4px 26px !important;columns:2 280px;column-gap:28px}
 .lista-sel.vertical .lista-bloque li{break-inside:avoid}
-#listaEjercicios,#listaBloques{column-width:520px;column-gap:36px}
-#listaEjercicios > .item,#listaBloques > .item{break-inside:avoid}
-#listaEjercicios > :not(.item),#listaBloques > :not(.item){column-span:all}
+/* Ejercicios y bloques en una sola columna (la cabecera de orden se lee de arriba abajo); los ejercicios de cada bloque, en columnas. */
+#listaBloques .bex{columns:3 220px;column-gap:28px}
+#listaBloques .bex li{break-inside:avoid}
 .dia-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(360px,1fr));gap:0 28px}
 p.muted{max-width:130ch}
 .mwrap .card{max-width:none}
@@ -232,8 +256,6 @@ nav .nav-tema svg{width:18px;height:18px}
 .scores button{width:40px;height:40px}
 @media(max-width:700px){.ej-dia{grid-template-columns:1fr}.ej-acc{padding-top:0}}
 kbd{font:600 12px system-ui,sans-serif;border:1px solid var(--line);border-bottom-width:2px;border-radius:4px;padding:0 4px;background:var(--field);color:var(--ink)}
-.atajos{display:inline}
-@media (hover:none){.atajos{display:none}}
 #guardado{position:fixed;left:12px;bottom:10px;z-index:30;background:var(--card);border:1px solid var(--line);color:var(--muted);font-size:13px;padding:4px 10px;border-radius:999px;opacity:0;transition:opacity .3s;pointer-events:none}
 #guardado.visible{opacity:1}
 #dialogo .dlg-fondo{position:fixed;inset:0;z-index:9000;background:#0009;display:flex;align-items:center;justify-content:center;padding:16px}
@@ -315,6 +337,13 @@ button.btn:disabled{opacity:.45;cursor:default}
 .estado-plan{font-size:12px;font-weight:600;padding:1px 8px;border-radius:10px;white-space:nowrap;margin-left:4px;border:1px solid var(--line);color:var(--muted)}
 .estado-plan.en-curso{border-color:var(--accent);color:var(--accent)}
 .estado-plan.proximo{border-color:var(--ink);color:var(--ink)}
+.filtro-fechas{margin:2px 0 8px}
+.filtro-fechas > summary{display:inline-flex;align-items:center;gap:6px;cursor:pointer;list-style:none;font-size:14px;color:var(--ink);padding:4px 10px;border:1px solid var(--line);border-radius:8px;background:var(--field)}
+.filtro-fechas > summary::-webkit-details-marker{display:none}
+.filtro-fechas > summary::before{content:'▸';font-size:11px;color:var(--muted)}
+.filtro-fechas[open] > summary::before{content:'▾'}
+.filtro-fechas .filtro-activo{color:var(--accent);font-weight:600}
+.filtro-fechas > .filtros-planes{margin:8px 0 2px}
 .filtros-planes{gap:8px;align-items:center;margin:4px 0 10px;flex-wrap:wrap}
 .filtros-planes input[type=search]{flex:2;min-width:200px}
 .filtros-planes label{display:flex;gap:6px;align-items:center;margin:0;color:var(--muted);white-space:nowrap}
@@ -435,6 +464,11 @@ button.enlace{background:none;border:0;padding:0;font:inherit;font-weight:600;co
 <body>
 <header>
   <div class="marca" id="marca"></div>
+  <div class="buscador-pac" id="buscaPac" role="search">
+    <input type="search" id="buscaPacInput" placeholder="Buscar paciente" aria-label="Buscar paciente" aria-controls="buscaPacRes" autocomplete="off"
+      oninput="buscarPacBarra(this.value)" onfocus="buscarPacBarra(this.value)" onkeydown="teclaBuscaPac(event)">
+    <div class="busca-res" id="buscaPacRes" role="listbox" aria-label="Pacientes" hidden></div>
+  </div>
   <nav>
     <button data-v="pacientes" onclick="go('pacientes')">Pacientes</button>
     <button data-v="agenda" onclick="go('agenda')">Agenda</button>
@@ -1103,6 +1137,52 @@ function toggleSubmenu(ev){
   m.classList.toggle('abierto', abierto); m.firstElementChild.setAttribute('aria-expanded', abierto);
   if (abierto) m.querySelector('.submenu button').focus();
 }
+// Buscador de pacientes de la barra superior: abre la ficha de un paciente desde cualquier pantalla.
+// ↑ ↓ eligen, Intro abre, Esc cierra; ⌘K (Mac) o Ctrl+K lo enfoca.
+let buscaSel = 0;
+function resultadosBuscaPac(v){
+  const q = norm(v).split(/\s+/).filter(Boolean); if (!q.length) return [];
+  return db.patients.filter(p => { const t = norm([p.nombre, p.apellidos, p.telefono, p.email].join(' ')); return q.every(x => t.includes(x)); })
+    .sort((a, b) => (!!a.archivado - !!b.archivado) || nombrePac(a).localeCompare(nombrePac(b), 'es')).slice(0, 8);
+}
+function buscarPacBarra(v){
+  const cont = $('#buscaPacRes'); if (!cont) return;
+  buscaSel = 0;
+  if (!v.trim()){ cont.hidden = true; cont.innerHTML = ''; return; }
+  const res = resultadosBuscaPac(v);
+  cont.innerHTML = res.length ? res.map((p, i) => { const c = proximaCita(p.id); return `<button type="button" role="option" class="busca-op${i === 0 ? ' on' : ''}" aria-selected="${i === 0}" onmousedown="event.preventDefault()" onclick="abrirDesdeBusca('${p.id}')">
+      ${avatar(p, 28)}<span class="busca-txt"><strong>${esc(nombrePac(p))}</strong>${p.archivado ? ' <span class="nivel">Archivado</span>' : ''}<span class="muted">${c ? 'Próxima sesión: ' + esc(textoProximaCita(c)) : 'Sin próximas sesiones'}</span></span></button>`; }).join('')
+    : '<p class="muted" style="margin:8px 10px">Ningún paciente coincide.</p>';
+  cont.hidden = false;
+}
+function teclaBuscaPac(e){
+  const ops = [...document.querySelectorAll('#buscaPacRes .busca-op')];
+  if (e.key === 'ArrowDown' || e.key === 'ArrowUp'){
+    if (!ops.length) return;
+    e.preventDefault();
+    buscaSel = (buscaSel + (e.key === 'ArrowDown' ? 1 : -1) + ops.length) % ops.length;
+    ops.forEach((o, i) => { o.classList.toggle('on', i === buscaSel); o.setAttribute('aria-selected', i === buscaSel); });
+    ops[buscaSel].scrollIntoView({ block: 'nearest' });
+  } else if (e.key === 'Enter' && ops[buscaSel]){ e.preventDefault(); ops[buscaSel].click(); }
+  else if (e.key === 'Escape'){ e.stopPropagation(); cerrarBuscaPac(); e.target.blur(); }
+}
+function cerrarBuscaPac(){ const c = $('#buscaPacRes'); if (c) c.hidden = true; }
+function abrirDesdeBusca(pid){
+  const i = $('#buscaPacInput'); i.value = ''; i.blur(); cerrarBuscaPac();
+  if ($('#modal') && $('#modal').innerHTML) closeModal();
+  openPatient(pid);
+}
+document.addEventListener('click', e => { if (!e.target.closest('#buscaPac')) cerrarBuscaPac(); });
+document.addEventListener('keydown', e => {
+  if ((e.metaKey || e.ctrlKey) && !e.altKey && e.key.toLowerCase() === 'k'){ const i = $('#buscaPacInput'); if (i){ e.preventDefault(); i.focus(); i.select(); } }
+});
+{ const i = document.getElementById('buscaPacInput'); if (i) i.placeholder = `Buscar paciente (${/Mac|iPhone|iPad/.test(navigator.platform) ? '⌘K' : 'Ctrl+K'})`; }
+// Menú «⋯» con las acciones poco frecuentes o que borran (estas, en rojo), para no tenerlas siempre a la vista.
+// items: [[texto, código al pulsar, peligro, desactivado, id]].
+function menuAccionesHTML(de, items){
+  return `<div class="menu-sub menu-claro menu-fila"><button type="button" class="ghost small menu-mas" aria-haspopup="true" aria-expanded="false" aria-label="Más acciones${de ? ' de ' + esc(de) : ''}" title="Más acciones" onclick="toggleSubmenu(event)">⋯</button>
+    <div class="submenu">${items.map(([t, js, peligro, off, id]) => `<button type="button"${id ? ` id="${id}"` : ''} class="${peligro ? 'peligro' : ''}" ${off ? 'disabled' : ''} onclick="cerrarSubmenu(); ${js}">${t}</button>`).join('')}</div></div>`;
+}
 function cerrarSubmenu(){
   document.querySelectorAll('.menu-sub.abierto').forEach(m => { m.classList.remove('abierto'); m.firstElementChild.setAttribute('aria-expanded', 'false'); });
 }
@@ -1148,13 +1228,10 @@ function viewPacientes(){
       <div class="row" style="align-items:center">
         <input class="search" type="search" id="buscarPac" placeholder="Buscar por nombre, teléfono o email" style="flex:1;min-width:240px;margin:8px 0"
           value="${esc(ui.qP)}" oninput="ui.qP=this.value;refrescarPacientes()">
+        <span class="row" style="gap:6px"><span class="muted">Con sesiones:</span><span id="filtroSesiones">${filtroSesionesHTML()}</span></span>
         <select id="filtroPac" style="width:auto" aria-label="Qué pacientes mostrar" onchange="ui.filtroPac=this.value; ui.selected.clear(); refrescarPacientes()">
           ${[['activos', 'Activos'], ['archivados', 'Archivados'], ['todos', 'Todos']].map(([v, t]) => `<option value="${v}" ${(ui.filtroPac || 'activos') === v ? 'selected' : ''}>${t} (${v === 'todos' ? db.patients.length : db.patients.filter(p => v === 'archivados' ? p.archivado : !p.archivado).length})</option>`).join('')}
         </select>
-      </div>
-      <div class="row" style="align-items:center;margin-bottom:6px">
-        <span class="muted">Con sesiones:</span>
-        <span id="filtroSesiones">${filtroSesionesHTML()}</span>
       </div>
       <div class="list" id="listaPacientes"></div>
     </div>`;
@@ -1185,34 +1262,41 @@ function refrescarPacientes(){
     const { total: nHoy, hechos } = cuentaDia(p.id, t);   // cada sesión de hoy cuenta aparte
     const datos = [
       nHoy ? `Hoy: <strong>${hechos} de ${nHoy}</strong> puntuados` : 'Hoy no tiene ejercicios',
-      ultima[p.id] ? '' : 'Sin sesiones puntuadas',
       hastaCasa[p.id] >= t ? `Plan en casa hasta el ${esc(fmt(hastaCasa[p.id]))}` : ''
     ].filter(Boolean).join(' · ');
-    // Última y próxima sesión, una debajo de otra. La última no sale si es el mismo día que la próxima.
     const prox = proximas[p.id], mostrarUltima = ultima[p.id] && (!prox || prox.fecha !== ultima[p.id]);
-    // La última abre su puntuación (la de su sesión, si ese día tuvo); la próxima, la ventana de la sesión.
+    // Última y próxima sesión, cada una en su columna. La última no sale si es el mismo día que la próxima; abre su
+    // puntuación (la de su sesión, si ese día tuvo). La próxima abre la ventana de la sesión.
     const citaUltima = mostrarUltima ? citasDia(p.id, ultima[p.id]).at(-1) : null;
-    const lineasSes = [
-      mostrarUltima ? `<button class="enlace" onclick="puntuarCita('${p.id}', '${ultima[p.id]}'${citaUltima ? `, '${citaUltima.id}'` : ''})" title="Ver las puntuaciones de esa sesión">Última sesión: ${esc(fmt(ultima[p.id]))}</button>` : '',
-      prox ? `<button class="enlace" onclick="openCita('${prox.id}')" title="Ver la sesión (cambiarla o anularla)">Próxima sesión: ${esc(textoProximaCita(prox))}</button>` : ''
-    ].filter(Boolean).map(l => `<div class="muted linea-ses">${l}</div>`).join('');
+    const celdaUlt = mostrarUltima
+      ? `<button class="enlace" data-etq="Última sesión: " aria-label="Última sesión: ${esc(fmt(ultima[p.id]))}" onclick="puntuarCita('${p.id}', '${ultima[p.id]}'${citaUltima ? `, '${citaUltima.id}'` : ''})" title="Ver las puntuaciones de esa sesión">${esc(fmt(ultima[p.id]))}</button>`
+      : (ultima[p.id] ? '' : '<span class="muted" title="Sin sesiones puntuadas">—</span>');
+    const celdaProx = prox
+      ? `<button class="enlace" data-etq="Próxima sesión: " aria-label="Próxima sesión: ${esc(textoProximaCita(prox))}" onclick="openCita('${prox.id}')" title="Ver la sesión (cambiarla o anularla)">${esc(textoProximaCita(prox))}</button>`
+      : '<span class="muted" title="Sin próximas sesiones">—</span>';
     return `
     <div class="item fila-pac">
       <input type="checkbox" style="width:auto" ${ui.selected.has(p.id) ? 'checked' : ''}
         onchange="toggleSel('${p.id}', this.checked)" aria-label="Seleccionar ${esc(p.nombre)}">
-      ${avatar(p)}
-      <div style="flex:1;min-width:0">
-        <a href="#" onclick="openPatient('${p.id}');return false" style="font-weight:600;color:var(--ink)">${esc(p.apellidos)}, ${esc(p.nombre)}</a>${p.archivado ? ' <span class="nivel">Archivado</span>' : ''}
-        <div class="muted">${datos}${p.telefono ? ' · ' + esc(p.telefono) : ''}</div>
-        ${lineasSes}
+      ${avatar(p, 36)}
+      <div class="pac-nom"><a href="#" onclick="openPatient('${p.id}');return false">${esc(p.apellidos)}, ${esc(p.nombre)}</a>${p.archivado ? ' <span class="nivel">Archivado</span>' : ''}
+        <div class="muted pac-sub">${datos}${p.telefono ? ' · ' + esc(p.telefono) : ''}</div></div>
+      <div class="pac-ses">${celdaUlt}</div>
+      <div class="pac-ses">${celdaProx}</div>
+      <div class="pac-acc">
+        ${nHoy && !p.archivado ? `<button class="${hechos < nHoy ? 'btn' : 'ghost'} small" onclick="puntuarHoy('${p.id}')">${hechos < nHoy ? 'Puntuar hoy' : 'Ver hoy'}</button>` : ''}
+        ${p.archivado ? '' : `<button class="ghost small" onclick="openCita(null, { patientId: '${p.id}' })" title="Programar una sesión para ${esc(p.nombre)} ${esc(p.apellidos)}">Nueva sesión</button>`}
       </div>
-      ${nHoy && !p.archivado ? `<button class="${hechos < nHoy ? 'btn' : 'ghost'} small" onclick="puntuarHoy('${p.id}')">${hechos < nHoy ? 'Puntuar hoy' : 'Ver hoy'}</button>` : ''}
-      ${p.archivado ? '' : `<button class="ghost small" onclick="openCita(null, { patientId: '${p.id}' })" title="Programar una sesión para ${esc(p.nombre)} ${esc(p.apellidos)}">Nueva sesión</button>`}
     </div>`; }).join('');
   const todosMarcados = list.length && list.every(p => ui.selected.has(p.id));
-  const cab = list.length ? `<div class="item" style="padding:6px 0"><label style="display:flex;gap:12px;align-items:center;margin:0;color:var(--muted)"><input type="checkbox" style="width:auto" ${todosMarcados ? 'checked' : ''} onchange="marcarTodosPac(this.checked)"> ${todosMarcados ? 'Quitar la selección de' : 'Seleccionar'} los ${list.length} ${list.length === 1 ? 'paciente' : 'pacientes'} ${q.length ? 'de la búsqueda' : 'de la lista'}</label></div>` : '';
-  const cabOrden = list.length ? cabListaHTML('pacientes', [['nombre', 'Paciente'], ['ultima', 'Última sesión'], ['proxima', 'Próxima sesión']], 'refrescarPacientes()') : '';
-  $('#listaPacientes').innerHTML = rows ? cab + cabOrden + rows + pag.html : (!db.patients.length
+  // Una sola fila de cabecera, con las mismas columnas que las filas: marcar todos y ordenar.
+  const textoTodos = `${todosMarcados ? 'Quitar la selección de' : 'Seleccionar'} los ${list.length} ${list.length === 1 ? 'paciente' : 'pacientes'} ${q.length ? 'de la búsqueda' : 'de la lista'}`;
+  const cab = list.length ? `<div class="cab-pac" role="group" aria-label="Cabecera de la lista">
+      <input type="checkbox" style="width:auto" ${todosMarcados ? 'checked' : ''} onchange="marcarTodosPac(this.checked)" aria-label="${textoTodos}" title="${textoTodos}"><span></span>
+      <span>${botonOrden('pacientes', 'nombre', 'Paciente', 'refrescarPacientes()')}</span>
+      <span>${botonOrden('pacientes', 'ultima', 'Última sesión', 'refrescarPacientes()')}</span>
+      <span>${botonOrden('pacientes', 'proxima', 'Próxima sesión', 'refrescarPacientes()')}</span><span></span></div>` : '';
+  $('#listaPacientes').innerHTML = rows ? cab + rows + pag.html : (!db.patients.length
     ? '<p class="muted">Aún no hay pacientes. Pulsa «Nuevo paciente» para empezar.</p>'
     : !pacientesVisibles().length
       ? `<p class="muted">${(ui.filtroPac || 'activos') === 'archivados' ? 'No hay pacientes archivados.' : 'No hay pacientes activos: todos están archivados.'}</p>`
@@ -1413,7 +1497,7 @@ function gruposPautas(p){
 }
 // Qué pautas se ven: vigentes (en curso o que empiezan más adelante), terminadas o todas; y entre qué fechas, mes y año.
 const filtroPautas = () => ui.fPautas || (ui.fPautas = { ver: 'vigentes', desde: '', hasta: '', mes: '', anio: '' });
-function cambiarFiltroPautas(k, v){ filtroPautas()[k] = v; refrescarPautas(); const b = $('#fpaQuitar'); if (b) b.hidden = !hayFiltroFechas(filtroPautas()); }
+function cambiarFiltroPautas(k, v){ filtroPautas()[k] = v; refrescarPautas(); estadoFiltroFechas('fpa', filtroPautas()); }
 function quitarFiltroPautas(){ ui.fPautas = { ver: filtroPautas().ver, desde: '', hasta: '', mes: '', anio: '' }; render(); }
 function listaPautasHTML(p){
   const { ordenados } = gruposPautas(p);
@@ -1434,8 +1518,8 @@ function panelPautas(p){
     <div class="card" id="sec-pautas">
       <div class="row" style="justify-content:space-between;align-items:center">
         <h3 class="titulo-sec" style="margin:0">Pautas <span class="muted">(${resumenPautas(grupos, pautas)})</span>${ayudaIco('pautas')}</h3>
-        <span class="row" style="gap:8px"><button class="danger" onclick="quitarTodasPautas()" ${pautas.length ? '' : 'disabled'}>Quitar todas las pautas</button>
-        <button class="btn" onclick="openAssign(['${p.id}'])">Asignar ejercicios</button></span>
+        <span class="row" style="gap:8px"><button class="btn" onclick="openAssign(['${p.id}'])">Asignar ejercicios</button>
+        ${menuAccionesHTML('las pautas', [['Quitar todas las pautas…', 'quitarTodasPautas()', true, !pautas.length]])}</span>
       </div>
       ${buscadorPacHTML('qPautas', ui.qPautas, 'ui.qPautas=this.value;refrescarPautas()')}
       ${pautas.length ? (() => {
@@ -1514,7 +1598,7 @@ function calCuerpoHTML(p){
   return `${ui.vista === 'dia' ? vistaDiaHTML(p) : (ui.vista === 'semana' ? semanaHTML(p) : calendarHTML(p))}
       ${ui.vista === 'dia' ? '' : '<p class="muted">Pulsa un día para añadir, quitar o puntuar ejercicios de ese día.</p>'}`;
 }
-// Días de la semana en curso (lunes a domingo) con algún ejercicio planificado.
+// Días de la semana en curso (lunes a domingo) con algún ejercicio planificado. Ya no sale en la cabecera de la ficha.
 function diasPorSemanaHTML(p){
   const lunes = iso(inicioSemana(new Date())), nom = ['Lun', 'Mar', 'Mié', 'Jue', 'Vie', 'Sáb', 'Dom'];
   const dias = nom.filter((_, i) => exercisesOn(p.id, addDays(lunes, i)).length);
@@ -1545,7 +1629,6 @@ function viewPaciente(){
             ${avatar(p, 64)}
             <div>
               <h2 style="margin:0">${esc(p.nombre)} ${esc(p.apellidos)}</h2>
-              <div id="diasSemana" class="det" style="font-weight:600">${esc(diasPorSemanaHTML(p))}</div>
               ${(c => c ? `<div class="det"><button class="enlace" style="font-weight:400" onclick="openCita('${c.id}')" title="Ver la sesión">Próxima sesión: ${esc(textoProximaCita(c))}</button></div>` : '')(proximaCita(p.id))}
               <div class="muted det">Primera visita: ${fmt(p.fechaAlta)}${p.telefono ? ' · ' + esc(p.telefono) : ''}${p.email ? ' · ' + esc(p.email) : ''}</div>
               ${p.observaciones ? `<div class="muted det" style="white-space:pre-wrap">${esc(p.observaciones)}</div>` : ''}
@@ -1696,7 +1779,7 @@ function filaEjercicioDia(p, s, exercise, bloque, ses = '', flechas = ''){
       <div class="ej-reps">${filas}</div>
       <div class="ej-acc">${flechas}
         <button class="ghost small" onclick="addRep('${p.id}','${s}','${exercise.id}','${ses}')" aria-label="Añadir repetición" title="Añadir otra repetición para puntuar">+ Rep.</button>
-        <button class="ghost small quitar" onclick="ui.selDay='${s}';quitarDeDia('${exercise.id}','${ses}')" aria-label="Quitar de esta sesión" title="Quitar este ejercicio solo de esta sesión de este día">Quitar</button>
+        ${menuAccionesHTML(exercise.nombre, [[ses ? 'Quitar de esta sesión' : 'Quitar de este día', `ui.selDay='${s}';quitarDeDia('${exercise.id}','${ses}')`, true]])}
       </div>
     </div>`;
 }
@@ -2184,7 +2267,7 @@ function filaPauta(k, xs, i, total, activa = true){
       </div>
       <span class="row" style="gap:6px;flex:none;align-items:center">
         <button class="ghost small" onclick="openEditarPauta('${k}')">Editar</button>
-        <button class="danger small" onclick="delPauta('${k}')">Eliminar</button>
+        ${menuAccionesHTML(titulo, [['Eliminar pauta…', `delPauta('${k}')`, true]])}
       </span>
     </div>`;
 }
@@ -2451,7 +2534,7 @@ function renderDayModal(){
       <button role="tab" aria-selected="${tab === 'puntuar'}" class="${tab === 'puntuar' ? 'on' : ''}" onclick="tabDia('puntuar')">Puntuar ejercicios (${items.length})</button>
       <button role="tab" aria-selected="${tab === 'anadir'}" class="${tab === 'anadir' ? 'on' : ''}" onclick="tabDia('anadir')">Añadir ejercicios</button>
     </div>${ayudaIco('puntuar')}
-      ${items.length ? `<button class="danger small" id="quitarTodosDia" style="margin-left:auto" onclick="quitarTodosDeDia()">Quitar todos los ejercicios${varias ? ' de esta sesión' : ''}</button>` : ''}</div>
+      ${items.length ? `<span style="margin-left:auto">${menuAccionesHTML(varias ? 'la sesión' : 'el día', [[`Quitar todos los ejercicios${varias ? ' de esta sesión' : ''}…`, 'quitarTodosDeDia()', true, false, 'quitarTodosDia']])}</span>` : ''}</div>
     ${tab === 'anadir' ? `<div id="secAdd">
       ${varias ? `<p class="muted" style="margin-top:0">Se añaden solo a esta sesión (${esc(etiquetaSesion(sesion).toLowerCase())}) de este día.</p>` : ''}
       ${hayMas ? `
@@ -2459,7 +2542,7 @@ function renderDayModal(){
         <p class="row" style="justify-content:flex-end;margin-top:10px"><button class="btn" onclick="addDayEx()">${varias ? 'Añadir a la sesión' : 'Añadir al día'}</button></p>`
       : '<p class="muted">No hay más ejercicios disponibles para añadir.</p>'}
     </div>` : `<div id="secPun">
-      ${items.length ? `<p class="muted" style="margin-top:0">${progresoDia(p.id, s, items, ses)} · Pulsa el mismo número otra vez para borrar la puntuación. <span class="atajos">Teclado: <kbd>0</kbd>–<kbd>3</kbd> puntúan la fila marcada y pasan a la siguiente; <kbd>↑</kbd> <kbd>↓</kbd> para moverte; <kbd>+</kbd> añade una repetición.</span></p>` : ''}
+      ${items.length ? `<p class="muted" style="margin-top:0">${progresoDia(p.id, s, items, ses)} · Pulsa el mismo número otra vez para borrar la puntuación (atajos de teclado en el «?»).</p>` : ''}
       <div>${items.length ? filasDia(p, s, '', ses) : `<p class="muted">No hay ejercicios asignados para ${varias ? 'esta sesión' : 'este día'}.${hayMas ? ' Añádelos desde la pestaña «Añadir ejercicios».' : ''}</p>`}</div>
     </div>`}
 
@@ -2893,7 +2976,7 @@ function refrescarBloques(){
         <div class="muted">${b.ejercicios.length} ejercicio${b.ejercicios.length === 1 ? '' : 's'}</div>
         ${detalle && b.ejercicios.length ? `<ol class="bex">${b.ejercicios.map(id => getE(id)).filter(Boolean).map(e => `<li>${esc(nombreEnBloque(e.nombre, b) || e.nombre)}</li>`).join('')}</ol>` : ''}</div>
       <button class="ghost small" onclick="openBloque('${b.id}')">Editar</button>
-      <button class="danger small" onclick="delBloque('${b.id}')">Eliminar</button>
+      ${menuAccionesHTML(b.nombre, [['Eliminar bloque…', `delBloque('${b.id}')`, true]])}
     </div>`).join('');
   const cuenta = db.bloques.length && lista.length !== db.bloques.length ? `<p class="muted">Mostrando ${lista.length} de ${db.bloques.length} bloques.</p>` : '';
   const cab = cabListaHTML('bloques', [['nombre', 'Bloque'], ['nivel', 'Nivel'], ['ejercicios', 'Ejercicios']], 'refrescarBloques()');
@@ -3796,7 +3879,7 @@ function cambiarFiltroSes(k, v){ filtroSes()[k] = v; refrescarSesionesPac(); }
 function seriesPacHTML(p, series){
   const ps = paginar('sesionesSeries', series, 'render()', p.id);
   return ps.items.map(s => `<div class="item serie-fila"><div style="flex:1;min-width:0"><span aria-hidden="true">↻</span> ${esc(textoSerie(s))} <span class="muted">· ${esc(periodoSerie(s))}${s.nota ? ' · ' + esc(s.nota) : ''}</span></div>
-      <button class="ghost small" onclick="openSerie('${s.id}')">Cambiar…</button><button class="danger small" onclick="anularSerie('${s.id}')">Terminar…</button></div>`).join('') + ps.html
+      <button class="ghost small" onclick="openSerie('${s.id}')">Cambiar…</button>${menuAccionesHTML('la serie', [['Terminar la serie…', `anularSerie('${s.id}')`, true]])}</div>`).join('') + ps.html
     + '<p class="muted" style="margin-top:6px">Sus sesiones están también en Próximas, marcadas con ↻.</p>';
 }
 function listaSesionesPacHTML(p){
@@ -3813,7 +3896,7 @@ function listaSesionesPacHTML(p){
 function refrescarSesionesPac(){
   const p = getP(ui.patientId), c = $('#listaSesiones'); if (!p || !c) return;
   c.innerHTML = listaSesionesPacHTML(p);
-  const f = filtroSes(), b = $('#fsQuitar'); if (b) b.hidden = !hayFiltroFechas(f);
+  estadoFiltroFechas('fs', filtroSes());
 }
 // Estado de una sesión: sin ejercicios, con ejercicios (previstos o sin puntuar), a medias o puntuada del todo.
 function estadoSesion(p, c){
@@ -3832,7 +3915,7 @@ function filaSesionHTML(p, c){
       <span class="ses-estado ${e.clase}">${e.texto}</span>
       <button class="${e.total && e.hechos < e.total && c.fecha <= todayIso() ? 'btn' : 'ghost'} small" onclick="puntuarCita('${p.id}', '${c.fecha}', '${c.id}')" title="${e.total ? `Puntuar los ${e.total} ejercicios de esta sesión` : 'Esta sesión no tiene ejercicios: se abre para añadirlos'}">Puntuar</button>
       <button class="ghost small" onclick="openCita('${c.id}')">Cambiar…</button>
-      <button class="danger small" onclick="anularCita('${c.id}')" title="Anular esta sesión">Anular</button></div>`;
+      ${menuAccionesHTML('la sesión del ' + fechaCita(c.fecha), [['Anular sesión…', `anularCita('${c.id}')`, true]])}</div>`;
 }
 // Al cambiar el color de un paciente (en sus datos) se ofrece aplicarlo también a sus próximas sesiones
 // (las que tenían el color anterior; las que se cambiaron a otro color a mano se respetan).
@@ -4873,7 +4956,7 @@ function informesGeneradosHTML(p){
 }
 // Filtro por fecha de generación (entre dos fechas, mes y año).
 const filtroInf = () => ui.fInf || (ui.fInf = { desde: '', hasta: '', mes: '', anio: '' });
-function cambiarFiltroInf(k, v){ filtroInf()[k] = v; refrescarListaInformes(); const b = $('#finQuitar'); if (b) b.hidden = !hayFiltroFechas(filtroInf()); }
+function cambiarFiltroInf(k, v){ filtroInf()[k] = v; refrescarListaInformes(); estadoFiltroFechas('fin', filtroInf()); }
 const fechaGenerado = x => { const d = new Date(x.fecha); return isNaN(d) ? '' : iso(d); };   // día local
 // Fecha de generación en los formatos en que se suele buscar («28/10/2026», «28 oct 2026», «2026-10-28»…).
 const fechaGeneradoTexto = x => { const d = new Date(x.fecha); return isNaN(d) ? '' : [d.toLocaleDateString('es-ES'), fmt(iso(d)), iso(d), d.toLocaleDateString('es-ES', { day: 'numeric', month: 'long', year: 'numeric' })].join(' '); };
@@ -4897,7 +4980,7 @@ function listaInformesHTML(p){
       <div class="row">
         <button class="btn small infAbrir" ${ex[x.id] === false ? 'disabled' : ''} onclick="abrirInforme('${x.id}')">Abrir</button>
         <button class="ghost small infCarpeta" ${ex[x.id] === false ? 'disabled' : ''} onclick="abrirInforme('${x.id}', 'carpeta')">Mostrar en la carpeta</button>
-        <button class="danger small" title="Quita el PDF de esta lista (el archivo no se borra)" onclick="quitarInforme('${x.id}')">Quitar de la lista</button>
+        ${menuAccionesHTML(x.descripcion || x.nombre, [['Quitar de la lista…', `quitarInforme('${x.id}')`, true]])}
       </div></div>`;
   const cab = cabListaHTML('informes', [['titulo', 'Informe'], ['tipo', 'Tipo'], ['periodo', 'Periodo'], ['generado', 'Generado']], 'refrescarListaInformes()');
   return lista.length ? (pag => cab + pag.items.map(fila).join('') + pag.html)(paginar('informes', lista, 'render()', [p.id, f, q.join(' '), JSON.stringify(filtroInf())].join('|'))) : `<p class="muted">${todos.length ? (q.length || hayFiltroFechas(filtroInf()) ? 'Ningún PDF coincide con la búsqueda.' : 'No hay PDF de este tipo.') : 'Todavía no se ha generado ningún PDF para este paciente. Los informes de pautas y los planes en casa que exportes aparecerán aquí.'}</p>`;
@@ -5052,7 +5135,7 @@ function refrescarHitos(){
   const pag = paginar('hitos', lista, 'refrescarHitos()', ui.patientId + '|' + ui.qH);
   cont.innerHTML = `<table class="tabla-h"><thead><tr>${thOrden('hitos', 'fecha', 'Fecha', 'refrescarHitos()', 'style="width:160px"')}${thOrden('hitos', 'nota', 'Notas', 'refrescarHitos()')}<th style="width:100px">Fotos</th><th style="width:170px"></th></tr></thead><tbody>${
     pag.items.map(h => `<tr><td>${fmt(h.fecha)}</td><td class="nota">${esc(h.nota)}</td><td>${fotosCeldaHTML('hitos', h)}</td>
-      <td><span class="row" style="gap:6px;justify-content:flex-end"><button class="ghost small" onclick="openHito('${h.id}')">Editar</button><button class="danger small" onclick="delHito('${h.id}')">Eliminar</button></span></td></tr>`).join('')
+      <td><span class="row" style="gap:6px;justify-content:flex-end"><button class="ghost small" onclick="openHito('${h.id}')">Editar</button>${menuAccionesHTML('el hito del ' + fmt(h.fecha), [['Eliminar hito…', `delHito('${h.id}')`, true]])}</span></td></tr>`).join('')
   }</tbody></table>${pag.html}`;
 }
 function addHito(){
@@ -5129,7 +5212,7 @@ function refrescarEvaluaciones(){
   const pag = paginar('evaluaciones', lista, 'refrescarEvaluaciones()', ui.patientId + '|' + ui.qEv);
   cont.innerHTML = `<table class="tabla-h"><thead><tr>${thOrden('evaluaciones', 'fecha', 'Fecha', 'refrescarEvaluaciones()', 'style="width:160px"')}${thOrden('evaluaciones', 'evaluacion', 'Evaluación', 'refrescarEvaluaciones()')}<th style="width:100px">Fotos</th><th style="width:170px"></th></tr></thead><tbody>${
     pag.items.map(h => `<tr><td>${fmt(h.fecha)}</td><td class="nota">${esc(h.evaluacion)}</td><td>${fotosCeldaHTML('evaluaciones', h)}</td>
-      <td><span class="row" style="gap:6px;justify-content:flex-end"><button class="ghost small" onclick="openEvaluacion('${h.id}')">Editar</button><button class="danger small" onclick="delEvaluacion('${h.id}')">Eliminar</button></span></td></tr>`).join('')
+      <td><span class="row" style="gap:6px;justify-content:flex-end"><button class="ghost small" onclick="openEvaluacion('${h.id}')">Editar</button>${menuAccionesHTML('la evaluación del ' + fmt(h.fecha), [['Eliminar evaluación…', `delEvaluacion('${h.id}')`, true]])}</span></td></tr>`).join('')
   }</tbody></table>${pag.html}`;
 }
 function addEvaluacion(){
@@ -5303,22 +5386,31 @@ function coincideFechas(ini, fin, f){
   }
   return true;
 }
-// Fila de filtros por fecha. «cambiar» es una función (campo, valor); «quitar», el código del botón «Quitar filtros».
+// Filtros por fecha, plegados tras «Filtrar por fecha» (abiertos si hay alguno puesto o si se abrieron antes en esa
+// lista). «cambiar» es una función (campo, valor); «quitar», el código del botón «Quitar filtros».
 function filtroFechasHTML(id, f, cambiar, anios, quitar){
-  return `<div class="row filtros-planes" role="search" aria-label="Buscar por fecha">
+  const activo = hayFiltroFechas(f), abierto = activo || (ui.fechasAbiertas || {})[id];
+  return `<details class="filtro-fechas" id="${id}Fechas" ${abierto ? 'open' : ''} ontoggle="(ui.fechasAbiertas = ui.fechasAbiertas || {})['${id}'] = this.open">
+    <summary>Filtrar por fecha<span class="filtro-activo" ${activo ? '' : 'hidden'}>· activo</span></summary>
+    <div class="row filtros-planes" role="search" aria-label="Buscar por fecha">
       <label>Entre <input type="date" id="${id}Desde" value="${f.desde}" onchange="${cambiar}('desde', this.value)"></label>
       <label>y <input type="date" id="${id}Hasta" value="${f.hasta}" onchange="${cambiar}('hasta', this.value)"></label>
       <select id="${id}Mes" aria-label="Mes" onchange="${cambiar}('mes', this.value)"><option value="">Cualquier mes</option>${MESES_NOM.map((m, i) => { const v = String(i + 1).padStart(2, '0'); return `<option value="${v}" ${f.mes === v ? 'selected' : ''}>${m}</option>`; }).join('')}</select>
       <select id="${id}Anio" aria-label="Año" onchange="${cambiar}('anio', this.value)"><option value="">Cualquier año</option>${anios.map(y => `<option ${f.anio === String(y) ? 'selected' : ''}>${y}</option>`).join('')}</select>
-      <button class="ghost small" id="${id}Quitar" onclick="${quitar}" ${hayFiltroFechas(f) ? '' : 'hidden'}>Quitar filtros</button>
-    </div>`;
+      <button class="ghost small" id="${id}Quitar" onclick="${quitar}" ${activo ? '' : 'hidden'}>Quitar filtros</button>
+    </div></details>`;
+}
+// Tras cambiar un filtro de fecha: muestra u oculta «Quitar filtros» y la marca «activo».
+function estadoFiltroFechas(id, f){
+  const b = $('#' + id + 'Quitar'), a = document.querySelector('#' + id + 'Fechas .filtro-activo');
+  if (b) b.hidden = !hayFiltroFechas(f);
+  if (a) a.hidden = !hayFiltroFechas(f);
 }
 const filtroPlanes = () => ui.fPlanes || (ui.fPlanes = { q: '', desde: '', hasta: '', mes: '', anio: '' });
 function planesListaHTML(p){
   const lista = planesDe(p.id), f = filtroPlanes();
   const anios = new Set();
   lista.forEach(x => { for (let y = +x.inicio.slice(0, 4); y <= +(x.fin || x.inicio).slice(0, 4); y++) anios.add(y); });
-  const hayFiltro = f.q || f.desde || f.hasta || f.mes || f.anio;
   return `
     <div class="row" style="justify-content:space-between;align-items:center">
       <h3 class="titulo-sec" style="margin:0">Planes en casa <span class="muted">(${lista.length})</span>${ayudaIco('plan-en-casa')}</h3>
@@ -5329,14 +5421,8 @@ function planesListaHTML(p){
     </div>
     ${msgCasaHTML()}
     <p class="muted" style="margin:6px 0 10px">Ejercicios para hacer en casa, con sus fechas y notas. No se puntúan ni cambian las pautas de la clínica.</p>
-    ${lista.length ? `<div class="row filtros-planes" role="search" aria-label="Buscar planes">
-      <input type="search" id="fpQ" placeholder="Buscar por nombre del plan" value="${esc(f.q)}" oninput="filtroPlanes().q=this.value;refrescarPlanes()">
-      <label>Entre <input type="date" id="fpDesde" value="${f.desde}" onchange="filtroPlanes().desde=this.value;refrescarPlanes()"></label>
-      <label>y <input type="date" id="fpHasta" value="${f.hasta}" onchange="filtroPlanes().hasta=this.value;refrescarPlanes()"></label>
-      <select id="fpMes" aria-label="Mes" onchange="filtroPlanes().mes=this.value;refrescarPlanes()"><option value="">Cualquier mes</option>${MESES_NOM.map((m, i) => { const v = String(i + 1).padStart(2, '0'); return `<option value="${v}" ${f.mes === v ? 'selected' : ''}>${m}</option>`; }).join('')}</select>
-      <select id="fpAnio" aria-label="Año" onchange="filtroPlanes().anio=this.value;refrescarPlanes()"><option value="">Cualquier año</option>${[...anios].sort().map(y => `<option ${f.anio === String(y) ? 'selected' : ''}>${y}</option>`).join('')}</select>
-      <button class="ghost small" id="fpQuitar" onclick="quitarFiltroPlanes()" ${hayFiltro ? '' : 'hidden'}>Quitar filtros</button>
-    </div>` : ''}
+    ${lista.length ? `<input type="search" id="fpQ" class="search" style="margin:4px 0 6px" placeholder="Buscar por nombre del plan" value="${esc(f.q)}" oninput="filtroPlanes().q=this.value;refrescarPlanes()">
+      ${filtroFechasHTML('fp', f, 'cambiarFiltroPlanes', [...anios].sort(), 'quitarFiltroPlanes()')}` : ''}
     <div id="listaPlanes">${tablaPlanesHTML(p)}</div>`;
 }
 // Un plan coincide si su nombre contiene las palabras buscadas y sus fechas (inicio – fin) tocan el intervalo, el mes y el año elegidos.
@@ -5376,7 +5462,7 @@ function tablaPlanesHTML(p){
       <td class="acc"><span class="acc-plan">
         <button class="ghost small" onclick="abrirPlanCasa('${pl.id}')">Editar plan</button>
         <button class="ghost small" onclick="exportarPlan('${p.id}', '${pl.id}')" ${hay && !exportandoPlan ? '' : 'disabled'}>Exportar a PDF</button>
-        <button class="danger small" onclick="delPlanCasa('${pl.id}')">Eliminar</button></span></td></tr>`;
+        ${menuAccionesHTML(pl.nombre, [['Eliminar plan…', `delPlanCasa('${pl.id}')`, true]])}</span></td></tr>`;
   }).join('');
   const th = (c, t) => thOrden('planes', c, t, 'refrescarPlanes()');
   return `<table class="tabla-planes"><thead><tr>${th('nombre', 'Plan')}${th('inicio', 'Empieza')}${th('fin', 'Termina')}${th('duracion', 'Duración')}<th>Contenido</th><th><span class="sr">Acciones</span></th></tr></thead><tbody>${filas}</tbody></table>${pag.html}`;
@@ -5384,9 +5470,10 @@ function tablaPlanesHTML(p){
 function refrescarPlanes(){
   const p = getP(ui.patientId), c = $('#listaPlanes'); if (!p || !c) return;
   c.innerHTML = tablaPlanesHTML(p);
-  const f = filtroPlanes(), b = $('#fpQuitar'); if (b) b.hidden = !(f.q || f.desde || f.hasta || f.mes || f.anio);
+  estadoFiltroFechas('fp', filtroPlanes());
 }
-function quitarFiltroPlanes(){ ui.fPlanes = null; render(); }
+function quitarFiltroPlanes(){ ui.fPlanes = { ...filtroPlanes(), desde: '', hasta: '', mes: '', anio: '' }; render(); }
+function cambiarFiltroPlanes(k, v){ filtroPlanes()[k] = v; refrescarPlanes(); }
 function abrirPlanCasa(id){ ui.planCasaId = id; ui.qCasa = ''; ui.casaExpMsg = null; render(); window.scrollTo(0, 0); }
 function cerrarPlanCasa(){ ui.planCasaId = null; ui.casaExpMsg = null; render(); window.scrollTo(0, 0); }
 function nuevoPlanCasa(pid){
@@ -5407,8 +5494,7 @@ function planEditorHTML(p, pl){
         <button class="ghost" onclick="exportarPlan('${p.id}', '${pl.id}')" ${hay && !exportandoPlan ? '' : 'disabled'} title="Crea el PDF del plan para el paciente o la familia">Exportar a PDF</button>
         <button class="ghost" onclick="openGuardarPlantilla()" ${hay ? '' : 'disabled'} title="Copia este plan como plantilla, sin fechas, para usarlo con otros pacientes">Guardar como plantilla…</button>
         <button class="ghost" onclick="duplicarPlanCasa('${pl.id}')" title="Crea otro plan igual que empieza cuando termina este">Duplicar</button>
-        <button class="danger" onclick="vaciarPlanCasa('${pl.id}')" ${hay ? '' : 'disabled'} title="Quita todos los ejercicios del plan">Vaciar</button>
-        <button class="danger" onclick="delPlanCasa('${pl.id}')">Eliminar plan</button>
+        ${menuAccionesHTML('el plan', [['Vaciar el plan…', `vaciarPlanCasa('${pl.id}')`, true, !hay], ['Eliminar el plan…', `delPlanCasa('${pl.id}')`, true]])}
       </div>
     </div>
     ${msgCasaHTML()}
@@ -5702,7 +5788,7 @@ function refrescarPlantillas(){
   const filas = pag.items.map(t => filaPlantillaHTML(t, `<button class="ghost small" onclick="openAplicarPlantilla('', '${t.id}')" ${t.items.some(i => getE(i.exerciseId)) ? '' : 'disabled title="La plantilla está vacía: añádele ejercicios con «Editar»"'}>Usar con pacientes…</button>
       <button class="ghost small" onclick="openPacientesPlantilla('${t.id}')" title="Pacientes con un plan en curso creado con esta plantilla">Pacientes (${pacientesDePlantilla(t)})</button>
       <button class="ghost small" onclick="verPlantilla('${t.id}')" title="Cambiar el nombre, la duración, las notas y los ejercicios de cada día">Editar</button>
-      <button class="danger small" onclick="delPlantilla('${t.id}')">Eliminar</button>`)).join('');
+      ${menuAccionesHTML(t.nombre, [['Eliminar plantilla…', `delPlantilla('${t.id}')`, true]])}`)).join('');
   const cab = cabListaHTML('plantillas', [['nombre', 'Plantilla'], ['duracion', 'Duración'], ['creada', 'Creada'], ['pacientes', 'Pacientes']], 'refrescarPlantillas()');
   el.innerHTML = filas ? cab + filas + pag.html : db.plantillas.length
     ? '<p id="plNada" class="muted">Ninguna plantilla coincide con la búsqueda.</p>' : '<p class="muted">Todavía no hay plantillas.</p>';
@@ -5848,7 +5934,6 @@ function diaDocHTML(t, dia){
     ${cuerpo || `<div class="muted" style="font-size:13px">${todos.length ? 'Sin coincidencias' : vacio}</div>`}
     <div class="row" style="gap:6px;margin-top:auto;flex-wrap:nowrap">
       <button class="ghost small pc-add" style="margin-top:0;flex:1;width:auto" onclick="openAddPl(${dia})" title="Añadir bloques o ejercicios">+ Añadir</button>
-      ${todos.length ? `<button class="danger small" onclick="vaciarDiaPl(${dia})" title="Quitar todos los ejercicios">Vaciar</button>` : ''}
     </div>
   </div>`;
 }
@@ -5964,6 +6049,7 @@ async function vaciarDiaPl(dia){
   const t = docActual(); if (!t) return;
   if (!await preguntar(dia === 0 ? '¿Quitar todos los ejercicios «a elegir»?' : `¿Vaciar el ${nombreDiaPl(t, dia).toLowerCase()}? Se quitarán todos los bloques y ejercicios de ese día.`)) return;
   t.items = t.items.filter(x => x.dia !== dia);
+  if ($('#modal .dc-lista')) closeModal();   // desde «Editar» el día: ya no queda nada que editar
   render();
   ofrecerDeshacer(antes, dia === 0 ? '«A elegir» vaciado' : 'Día vaciado');
 }
@@ -5994,7 +6080,8 @@ function openDiaPl(dia){
     <h3>Editar ${esPlan(t) ? 'el plan' : 'la plantilla'} · ${esc(nombreDiaPl(t, dia))}</h3>
     <div class="dc-lista">${grupos.map(fila).join('') || `<p class="muted">${dia === 0 ? 'No hay ejercicios «a elegir».' : 'Este día no tiene ejercicios.'}</p>`}</div>
     <p class="row" style="justify-content:space-between;margin-top:16px">
-      <button class="ghost" onclick="openAddPl(${dia}, true)">+ Añadir ${dia === 0 ? 'a «A elegir»' : 'a este día'}…</button>
+      <span class="row"><button class="ghost" onclick="openAddPl(${dia}, true)">+ Añadir ${dia === 0 ? 'a «A elegir»' : 'a este día'}…</button>
+      ${grupos.length ? `<button class="danger" onclick="vaciarDiaPl(${dia})">${dia === 0 ? 'Vaciar «A elegir»…' : 'Vaciar el día…'}</button>` : ''}</span>
       <button class="ghost" onclick="closeModal()">Cerrar</button></p>`, true);
   const c = document.querySelector('#modal .mwrap > .card'); if (c) c.scrollTop = y;
 }

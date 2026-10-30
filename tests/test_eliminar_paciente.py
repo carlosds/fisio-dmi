@@ -44,7 +44,7 @@ with sync_playwright() as pw:
     check(page.locator('#accionesPac').get_by_role('button', name=re.compile('^Eliminar')).count() == 0, 'sin selección, «Eliminar» no aparece')
     nb = len(st()['patients'])
     page.fill('#buscarPac', 'Zeta'); page.wait_for_timeout(200)
-    page.locator('#listaPacientes .item').first.locator('input[type=checkbox]').check(); page.wait_for_timeout(200)
+    page.locator('#listaPacientes .cab-pac input[type=checkbox]').check(); page.wait_for_timeout(200)
     check(page.get_by_role('button', name='Eliminar (3)').count() == 1, 'la casilla de arriba selecciona los 3 pacientes de la búsqueda')
     resp[0] = False
     page.get_by_role('button', name=re.compile(r'^Eliminar \(')).click(); page.wait_for_timeout(300)
