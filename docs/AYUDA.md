@@ -195,6 +195,8 @@ Al pulsar un día del calendario (o **Puntuar hoy**) se abre su ventana, con dos
 
 Si anulas una sesión con observaciones, no se pierden: pasan a «Sin sesión» de ese día, como sus puntuaciones.
 
+**Observaciones de cada bloque y de cada ejercicio.** Si las activas en **Ajustes → Personalizar → Observaciones al puntuar**, cada bloque (en su título) y cada ejercicio llevan un **✎**: púlsalo para escribir una observación solo de ese bloque o ejercicio en esa sesión. Las que tienen texto se ven siempre y su ✎ sale marcado. También se escriben en la vista **Día** del calendario y salen en el informe de pautas, debajo de las de la sesión, con el nombre del bloque o del ejercicio. En los mismos ajustes puedes ocultar el cuadro de observaciones de la sesión. Ocultar un tipo de observación no borra lo escrito: vuelve a verse al activarlo.
+
 ## Sesiones: ejercicios y puntuaciones de cada sesión {#sesiones}
 
 Cada **sesión** tiene sus propios ejercicios y sus propias puntuaciones. Si un día el paciente no tiene sesión programada, sus ejercicios se puntúan igual, en **Sin sesión**. Así, si un paciente viene dos veces el mismo día, cada visita tiene su puntuación, aunque haga los mismos bloques.
@@ -331,7 +333,7 @@ Arriba ves la lista, con la más reciente primero. Para añadir una, pulsa **Nue
 
 La aplicación crea dos tipos de PDF:
 
-- **Informe de pautas**: los ejercicios de las pautas y sus puntuaciones en un periodo. Lleva arriba los datos de tu clínica, un **resumen por ejercicio** (días previstos, puntuados y media), una gráfica de la evolución y, si marcas **Incluir el detalle de cada día**, una tabla día a día. Si marcas **Incluir las observaciones de las sesiones** (marcado de entrada), lleva también las observaciones que escribiste al puntuar en ese periodo. No incluye teléfono, email ni las observaciones de la ficha del paciente.
+- **Informe de pautas**: los ejercicios de las pautas y sus puntuaciones en un periodo. Lleva arriba los datos de tu clínica, un **resumen por ejercicio** (días previstos, puntuados y media), y, según lo que marques en **Incluir**: **la gráfica de la evolución** de la puntuación media, **el detalle de cada día** (una tabla día a día) y **las observaciones** que escribiste al puntuar en ese periodo. Lo que sale marcado de entrada se elige en **Ajustes → Personalizar → Informe de pautas** (al principio, todo). No incluye teléfono, email ni las observaciones de la ficha del paciente.
 - **Plan en casa**: el plan para la familia, con la cabecera de tu clínica, el nombre y las fechas del plan, sus notas, los ejercicios «a elegir», cada día con una casilla por ejercicio y tu firma.
 
 **Dónde se crean:**
@@ -371,7 +373,7 @@ En **Agenda** (menú de arriba) están las sesiones de todos los pacientes en un
 
 **Colores.** Cada sesión puede tener un color (los mismos que Google Calendar, así se ven igual allí). En los datos del paciente (**Editar datos del paciente**) eliges el **color de sus sesiones**: es el que llevan por defecto las sesiones nuevas de ese paciente. Al cambiarlo, la aplicación pregunta si cambiar también sus próximas sesiones o solo las nuevas. En la ventana de cada sesión (y de cada serie) se puede poner otro color.
 
-**Huecos ocupados.** Al elegir día y hora, la ventana avisa si ese hueco ya está ocupado por otra sesión (o por algo de tu Google Calendar, si está conectado, ver [Google Calendar](#google-calendar)). Puedes programarla igualmente: la aplicación te lo pregunta antes.
+**Huecos ocupados.** Al elegir día y hora, la ventana avisa si ese hueco ya está ocupado por otra sesión (o por algo de tu Google Calendar, si lo has elegido y está conectado, ver [Google Calendar](#google-calendar)). Puedes programarla igualmente: la aplicación te lo pregunta antes.
 
 **Sesiones que se repiten cada semana.** En una sesión nueva, marca **Se repite cada semana**, elige los días de la semana y hasta qué fecha (o **Sin fecha de fin**). La aplicación programa de una vez todas esas sesiones y te dice cuántas son y si alguna se solapa. Las sesiones sin fecha de fin se crean para los próximos 6 meses y se van añadiendo solas.
 
@@ -394,7 +396,9 @@ Al **cambiar** o **anular** una sesión que se repite, la aplicación pregunta:
 
 ## Google Calendar {#google-calendar}
 
-La agenda se puede sincronizar con tu **Google Calendar**, en los dos sentidos:
+**Calendario de otra aplicación.** En **Ajustes → Agenda → Calendario de otra aplicación** eliges con qué calendario se sincroniza la agenda: **Ninguno** (solo la agenda de esta aplicación) o **Google Calendar**. Más adelante se podrán añadir otras aplicaciones. Con **Ninguno**, la agenda no dice nada de Google; si Google ya estaba conectado, se queda conectado pero en pausa hasta que lo vuelvas a elegir.
+
+Si eliges **Google Calendar**, la agenda se sincroniza con tu calendario de Google, en los dos sentidos:
 
 - **De la aplicación a Google**: las sesiones se copian en un calendario nuevo de tu cuenta llamado **Fisioterapia · sesiones** (lo crea la aplicación). Cada sesión que programes, cambies o anules aquí cambia allí al poco tiempo, con su color. Así las ves también en el móvil.
 - **De Google a la aplicación**: si en Google Calendar mueves o borras una de esas sesiones, también cambia en la aplicación (sale un aviso con **Deshacer**). Si la misma sesión se ha cambiado en los dos sitios a la vez, se queda la versión de la aplicación.
@@ -470,13 +474,16 @@ Si la carpeta de datos **ya tiene ejercicios o bloques**, el resumen lo avisa y 
 
 ## Ajustes {#ajustes}
 
-**Ajustes** tiene cinco pestañas: **Personalizar**, **Agenda** (horario de la agenda y Google Calendar, ver [Agenda](#agenda) y [Google Calendar](#google-calendar)), **Copias de seguridad**, **Datos** y **Novedades**.
+**Ajustes** tiene cinco pestañas: **Personalizar**, **Agenda** (horario de la agenda y calendario de otra aplicación, ver [Agenda](#agenda) y [Google Calendar](#google-calendar)), **Copias de seguridad**, **Datos** y **Novedades**.
 
 En **Personalizar**:
 
 - **Nombre de la clínica**, **profesional responsable** y **nº de colegiado**: salen en la barra de arriba y en la cabecera de los PDF (informes de pautas y planes en casa).
 - **Logo**: sale en la cabecera de los PDF. La **firma** (en PNG; mejor con fondo transparente) sale en los PDF del plan en casa.
 - **Pestañas de la ficha del paciente**: ordénalas con ↑ ↓. La ficha de cada paciente se abre en la primera. **Volver al orden de siempre** deja Pautas · Sesiones · Calendario · Plan en casa · Progreso · Informes.
+- **Filtros por defecto**: cómo salen las listas al abrirlas: qué **pacientes** se ven (activos, archivados o todos) y **con qué sesiones** (pasadas, hoy, futuras o ninguno, para verlos todos), las **pautas** (vigentes, terminadas o todas) y las **sesiones** (próximas, pasadas o todas) de la ficha del paciente, y el **nivel de los bloques**. Las de pacientes y bloques se aplican al abrir la aplicación; las de pautas y sesiones, cada vez que abres una ficha. Los filtros por fecha empiezan siempre sin poner.
+- **Observaciones al puntuar**: qué cuadros de observaciones se ven: de la sesión, de cada bloque o de cada ejercicio. Ver [Puntuar un día](#puntuar).
+- **Informe de pautas**: qué casillas salen marcadas al generar un informe (la gráfica, el detalle de cada día y las observaciones).
 - **Modo de visualización**: claro u oscuro. También se cambia con el botón de la luna o el sol de la barra de arriba.
 
 ## Copias de seguridad {#copias}

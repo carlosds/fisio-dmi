@@ -12,6 +12,10 @@
 - **Sesiones del paciente**: botones **Próximas / Pasadas / Todas** (y **↻ Se repiten**, con las sesiones que se repiten cada semana), búsqueda por fechas, mes y año, y el estado de cada sesión (sin ejercicios, sin puntuar, cuántos puntuados). **Puntuar** está en todas: si la sesión aún no tiene ejercicios, se abre para añadirlos.
 - **Pautas**: botones **Vigentes / Terminadas / Todas** y búsqueda por fechas, mes y año, además de por bloque o ejercicio.
 - **Ordenar las pestañas de la ficha del paciente** en **Ajustes → Personalizar** (↑ ↓). La ficha se abre en la primera. El orden por defecto pasa a ser **Pautas · Sesiones · Calendario · Plan en casa · Progreso · Informes**.
+- **Observaciones de cada bloque y de cada ejercicio** al puntuar (un ✎ en cada uno), además de las de la sesión. Qué observaciones se ven se elige en **Ajustes → Personalizar**; las de bloques y ejercicios salen también en el informe de pautas.
+- **Filtros por defecto** en **Ajustes → Personalizar**: cómo salen al abrirse las listas de pacientes (activos, archivados o todos, y con qué sesiones), las pautas y las sesiones del paciente y los bloques (por nivel).
+- **Informe de pautas**: la gráfica de la evolución pasa a ser opcional (**Incluir la gráfica**) y lo que sale marcado al generarlo (gráfica, detalle de cada día, observaciones) se elige en **Ajustes → Personalizar**.
+- **Calendario de otra aplicación**, en **Ajustes → Agenda**: eliges con qué calendario se sincroniza la agenda (**Ninguno** o **Google Calendar**), preparado para añadir otras aplicaciones más adelante. Con **Ninguno**, la agenda no muestra nada de Google.
 - **Informes de pautas con nombre**: al generarlo puedes ponerle un nombre, que sale en la lista y en el nombre del archivo. La lista de informes se puede buscar por nombre, archivo y fecha, y filtrar por fecha de generación.
 
 ### Mejoras

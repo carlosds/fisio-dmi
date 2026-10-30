@@ -1,4 +1,5 @@
-// Sincronización de la agenda con Google Calendar (desde la 0.0.5).
+// Sincronización de la agenda con Google Calendar (desde la 0.0.5). Es una de las integraciones de calendario
+// (calendarios.go): rutas bajo /api/google/ y el mismo resultado de sincronización que todas.
 //
 // Conexión: OAuth 2.0 para aplicaciones de escritorio. El usuario crea una vez un «ID de cliente» (tipo «App de
 // escritorio») en Google Cloud y lo pega en Ajustes › Agenda; después pulsa «Conectar con Google», inicia sesión en
@@ -69,30 +70,6 @@ type googleConfig struct {
 	ClientSecret string `json:"clientSecret"`
 	RefreshToken string `json:"refreshToken,omitempty"`
 	Cuenta       string `json:"cuenta,omitempty"`
-}
-
-// Hueco ocupado en otro calendario de Google, en hora local («2026-10-27T17:00»).
-type ocupado struct {
-	Inicio string `json:"inicio"`
-	Fin    string `json:"fin"`
-}
-
-// Cambio hecho en Google que la página tiene que aplicar a una cita.
-type cambioGoogle struct {
-	CitaID   string `json:"citaId"`
-	Accion   string `json:"accion"` // «mover» o «anular»
-	Fecha    string `json:"fecha,omitempty"`
-	Hora     string `json:"hora,omitempty"`
-	Duracion int    `json:"duracion,omitempty"`
-}
-
-type resultadoSync struct {
-	Cambios    []cambioGoogle `json:"cambios"`
-	Ocupados   []ocupado      `json:"ocupados"`
-	Subidas    int            `json:"subidas"`
-	Borradas   int            `json:"borradas"`
-	Pendientes int            `json:"pendientes"`
-	Hora       time.Time      `json:"hora"`
 }
 
 type ultimoSync struct {
@@ -697,7 +674,7 @@ func sincronizarGoogle() (*resultadoSync, error) {
 	if err != nil {
 		return nil, err
 	}
-	res := &resultadoSync{Cambios: []cambioGoogle{}, Ocupados: []ocupado{}, Hora: time.Now()}
+	res := &resultadoSync{Cambios: []cambioCalendario{}, Ocupados: []ocupado{}, Hora: time.Now()}
 	inicio := time.Now()
 	errSync := d.pasada(res)
 	// Lo hecho se guarda aunque la pasada se haya quedado a medias (para no duplicar eventos la próxima vez).
@@ -939,7 +916,7 @@ func (d *datosSync) cambioRemoto(e eventoGoogle, res *resultadoSync, saltar map[
 	if e.Status == "cancelled" {
 		delete(d.mapa, id)
 		if !cambiadaAqui {
-			res.Cambios = append(res.Cambios, cambioGoogle{CitaID: id, Accion: "anular"})
+			res.Cambios = append(res.Cambios, cambioCalendario{CitaID: id, Accion: "anular"})
 			saltar[id] = true
 		}
 		return // si se había cambiado aquí, se vuelve a crear
@@ -951,8 +928,19 @@ func (d *datosSync) cambioRemoto(e eventoGoogle, res *resultadoSync, saltar map[
 	c.Fecha, c.Hora, c.Duracion = fe, ho, du
 	d.citas[id] = c
 	d.mapa[id] = mapeoGoogle{EventID: m.EventID, Firma: d.firma(c), Remoto: claveRemota(fe, ho, du)}
-	res.Cambios = append(res.Cambios, cambioGoogle{CitaID: id, Accion: "mover", Fecha: fe, Hora: ho, Duracion: du})
+	res.Cambios = append(res.Cambios, cambioCalendario{CitaID: id, Accion: "mover", Fecha: fe, Hora: ho, Duracion: du})
 	saltar[id] = true
+}
+
+// rutasGoogle registra las rutas de la integración con Google Calendar (ver integracionesCalendario).
+func rutasGoogle(mux *http.ServeMux) {
+	mux.HandleFunc("GET /api/google/estado", handleGoogleEstado)
+	mux.HandleFunc("POST /api/google/credenciales", handleGoogleCredenciales)
+	mux.HandleFunc("GET /api/google/conectar", handleGoogleConectar)
+	mux.HandleFunc("POST /api/google/activar", handleGoogleActivar)
+	mux.HandleFunc("POST /api/google/desconectar", handleGoogleDesconectar)
+	mux.HandleFunc("POST /api/google/sincronizar", handleGoogleSincronizar)
+	mux.HandleFunc("/api/google/calendarios", handleGoogleCalendarios)
 }
 
 func handleGoogleSincronizar(w http.ResponseWriter, r *http.Request) {

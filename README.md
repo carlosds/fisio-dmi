@@ -6,7 +6,7 @@ Aplicación local (sin internet obligatorio) para gestionar pacientes, pautas de
 
 | Carpeta | Contenido |
 |---|---|
-| `code/` | La aplicación: `main.go`, `google.go`, `index.html`, `pdf-lib.min.js` y las pruebas Go |
+| `code/` | La aplicación: `main.go`, `calendarios.go` (integraciones de calendario), `google.go`, `index.html`, `pdf-lib.min.js` y las pruebas Go |
 | `docs/` | `CHANGELOG.md`, `AYUDA.md` (manual de la usuaria), `DOCUMENTACION.md` (técnica), `ANALISIS_UX.md` (análisis de usabilidad y propuestas pendientes), `ACTUALIZAR.txt` y `embed.go` |
 | `internal/` | Catálogo de bloques `bloques_dmi.json` |
 | `scripts/` | `build.sh` y los lanzadores de doble clic (`Fisioterapia.command`, `Fisioterapia.bat`) |

@@ -199,7 +199,7 @@ func nuevosDatos(citas ...Cita) *datosSync {
 
 func pasar(t *testing.T, d *datosSync) *resultadoSync {
 	t.Helper()
-	res := &resultadoSync{Cambios: []cambioGoogle{}, Ocupados: []ocupado{}}
+	res := &resultadoSync{Cambios: []cambioCalendario{}, Ocupados: []ocupado{}}
 	if err := d.pasada(res); err != nil {
 		t.Fatal(err)
 	}
@@ -258,7 +258,7 @@ func TestGoogleSincronizacion(t *testing.T) {
 	// 4. Cambio en Google → se devuelve para aplicarlo en la aplicación, sin volver a subirlo.
 	g.moverEnGoogle(d.mapa["c2"].EventID, pasado+" 12:30", 60)
 	res = pasar(t, d)
-	if len(res.Cambios) != 1 || res.Cambios[0] != (cambioGoogle{CitaID: "c2", Accion: "mover", Fecha: pasado, Hora: "12:30", Duracion: 60}) {
+	if len(res.Cambios) != 1 || res.Cambios[0] != (cambioCalendario{CitaID: "c2", Accion: "mover", Fecha: pasado, Hora: "12:30", Duracion: 60}) {
 		t.Fatalf("cambio remoto: %+v", res.Cambios)
 	}
 	if res.Subidas != 0 {

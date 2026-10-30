@@ -380,13 +380,7 @@ func main() {
 	mux.HandleFunc("POST /api/informes/abrir", handleAbrirInforme)
 	mux.HandleFunc("GET /api/informes/existen", handleInformesExisten)
 	mux.HandleFunc("POST /api/salir", handleSalir)
-	mux.HandleFunc("GET /api/google/estado", handleGoogleEstado)
-	mux.HandleFunc("POST /api/google/credenciales", handleGoogleCredenciales)
-	mux.HandleFunc("GET /api/google/conectar", handleGoogleConectar)
-	mux.HandleFunc("POST /api/google/activar", handleGoogleActivar)
-	mux.HandleFunc("POST /api/google/desconectar", handleGoogleDesconectar)
-	mux.HandleFunc("POST /api/google/sincronizar", handleGoogleSincronizar)
-	mux.HandleFunc("/api/google/calendarios", handleGoogleCalendarios)
+	registrarCalendarios(mux)
 
 	ln, err := net.Listen("tcp", addr)
 	if err != nil {

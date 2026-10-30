@@ -295,6 +295,7 @@ button.btn:disabled{opacity:.45;cursor:default}
 .grp-titulo{font-weight:700;font-size:16px;margin-bottom:4px;display:flex;align-items:center;gap:8px;flex-wrap:wrap}
 .ord-ses{display:inline-flex;gap:4px}
 .grp-titulo .ord-ses{margin-left:auto}
+.filtros-def{display:grid;gap:8px;max-width:640px}.fd-fila{display:flex;align-items:center;gap:10px;flex-wrap:wrap}.fd-fila > :first-child{min-width:200px;margin:0;color:var(--ink);font-size:15px}
 .orden-pestanas{max-width:420px;border:1px solid var(--line);border-radius:8px}
 .orden-pestanas .ord{display:flex;justify-content:space-between;align-items:center;gap:8px;padding:4px 8px;border-bottom:1px solid var(--line)}
 .orden-pestanas .ord:last-child{border-bottom:0}
@@ -447,6 +448,9 @@ button.enlace{background:none;border:0;padding:0;font:inherit;font-weight:600;co
 .guia-google{line-height:1.6;padding-left:22px}.guia-google li{margin:4px 0}
 .cita-fila{padding:6px 0}
 .obs-sesion{margin:0 0 12px}
+.obs-btn.on{color:var(--accent);border-color:var(--accent)}
+textarea.obs-mini{grid-column:1/-1;margin:4px 0 2px;font-size:14px;min-height:34px;resize:vertical;width:100%;max-width:640px}
+.grp-dia > textarea.obs-mini{margin:0 0 6px}
 .obs-sesion label{margin-top:0}
 .obs-dia{margin-top:4px;font-size:12px;color:var(--muted);font-style:italic;white-space:pre-line;display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical;overflow:hidden}
 .obs-marca{font-size:12px;color:var(--muted);margin-left:auto}
@@ -502,7 +506,7 @@ document.querySelectorAll('.vtn').forEach(e => e.textContent = nombreVentana());
 
 let db = normalize({});
 let loaded = false;
-let ui = { view: 'pacientes', patientId: null, tabP: 'pautas', planCasaId: null, fecha: new Date(), vista: 'mes', selDay: null, diaTab: 'puntuar', selected: new Set(), qP: '', qE: '', qB: '', qH: '', qEv: '', planActivo: {}, pag: {}, nivelB: '', res: { vista: 'mes', modo: 'lista', fecha: new Date(), desde: iso(firstOfMonth(new Date())), hasta: todayIso() } };
+let ui = { view: 'pacientes', patientId: null, tabP: 'pautas', planCasaId: null, fecha: new Date(), vista: 'mes', selDay: null, diaTab: 'puntuar', selected: new Set(), qP: '', qE: '', qB: '', qH: '', qEv: '', planActivo: {}, pag: {}, res: { vista: 'mes', modo: 'lista', fecha: new Date(), desde: iso(firstOfMonth(new Date())), hasta: todayIso() } };
 let pendingPhoto;   // undefined = sin cambios; '' = quitar; dataURL = nueva
 let assignIds = [];
 
@@ -525,7 +529,13 @@ const byName = (a, b) => a.nombre.localeCompare(b.nombre, 'es');
 const scoreKey = (pid, day, eid, rep = 1, ses = '') => `${pid}|${day}|${eid}|${rep}` + (ses ? '|' + ses : '');
 // Observaciones (texto libre) al puntuar. Cada una es de un paciente, un día y una sesión ('' = sin sesión) y, si se
 // indica, de un bloque, un ejercicio y una repetición; sin ellos (vacíos y repetición 0) es de toda la sesión.
-// El modelo admite los cuatro niveles; de momento la interfaz solo usa las de sesión.
+// El modelo admite los cuatro niveles; la interfaz usa los de sesión, bloque ({ bloqueId }) y ejercicio ({ exerciseId },
+// sin bloque: así no se pierde si el ejercicio cambia de bloque). Qué niveles se ven se elige en Ajustes › Personalizar
+// (ajustes «obs.sesion», «obs.bloque», «obs.ejercicio»: '1' o '0'; por defecto, solo la de sesión). Ocultar un nivel
+// no borra lo escrito.
+const NIVELES_OBS = [['sesion', 'De la sesión (o del día, si no tiene sesión)', '1'], ['bloque', 'De cada bloque', '0'], ['ejercicio', 'De cada ejercicio', '0']];
+const verObs = nivel => (db.ajustes['obs.' + nivel] ?? NIVELES_OBS.find(n => n[0] === nivel)[2]) === '1';
+const nivelObs = o => o.exerciseId ? 'ejercicio' : o.bloqueId ? 'bloque' : 'sesion';
 const AMBITO_SESION = { bloqueId: '', exerciseId: '', repeticion: 0 };
 const mismoAmbito = (o, a) => (o.bloqueId || '') === (a.bloqueId || '') && (o.exerciseId || '') === (a.exerciseId || '') && (o.repeticion || 0) === (a.repeticion || 0);
 const buscarObs = (pid, day, ses = '', ambito = AMBITO_SESION) => db.observaciones.find(o => o.patientId === pid && o.fecha === day && o.sesion === ses && mismoAmbito(o, ambito));
@@ -539,6 +549,7 @@ function ponerObs(pid, day, ses, texto, ambito = AMBITO_SESION){
 }
 // Observaciones de sesión de un día, en el orden de sus sesiones (la «sin sesión» primero).
 function obsSesionesDia(pid, day){
+  if (!verObs('sesion')) return [];
   return db.observaciones.filter(o => o.patientId === pid && o.fecha === day && mismoAmbito(o, AMBITO_SESION) && o.texto.trim())
     .map(o => ({ o, cita: o.sesion ? getCita(o.sesion) : null }))
     .sort((a, b) => (a.cita ? a.cita.hora : '').localeCompare(b.cita ? b.cita.hora : ''));
@@ -828,11 +839,12 @@ function subirALista(clave){
 // Se llama tras cargar los datos (al arrancar, restaurar o cambiar de carpeta).
 function postCarga(){
   aplicarTema();
-  // Google Calendar: estado de la carpeta de datos abierta y, si está activado, sincronizar.
+  // Calendario de otra aplicación (hoy, Google Calendar): estado de la carpeta de datos abierta y, si está elegido y
+  // conectado, sincronizar.
   cargarEstadoGoogle().then(() => {
     gSync.firma = firmaCitasGoogle();
     if (googleActivo()) sincronizarGoogle(false);
-    if (ui.view === 'ajustes' && ui.ajTab === 'agenda') pintarGoogleAjustes();
+    if (ui.view === 'ajustes' && ui.ajTab === 'agenda') render();   // el selector de calendario depende del estado
   });
 }
 function aplicarTema(){
@@ -1233,7 +1245,7 @@ function viewPacientes(){
           value="${esc(ui.qP)}" oninput="ui.qP=this.value;refrescarPacientes()">
         <span class="row" style="gap:6px"><span class="muted">Con sesiones:</span><span id="filtroSesiones">${filtroSesionesHTML()}</span></span>
         <select id="filtroPac" style="width:auto" aria-label="Qué pacientes mostrar" onchange="ui.filtroPac=this.value; ui.selected.clear(); refrescarPacientes()">
-          ${[['activos', 'Activos'], ['archivados', 'Archivados'], ['todos', 'Todos']].map(([v, t]) => `<option value="${v}" ${(ui.filtroPac || 'activos') === v ? 'selected' : ''}>${t} (${v === 'todos' ? db.patients.length : db.patients.filter(p => v === 'archivados' ? p.archivado : !p.archivado).length})</option>`).join('')}
+          ${[['activos', 'Activos'], ['archivados', 'Archivados'], ['todos', 'Todos']].map(([v, t]) => `<option value="${v}" ${filtroPacActual() === v ? 'selected' : ''}>${t} (${v === 'todos' ? db.patients.length : db.patients.filter(p => v === 'archivados' ? p.archivado : !p.archivado).length})</option>`).join('')}
         </select>
       </div>
       <div class="list" id="listaPacientes"></div>
@@ -1246,11 +1258,11 @@ function refrescarPacientes(){
     <span class="muted">${n} ${n === 1 ? 'marcado' : 'marcados'}:</span>
     <button class="ghost" onclick="openAssign([...ui.selected])">Asignar ejercicios (${n})</button>
     <button class="ghost" onclick="openExportar([...ui.selected])">Informe de pautas… (${n})</button>
-    <button class="ghost" onclick="archivarPacientes([...ui.selected], ${(ui.filtroPac || 'activos') !== 'archivados'})">${(ui.filtroPac || 'activos') === 'archivados' ? 'Recuperar' : 'Archivar'} (${n})</button>
+    <button class="ghost" onclick="archivarPacientes([...ui.selected], ${filtroPacActual() !== 'archivados'})">${filtroPacActual() === 'archivados' ? 'Recuperar' : 'Archivar'} (${n})</button>
     <button class="danger" onclick="delPacientes([...ui.selected])" title="Elimina a los pacientes marcados y todos sus datos">Eliminar (${n})</button>` : '') + `
     <button class="btn" onclick="openPatientForm()">Nuevo paciente</button>`;
   const q = norm(ui.qP).split(/\s+/).filter(Boolean);
-  const t = todayIso(), tipos = tiposSesionPac(), sesFiltro = ui.filtroSes || [];
+  const t = todayIso(), tipos = tiposSesionPac(), sesFiltro = filtroSesPac();
   $('#filtroSesiones').innerHTML = filtroSesionesHTML();
   const ultima = ultimasSesiones(), hastaCasa = finPlanesCasa(), proximas = {};
   for (const c of [...db.citas].sort(ordenCita)) if (c.fecha >= t && !proximas[c.patientId] && (c.fecha > t || minDe(c.hora) + c.duracion >= new Date().getHours() * 60 + new Date().getMinutes())) proximas[c.patientId] = c;
@@ -1302,7 +1314,7 @@ function refrescarPacientes(){
   $('#listaPacientes').innerHTML = rows ? cab + rows + pag.html : (!db.patients.length
     ? '<p class="muted">Aún no hay pacientes. Pulsa «Nuevo paciente» para empezar.</p>'
     : !pacientesVisibles().length
-      ? `<p class="muted">${(ui.filtroPac || 'activos') === 'archivados' ? 'No hay pacientes archivados.' : 'No hay pacientes activos: todos están archivados.'}</p>`
+      ? `<p class="muted">${filtroPacActual() === 'archivados' ? 'No hay pacientes archivados.' : 'No hay pacientes activos: todos están archivados.'}</p>`
       : '<p class="muted">Ningún paciente coincide con la búsqueda.</p>');
 }
 // Último día con alguna puntuación (hasta hoy) de cada paciente.
@@ -1315,20 +1327,31 @@ function ultimasSesiones(){
   }
   return m;
 }
+const SESIONES_FILTRO = [['pasada', 'Pasadas'], ['hoy', 'Hoy'], ['futura', 'Futuras']];
+// Valor por defecto de los filtros (no los de fecha), elegido en Ajustes › Personalizar (ajustes «filtro.<lista>»).
+// Se aplica al abrir la aplicación (pacientes y bloques) y al abrir cada ficha (pautas y sesiones).
+const FILTROS_DEF = [
+  ['pacientes', 'Pacientes que se ven', 'activos', [['activos', 'Activos'], ['archivados', 'Archivados'], ['todos', 'Todos']]],
+  ['pacSesiones', 'Pacientes con sesiones', '', SESIONES_FILTRO, true],
+  ['pautas', 'Pautas del paciente', 'vigentes', [['vigentes', 'Vigentes'], ['terminadas', 'Terminadas'], ['todas', 'Todas']]],
+  ['sesiones', 'Sesiones del paciente', 'proximas', [['proximas', 'Próximas'], ['pasadas', 'Pasadas'], ['todas', 'Todas']]],
+  ['bloques', 'Nivel de los bloques', '', null]];
+const defFiltro = k => db.ajustes['filtro.' + k] ?? FILTROS_DEF.find(f => f[0] === k)[2];
+const filtroPacActual = () => ui.filtroPac || defFiltro('pacientes');
+const filtroSesPac = () => ui.filtroSes || (ui.filtroSes = defFiltro('pacSesiones').split(',').filter(Boolean));
 // Pacientes de la lista según el filtro de archivados (activos por defecto).
 function pacientesVisibles(){
-  const f = ui.filtroPac || 'activos';
+  const f = filtroPacActual();
   return db.patients.filter(p => f === 'todos' || (f === 'archivados' ? p.archivado : !p.archivado));
 }
 // Filtro por fechas de sesión: un paciente sale si tiene alguna sesión del tipo marcado (varios tipos suman).
-const SESIONES_FILTRO = [['pasada', 'Pasadas'], ['hoy', 'Hoy'], ['futura', 'Futuras']];
 function filtroSesionesHTML(){
-  const sel = ui.filtroSes || [];
+  const sel = filtroSesPac();
   return `<div class="tabs" role="group" aria-label="Pacientes con sesiones">${SESIONES_FILTRO.map(([k, t]) =>
     `<button class="${sel.includes(k) ? 'on' : ''}" aria-pressed="${sel.includes(k)}" onclick="toggleFiltroSes('${k}')">${t}</button>`).join('')}</div>`;
 }
 function toggleFiltroSes(k){
-  const sel = ui.filtroSes || [];
+  const sel = filtroSesPac();
   ui.filtroSes = sel.includes(k) ? sel.filter(x => x !== k) : [...sel, k];
   ui.selected.clear(); refrescarPacientes();
 }
@@ -1491,6 +1514,33 @@ function moverPestana(k, dir){
   setAjuste('ordenPestanas', ks.join() === TABS_PAC.map(t => t[0]).join() ? '' : ks.join());
   render();
 }
+// Ajustes › Personalizar › Filtros por defecto.
+function filtrosDefHTML(){
+  const opciones = (k, ops) => ops.map(([v, t]) => `<option value="${esc(v)}" ${defFiltro(k) === v ? 'selected' : ''}>${esc(t)}</option>`).join('');
+  return `<div class="filtros-def">${FILTROS_DEF.map(([k, t, , ops, varios]) => {
+    if (varios){
+      const sel = defFiltro(k).split(',');
+      return `<div class="fd-fila"><span>${t}</span><span class="tabs" role="group" aria-label="${t}">${ops.map(([v, n]) =>
+        `<button class="${sel.includes(v) ? 'on' : ''}" aria-pressed="${sel.includes(v)}" onclick="cambiarFiltroDefVarios('${k}', '${v}')">${n}</button>`).join('')}</span><span class="muted">${sel.filter(Boolean).length ? '' : 'Ninguno: todos los pacientes'}</span></div>`;
+    }
+    const lista = ops || [['', 'Todos los niveles'], ...nivelesExistentes().map(n => [n, 'Nivel ' + n]), ['__sin', 'Sin nivel']];
+    return `<div class="fd-fila"><label for="fDef-${k}">${t}</label><select id="fDef-${k}" style="width:auto" onchange="cambiarFiltroDef('${k}', this.value)">${opciones(k, lista)}</select></div>`;
+  }).join('')}</div>`;
+}
+// Cambiar el valor por defecto también cambia el filtro de la lista abierta ahora (para verlo enseguida).
+function cambiarFiltroDef(k, v){
+  setAjuste('filtro.' + k, v);
+  if (k === 'pacientes') ui.filtroPac = null;
+  else if (k === 'bloques') ui.nivelB = undefined;
+  else if (k === 'pautas') ui.fPautas = null;
+  else if (k === 'sesiones') ui.fSes = null;
+  else if (k === 'pacSesiones') ui.filtroSes = null;
+}
+function cambiarFiltroDefVarios(k, v){
+  const sel = defFiltro(k).split(',').filter(Boolean);
+  cambiarFiltroDef(k, (sel.includes(v) ? sel.filter(x => x !== v) : [...sel, v]).join(','));
+  render();
+}
 function ordenPestanasHTML(){
   const ts = tabsPacOrdenadas();
   return `<div class="orden-pestanas" id="ordenPestanas">${ts.map(([k, t, sub], i) => `<div class="ord" data-k="${k}">
@@ -1522,7 +1572,7 @@ function gruposPautas(p){
   return { pautas, grupos, ordenados: [...grupos.entries()].sort((a, b) => ordenGrupo(a[1]) - ordenGrupo(b[1])) };
 }
 // Qué pautas se ven: vigentes (en curso o que empiezan más adelante), terminadas o todas; y entre qué fechas, mes y año.
-const filtroPautas = () => ui.fPautas || (ui.fPautas = { ver: 'vigentes', desde: '', hasta: '', mes: '', anio: '' });
+const filtroPautas = () => ui.fPautas || (ui.fPautas = { ver: defFiltro('pautas'), desde: '', hasta: '', mes: '', anio: '' });
 function cambiarFiltroPautas(k, v){ filtroPautas()[k] = v; refrescarPautas(); estadoFiltroFechas('fpa', filtroPautas()); }
 function quitarFiltroPautas(){ ui.fPautas = { ver: filtroPautas().ver, desde: '', hasta: '', mes: '', anio: '' }; render(); }
 function listaPautasHTML(p){
@@ -1777,10 +1827,10 @@ function vistaDiaHTML(p){
     return `<div class="${varias ? 'ses-vista' : ''}">
     <div class="row" style="justify-content:space-between;margin-bottom:6px">
       <span>${varias ? `<strong class="ses-titulo" style="${x.cita ? estiloColorCita(x.cita.color) : ''}">${esc(etiquetaSesion(x))}</strong> ` : ''}<span class="muted">${ui.qCal.trim() ? `${n} de ${items.length}` : items.length} ejercicios asignados</span></span>
-      <span class="row"><button class="ghost small" onclick="openDay('${s}', 'puntuar', '${x.id}'); $('#obsSesion').focus()">Observaciones…</button>
+      <span class="row">${verObs('sesion') ? `<button class="ghost small" onclick="openDay('${s}', 'puntuar', '${x.id}'); $('#obsSesion').focus()">Observaciones…</button>` : ''}
       <button class="btn small" onclick="openDay('${s}', 'anadir', '${x.id}')">Añadir ejercicios</button></span>
     </div>
-    ${filasDia(p, s, ui.qCal, x.id)}${(t => t.trim() ? `<div class="obs-texto"><strong>Observaciones:</strong> ${esc(t.trim())}</div>` : '')(textoObs(p.id, s, x.id))}</div>`;
+    ${filasDia(p, s, ui.qCal, x.id)}${(t => t.trim() && verObs('sesion') ? `<div class="obs-texto"><strong>Observaciones:</strong> ${esc(t.trim())}</div>` : '')(textoObs(p.id, s, x.id))}</div>`;
   }).join('') + (sesiones.some(x => x.cita) ? '' : `<p class="muted">Sin sesión este día.</p>`);
 }
 // Filas de un día con sus repeticiones. Cada repetición tiene su propia puntuación de 0 a 3.
@@ -1803,10 +1853,10 @@ function filaEjercicioDia(p, s, exercise, bloque, ses = '', flechas = ''){
     <div class="ej-dia" data-eid="${exercise.id}">
       <span class="ej-nom-dia">${esc(nombreEnBloque(exercise.nombre, bloque))}</span>
       <div class="ej-reps">${filas}</div>
-      <div class="ej-acc">${flechas}
+      <div class="ej-acc">${flechas}${verObs('ejercicio') ? obsBotonHTML(p.id, s, ses, { exerciseId: exercise.id }, exercise.nombre) : ''}
         <button class="ghost small" onclick="addRep('${p.id}','${s}','${exercise.id}','${ses}')" aria-label="Añadir repetición" title="Añadir otra repetición para puntuar">+ Rep.</button>
         ${menuAccionesHTML(exercise.nombre, [[ses ? 'Quitar de esta sesión' : 'Quitar de este día', `ui.selDay='${s}';quitarDeDia('${exercise.id}','${ses}')`, true]])}
-      </div>
+      </div>${verObs('ejercicio') ? obsCampoHTML(p.id, s, ses, { exerciseId: exercise.id }, exercise.nombre) : ''}
     </div>`;
 }
 // Los ejercicios se muestran en orden de ejecución, en una sola columna y agrupados bajo el nombre de su bloque.
@@ -1829,7 +1879,8 @@ function filasDia(p, s, q = '', ses = ''){
       if (actual !== null) html += '</div>';
       const b = bid ? db.bloques.find(x => x.id === bid) : null;
       const titulo = bid ? (b ? esc(b.nombre) + (b.nivel ? ` <span class="nivel">Nivel ${esc(b.nivel)}</span>` : '') : 'Bloque') : (hayBloques ? 'Ejercicios sueltos' : '');
-      html += `<div class="grp-dia">${titulo ? `<div class="grp-titulo">${titulo}${bid ? flechas(exercise.id) : ''}</div>` : ''}`;
+      const nb = b ? b.nombre : 'el bloque', ob = bid && verObs('bloque') ? { bloqueId: bid } : null;
+      html += `<div class="grp-dia">${titulo ? `<div class="grp-titulo">${titulo}${ob ? obsBotonHTML(p.id, s, ses, ob, nb) : ''}${bid ? flechas(exercise.id) : ''}</div>` : ''}${ob ? obsCampoHTML(p.id, s, ses, ob, nb) : ''}`;
       actual = bid;
     }
     html += filaEjercicioDia(p, s, exercise, bid ? db.bloques.find(x => x.id === bid) : null, ses, bid ? '' : flechas(exercise.id));
@@ -2551,10 +2602,10 @@ function renderDayModal(){
     <h3>${esc(fmtLong(s))}</h3>
     <p class="muted row">${p.foto ? avatar(p, 28) : ''}${esc(p.nombre)} ${esc(p.apellidos)}</p>
     ${sesionesDiaHTML(p, s, ses)}
-    <div class="obs-sesion">
+    ${verObs('sesion') ? `<div class="obs-sesion">
       <label for="obsSesion">Observaciones${varias ? ` de esta sesión (${esc(etiquetaSesion(sesion).toLowerCase())})` : ' del día'}</label>
       <textarea id="obsSesion" rows="2" placeholder="Cómo ha ido, incidencias, qué cambiar la próxima vez…" oninput="escribirObsSesion(this.value)" onchange="save(); render()">${esc(textoObs(p.id, s, ses))}</textarea>
-    </div>
+    </div>` : ''}
 
     <div class="row botonera-dia" style="margin:4px 0 14px;gap:4px"><div class="tabs" id="tabsDia" role="tablist">
       <button role="tab" aria-selected="${tab === 'puntuar'}" class="${tab === 'puntuar' ? 'on' : ''}" onclick="tabDia('puntuar')">Puntuar ejercicios (${items.length})</button>
@@ -2580,6 +2631,28 @@ function renderDayModal(){
 // Las observaciones se guardan mientras se escribe (sin repintar la ventana, para no perder el foco).
 let tObs = null;
 function escribirObsSesion(v){ ponerObs(ui.patientId, ui.selDay, ui.selSes, v); clearTimeout(tObs); tObs = setTimeout(save, 800); }
+// Observaciones de un bloque o de un ejercicio: un ✎ (marcado si ya tienen) abre su cuadro, que con texto se ve siempre.
+const claveObsUI = (pid, day, ses, a) => [pid, day, ses, a.bloqueId || '', a.exerciseId || ''].join('|');
+function obsBotonHTML(pid, day, ses, ambito, nombre){
+  const k = claveObsUI(pid, day, ses, ambito), hay = !!textoObs(pid, day, ses, ambito).trim();
+  return `<button class="ghost small obs-btn${hay ? ' on' : ''}" onclick="abrirObs('${esc(k)}')" aria-label="Observaciones de ${esc(nombre)}" title="Observaciones de ${esc(nombre)}">✎</button>`;
+}
+function obsCampoHTML(pid, day, ses, ambito, nombre){
+  const k = claveObsUI(pid, day, ses, ambito), t = textoObs(pid, day, ses, ambito);
+  if (!t.trim() && !(ui.obsAbiertas || {})[k]) return '';
+  return `<textarea class="obs-mini" rows="${Math.min(4, Math.max(1, t.split('\n').length))}" data-obs="${esc(k)}" aria-label="Observaciones de ${esc(nombre)}" placeholder="Observaciones de ${esc(nombre)}…" oninput="escribirObs(this)" onchange="save()">${esc(t)}</textarea>`;
+}
+function abrirObs(k){
+  ui.obsAbiertas = ui.obsAbiertas || {}; ui.obsAbiertas[k] = true;
+  if ($('#modal').innerHTML) refrescarModalDia(); else render();
+  const t = [...document.querySelectorAll('textarea[data-obs]')].find(x => x.dataset.obs === k); if (t) t.focus();
+}
+function escribirObs(el){
+  const [pid, day, ses, bloqueId, exerciseId] = el.dataset.obs.split('|');
+  ponerObs(pid, day, ses, el.value, { bloqueId, exerciseId, repeticion: 0 });
+  el.style.height = 'auto'; el.style.height = el.scrollHeight + 'px';
+  clearTimeout(tObs); tObs = setTimeout(save, 800);
+}
 // «8 de 11 puntuados»: ejercicios con al menos una repetición puntuada.
 function progresoDia(pid, s, items, ses = ''){
   const hechos = items.filter(i => puntuadoEn(pid, s, i.exercise.id, ses)).length;
@@ -2963,6 +3036,8 @@ function botonesMaestrosHTML(idFile){
     <input type="file" id="${idFile}" accept=".json,application/json" style="display:none" onchange="leerImportBloques(this)">`;
 }
 function bloquesHTML(){
+  if (ui.nivelB === undefined) ui.nivelB = defFiltro('bloques');
+  if (ui.nivelB && ui.nivelB !== '__sin' && !nivelesExistentes().includes(ui.nivelB)) ui.nivelB = '';
   const opciones = [['', 'Todos los niveles'], ...nivelesExistentes().map(n => [n, 'Nivel ' + n]), ['__sin', 'Sin nivel']]
     .map(([v, t]) => `<option value="${esc(v)}" ${ui.nivelB === v ? 'selected' : ''}>${esc(t)}</option>`).join('');
   const detalle = db.ajustes.bloquesDetalle !== '0';
@@ -3347,10 +3422,11 @@ function ampliarSeries(d){
   for (const s of d.seriesCitas) if (!s.hasta && generarSerie(d, s)) seriesAmpliadas = true;
 }
 
-/* huecos ocupados en Google y solapes */
-// Huecos ocupados de un día (en minutos) según los otros calendarios de Google.
+/* huecos ocupados en el calendario de otra aplicación y solapes */
+// Huecos ocupados de un día (en minutos) según los otros calendarios de la integración elegida.
 function ocupadosDia(fecha){
   const out = [];
+  if (!googleActivo()) return out;
   for (const o of gSync.ocupados || []){
     const [fi, hi] = o.inicio.split('T'), [ff, hf] = o.fin.split('T');
     if (fi > fecha || ff < fecha) continue;
@@ -3368,7 +3444,7 @@ function solapes(fecha, hora, dur, excepto = new Set()){
 }
 function textoSolapes(x){
   return [...x.citas.map(c => `${c.hora}–${finCita(c)} ${nombrePac(getP(c.patientId))}`),
-    ...x.ocupados.map(o => `${horaDe(o.a)}–${horaDe(Math.min(o.b, 1440))} ocupado en Google Calendar`)];
+    ...x.ocupados.map(o => `${horaDe(o.a)}–${horaDe(Math.min(o.b, 1440))} ocupado en ${nombreCalExterno()}`)];
 }
 
 /* pantalla Agenda */
@@ -3403,7 +3479,7 @@ function viewAgenda(){
     <div class="card" id="sec-agenda">
       <div class="row" style="justify-content:space-between;align-items:center">
         <h2 style="margin:0">Agenda${ayudaIco('agenda')}</h2>
-        <span class="row"><span id="estadoGoogle" class="estado-google">${estadoGoogleHTML()}</span>
+        <span class="row"><span id="estadoGoogle" class="estado-google">${estadoCalExternoHTML()}</span>
         <button class="btn" onclick="openCita()">Nueva sesión</button></span>
       </div>
       <div class="row" style="justify-content:space-between;margin:12px 0 6px">
@@ -3445,7 +3521,7 @@ function agendaMesHTML(){
     const chips = cs.slice(0, MAX_CITAS_MES).map(c => { const p = getP(c.patientId);
       return `<button class="mes-cita${c.color ? ' con-color' : ''}" style="${estiloColorCita(c.color)}" onclick="event.stopPropagation(); openCita('${c.id}')" title="${esc(`${c.hora}–${finCita(c)} ${nombrePac(p)}${c.nota ? '. ' + c.nota : ''}`)}"><strong>${c.hora}</strong> ${esc(nombrePac(p))}</button>`; }).join('');
     const mas = cs.length > MAX_CITAS_MES ? `<button class="enlace mes-mas" onclick="event.stopPropagation(); verDiaAgenda('${fe}')">+${cs.length - MAX_CITAS_MES} más</button>` : '';
-    const ocup = oc.length ? `<div class="mes-ocupado" title="Ocupado en Google Calendar">Ocupado ${oc.slice(0, 2).map(o => `${horaDe(o.a)}–${horaDe(Math.min(o.b, 1440))}`).join(', ')}${oc.length > 2 ? '…' : ''}</div>` : '';
+    const ocup = oc.length ? `<div class="mes-ocupado" title="Ocupado en ${esc(nombreCalExterno())}">Ocupado ${oc.slice(0, 2).map(o => `${horaDe(o.a)}–${horaDe(Math.min(o.b, 1440))}`).join(', ')}${oc.length > 2 ? '…' : ''}</div>` : '';
     const d = fromIso(fe);
     return `<div class="mes-celda${fe.slice(0, 7) !== mes ? ' fuera' : ''}${fe === hoy ? ' hoy' : ''}${fe < hoy ? ' pasado' : ''}" data-fecha="${fe}" onclick="openCita(null, { fecha: '${fe}' })">
       <button class="enlace mes-num" onclick="event.stopPropagation(); verDiaAgenda('${fe}')" title="Ver este día" aria-label="Ver el ${esc(fmtLong(fe))}">${d.getDate()}${d.getDate() === 1 ? ' ' + d.toLocaleDateString('es-ES', { month: 'short' }) : ''}</button>
@@ -3512,7 +3588,7 @@ function agendaCuerpoHTML(){
     }).join('');
     const ocup = ocupadosDia(f).filter(o => o.b > ini && o.a < fin).map(o => {
       const a = Math.max(o.a, ini), b = Math.min(o.b, fin);
-      return `<div class="ag-ocupado" style="top:${(a - ini) * PX_MIN}px;height:${(b - a) * PX_MIN}px" title="Ocupado en Google Calendar (${horaDe(o.a)}–${horaDe(Math.min(o.b, 1440))})"><span>Ocupado</span></div>`;
+      return `<div class="ag-ocupado" style="top:${(a - ini) * PX_MIN}px;height:${(b - a) * PX_MIN}px" title="Ocupado en ${esc(nombreCalExterno())} (${horaDe(o.a)}–${horaDe(Math.min(o.b, 1440))})"><span>Ocupado</span></div>`;
     }).join('');
     const linea = f === hoy && mAhora >= ini && mAhora <= fin ? `<div class="ag-ahora" style="top:${(mAhora - ini) * PX_MIN}px" title="Ahora"></div>` : '';
     return `<div class="ag-col${f === hoy ? ' hoy' : ''}${f < hoy ? ' pasado' : ''}" data-fecha="${f}" style="height:${alto}px" onclick="clicAgenda(event, '${f}', ${ini})">${ocup}${bloques}${linea}</div>`;
@@ -3877,7 +3953,7 @@ function aplicarSinSesion(con, serie, op){
 const proximaCita = pid => db.citas.filter(c => c.patientId === pid && (c.fecha > todayIso() || c.fecha === todayIso() && minDe(c.hora) + c.duracion >= new Date().getHours() * 60 + new Date().getMinutes())).sort(ordenCita)[0];
 const textoProximaCita = c => `${fechaCita(c.fecha)}, ${c.hora}`;
 // Filtro de la lista de sesiones del paciente: qué sesiones (próximas, pasadas o todas) y entre qué fechas, mes y año.
-const filtroSes = () => ui.fSes || (ui.fSes = { ver: 'proximas', desde: '', hasta: '', mes: '', anio: '' });
+const filtroSes = () => ui.fSes || (ui.fSes = { ver: defFiltro('sesiones'), desde: '', hasta: '', mes: '', anio: '' });
 function citasSeccionHTML(p){
   const hoy = todayIso(), todas = citasDe(p.id), f = filtroSes();
   const series = seriesVigentes(p.id);
@@ -3935,7 +4011,7 @@ function estadoSesion(p, c){
   return { total, hechos, clase: hechos === total ? 'hecha' : 'parcial', texto: `${hechos === total ? '✓ ' : ''}${hechos} de ${total} puntuados` };
 }
 function filaSesionHTML(p, c){
-  const e = estadoSesion(p, c), obs = textoObs(p.id, c.fecha, c.id).trim();
+  const e = estadoSesion(p, c), obs = verObs('sesion') ? textoObs(p.id, c.fecha, c.id).trim() : '';
   return `<div class="item cita-fila"><div style="flex:1;min-width:0"><strong>${esc(fechaCita(c.fecha))}</strong> · ${c.hora}–${finCita(c)}${c.serieId ? ' <span title="Se repite cada semana" aria-label="se repite cada semana">↻</span>' : ''}${c.nota ? ` <span class="muted">· ${esc(c.nota)}</span>` : ''}
         ${obs ? `<div class="muted obs-fila" title="${esc(obs)}"><span aria-hidden="true">✎</span> <span class="sr">Observaciones: </span>${esc(obs)}</div>` : ''}</div>
       <span class="ses-estado ${e.clase}">${e.texto}</span>
@@ -4003,11 +4079,29 @@ async function anularSerie(id){
   ofrecerDeshacer(antes, 'Serie terminada');
 }
 
+/* ---------- Calendario de otra aplicación ---------- */
+// La agenda se puede sincronizar con el calendario que se use en otra aplicación. Cada integración se registra aquí
+// (y en integracionesCalendario de calendarios.go) con lo mismo: nombre, si está conectada, cómo se sincroniza, su
+// estado en la cabecera de la agenda y su apartado en Ajustes › Agenda. Todas devuelven al sincronizar los mismos
+// cambios hechos allí ({ citaId, accion: 'mover' | 'anular', fecha, hora, duracion }) y huecos ocupados.
+// Cuál se usa se elige en Ajustes › Agenda (ajuste «calendarioExterno»: '' = ninguna; sin ajuste, Google si ya
+// estaba conectada). Hoy solo hay Google Calendar.
+const INTEGRACIONES_CAL = {
+  google: { nombre: 'Google Calendar', ayuda: 'google', conectada: () => googleConectada(), sincronizar: m => sincronizarGoogle(m),
+    estadoHTML: () => estadoGoogleHTML(), ajustesHTML: () => googleAjustesHTML(), pintarAjustes: () => pintarGoogleAjustes() },
+};
+const calExterno = () => { const k = db.ajustes.calendarioExterno; return k === undefined ? (googleConectada() ? 'google' : '') : (INTEGRACIONES_CAL[k] ? k : ''); };
+const integracionCal = () => INTEGRACIONES_CAL[calExterno()] || null;
+const nombreCalExterno = () => (integracionCal() || { nombre: 'otro calendario' }).nombre;
+function estadoCalExternoHTML(){ const ic = integracionCal(); return ic ? ic.estadoHTML() : ''; }
+function elegirCalExterno(v){ setAjuste('calendarioExterno', v); render(); const ic = integracionCal(); if (ic && ic.conectada()) ic.sincronizar(false); }
+
 /* ---------- Google Calendar (en el navegador) ---------- */
 // El servidor hace la sincronización; aquí se pide cada pocos minutos y tras cambiar citas, y se aplican a las
 // citas los cambios hechos en Google. gSync.estado es lo que devuelve /api/google/estado.
 const gSync = { estado: null, ocupados: [], enCurso: false, error: '', ultima: null, timer: null, firma: null, esperandoConexion: null };
-const googleActivo = () => !!(gSync.estado && gSync.estado.activo && gSync.estado.conectado);
+const googleConectada = () => !!(gSync.estado && gSync.estado.activo && gSync.estado.conectado);
+const googleActivo = () => googleConectada() && calExterno() === 'google';   // conectada y elegida en Ajustes › Agenda
 async function cargarEstadoGoogle(){
   try {
     const r = await fetch('/api/google/estado'); if (!r.ok) return;
@@ -4083,7 +4177,7 @@ function estadoGoogleHTML(){
   if (gSync.error) return `<button class="enlace" style="color:var(--danger)" onclick="irAjustesAgenda()" title="${esc(gSync.error)}">Google Calendar: no se ha podido sincronizar</button>`;
   return `<span class="muted">Google Calendar: al día${gSync.ultima ? ' (' + haceTexto(gSync.ultima) + ')' : ''}</span> <button class="ghost small" onclick="sincronizarGoogle(true)" title="Sincronizar ahora" aria-label="Sincronizar ahora con Google Calendar">⟳</button>`;
 }
-function pintarEstadoGoogle(){ const el = $('#estadoGoogle'); if (el) el.innerHTML = estadoGoogleHTML(); }
+function pintarEstadoGoogle(){ const el = $('#estadoGoogle'); if (el) el.innerHTML = estadoCalExternoHTML(); }
 function irAjustesAgenda(){ ui.ajTab = 'agenda'; go('ajustes'); }
 // Cada 5 minutos, si está activada (y la ventana está a la vista).
 setInterval(() => { if (googleActivo() && !document.hidden) sincronizarGoogle(false); else pintarEstadoGoogle(); }, 5 * 60 * 1000);
@@ -4102,6 +4196,17 @@ function agendaAjustesHTML(){
     <div class="row">${selectorDiasHTML('agDias', (db.ajustes.agendaDias || '12345').length === 7 ? '' : db.ajustes.agendaDias || '12345')}</div>
     <p class="muted" style="margin-top:4px">Días que se ven en la semana de la agenda. Un día no marcado se ve igualmente si tiene alguna sesión.</p>
     <p class="row">Duración de las sesiones nuevas: <select style="width:auto" id="agDur" onchange="setAjuste('citaDuracion', this.value)">${opcionesDuracion(durDefecto())}</select></p>
+    <h3 style="margin-top:24px">Calendario de otra aplicación</h3>
+    <p class="muted">Si llevas las citas también en el calendario de otra aplicación, la agenda se puede sincronizar con él: las sesiones se copian allí y no se dan sesiones encima de lo que ya tengas ocupado.</p>
+    <p class="row"><select style="width:auto" id="calExterno" aria-label="Calendario de otra aplicación" onchange="elegirCalExterno(this.value)">
+      <option value="">Ninguno: solo la agenda de esta aplicación</option>
+      ${Object.entries(INTEGRACIONES_CAL).map(([k, ic]) => `<option value="${k}" ${calExterno() === k ? 'selected' : ''}>${esc(ic.nombre)}</option>`).join('')}
+      <option disabled>Otras aplicaciones (próximamente)</option>
+    </select></p>
+    ${calExterno() === 'google' ? googleAjustesHTML(titulo) : googleConectada() ? '<p class="muted">Google Calendar sigue conectado, pero no se sincroniza mientras no lo elijas aquí.</p>' : ''}`;
+}
+function googleAjustesHTML(titulo = db.ajustes.googleTitulo || 'nombre'){
+  return `
     <h3 style="margin-top:24px">Google Calendar${ayudaIco('google')}</h3>
     <div id="googleAjustes"><p class="muted">Cargando…</p></div>
     <h3 style="margin-top:24px">Qué se ve en Google</h3>
@@ -4288,7 +4393,7 @@ const AYUDA_CORTA = {
   pautas: { t: 'Pautas', ancla: 'pautas', txt: 'Bloques y ejercicios que el paciente trabaja en la clínica, en el orden en que se hacen. Con «Editar» cambias las fechas de inicio y fin y los días de la semana. Las pautas terminadas quedan plegadas al final.' },
   asignar: { t: 'Asignar ejercicios', ancla: 'pautas', txt: 'Marca bloques o ejercicios, elige desde qué fecha, la duración (continua, hasta una fecha o solo ese día) y los días de la semana, y pulsa «Asignar». Si el paciente tiene sesiones, a la derecha eliges en qué sesiones tocan.' },
   calendario: { t: 'Calendario', ancla: 'calendario', txt: 'Los días con sesión llevan un punto del color de la sesión junto al número. En la semana, cada ejercicio sale del color de su puntuación (con borde de puntos, aún no está puntuado). En el mes, cada día resume su media y cuántos están puntuados. Pulsa un día para añadir, quitar o puntuar sus ejercicios.' },
-  puntuar: { t: 'Puntuar un día', ancla: 'puntuar', txt: 'Pulsa 0, 1, 2 o 3 en cada ejercicio (otra vez el mismo número para borrarlo). «+ Rep.» sirve para puntuarlo varias veces el mismo día. Con el teclado: 0–3 puntúa la fila marcada, ↑ ↓ cambian de fila y «+» añade una repetición. Abajo puedes escribir observaciones de la sesión (o del día, si no tiene sesión): salen en el calendario, en la lista de sesiones y en el informe de pautas. Todo se guarda solo.' },
+  puntuar: { t: 'Puntuar un día', ancla: 'puntuar', txt: 'Pulsa 0, 1, 2 o 3 en cada ejercicio (otra vez el mismo número para borrarlo). «+ Rep.» sirve para puntuarlo varias veces el mismo día. Con el teclado: 0–3 puntúa la fila marcada, ↑ ↓ cambian de fila y «+» añade una repetición. Arriba puedes escribir observaciones de la sesión (o del día, si no tiene sesión): salen en el calendario, en la lista de sesiones y en el informe de pautas. Si están activadas en Ajustes › Personalizar, el ✎ de cada bloque o ejercicio abre su propio cuadro de observaciones. Todo se guarda solo.' },
   resumen: { t: 'Resumen', ancla: 'resumen', txt: 'La evolución del periodo elegido: en lista (medias; «Ver cada repetición» las desglosa), en puntos (cada día) o en líneas (por ejercicio, por bloque o la media del día; pulsa la leyenda para ocultar o mostrar una línea).' },
   'plan-en-casa': { t: 'Planes en casa', ancla: 'plan-en-casa', txt: 'Cada plan tiene nombre, fecha de inicio, duración en semanas, fecha de fin (se calcula, pero puedes cambiarla) y notas. Añade ejercicios a cada día o a «A elegir» si el paciente puede hacerlos cuando quiera. No se puntúan ni cambian las pautas de la clínica.' },
   'plan-fin': { t: 'Fecha de fin', ancla: 'plan-en-casa', txt: 'Se calcula sola con la fecha de inicio y la duración. Puedes cambiarla a mano (por ejemplo, para alargar el plan por unas vacaciones) sin que cambien la duración ni los ejercicios. Con «Recalcular» vuelve a la fecha calculada.' },
@@ -4302,7 +4407,7 @@ const AYUDA_CORTA = {
   citas: { t: 'Sesiones del paciente', ancla: 'agenda', txt: 'Con los botones Próximas, Pasadas y Todas eliges qué sesiones ver, y puedes buscarlas entre dos fechas, por mes y por año. Cada sesión dice si tiene ejercicios y cuántos están puntuados. «Puntuar» abre la puntuación de esa sesión; si aún no tiene ejercicios, se abre para añadirlos. «Anular» la anula sin abrirla (avisa si tiene ejercicios o puntuaciones). «Cambiar…» en una serie cambia días, hora o duración a partir del día que elijas; «Terminar…» anula sus sesiones desde mañana. El color de sus sesiones se elige en los datos del paciente.' },
   google: { t: 'Google Calendar', ancla: 'google-calendar', txt: 'Copia las sesiones en un calendario «Fisioterapia · sesiones» de tu cuenta de Google y, si allí mueves o borras una, también cambia aquí. De tus otros calendarios trae solo las horas ocupadas, para no programar sesiones encima. Hay que configurarlo una vez (ver el manual).' },
   maestros: { t: 'Exportar e importar', ancla: 'exportar-importar', txt: 'Exportar guarda los ejercicios y los bloques (sin pacientes) en un archivo. Importar lo añade a la biblioteca de esta carpeta de datos: si ya tiene ejercicios o bloques, se avisa y se combinan, sin borrar ni cambiar nada y sin duplicar lo que ya existe.' },
-  exportar: { t: 'Informe de pautas', ancla: 'informes', txt: 'Crea un PDF por paciente con los datos de tu clínica, un resumen por ejercicio, una gráfica del periodo y, si lo marcas, el detalle de cada día. Al generarlo eliges dónde guardarlo; esa ventana a veces aparece detrás del navegador.' },
+  exportar: { t: 'Informe de pautas', ancla: 'informes', txt: 'Crea un PDF por paciente con los datos de tu clínica, un resumen por ejercicio y, según lo que marques, la gráfica del periodo, el detalle de cada día y las observaciones (lo marcado de entrada se elige en Ajustes › Personalizar). Al generarlo eliges dónde guardarlo; esa ventana a veces aparece detrás del navegador.' },
   ejercicios: { t: 'Ejercicios', ancla: 'ejercicios', txt: 'La biblioteca de ejercicios. «Nuevo ejercicio…» añade uno. En el botón ⋯ de cada ejercicio: renombrar (cambia el nombre en toda la aplicación), duplicar o eliminar (lo quita también de pautas y puntuaciones).' },
   bloques: { t: 'Bloques', ancla: 'bloques', txt: 'Grupos de ejercicios que se asignan juntos y en orden, con un nivel opcional (A, B, C…). Si falta un ejercicio, créalo desde la ventana del bloque con «Crear y añadir».' },
   copias: { t: 'Copias de seguridad', ancla: 'copias', txt: 'Las copias automáticas se hacen solas mientras la aplicación está abierta. Restaurar sustituye los datos actuales, pero antes guarda una copia de ellos.' },
@@ -4501,6 +4606,18 @@ function personalizarHTML(){
     ${ordenPestanasHTML()}
     <p style="margin-top:8px"><button class="ghost small" onclick="setAjuste('ordenPestanas', ''); render()" ${db.ajustes.ordenPestanas ? '' : 'disabled'}>Volver al orden de siempre</button></p>
 
+    <h3 style="margin-top:22px">Filtros por defecto</h3>
+    <p class="muted">Cómo salen las listas al abrir la aplicación (pacientes y bloques) o la ficha de un paciente (pautas y sesiones). Los filtros por fecha empiezan siempre sin poner.</p>
+    ${filtrosDefHTML()}
+
+    <h3 style="margin-top:22px">Observaciones al puntuar</h3>
+    <p class="muted">Qué cuadros de observaciones se ven en la ventana del día y en la vista Día del calendario. En los bloques y ejercicios salen tras pulsar ✎. Ocultar uno no borra lo escrito.</p>
+    ${NIVELES_OBS.map(([k, t]) => `<label class="row" style="gap:6px;margin:4px 0;color:var(--ink)"><input type="checkbox" id="obsNivel-${k}" style="width:auto" ${verObs(k) ? 'checked' : ''} onchange="setAjuste('obs.${k}', this.checked ? '1' : '0')"> ${t}</label>`).join('')}
+
+    <h3 style="margin-top:22px">Informe de pautas</h3>
+    <p class="muted">Qué se incluye por defecto al generar un informe. Se puede cambiar en cada informe.</p>
+    ${OPC_INFORME.map(([k, t]) => `<label class="row" style="gap:6px;margin:4px 0;color:var(--ink)"><input type="checkbox" id="infDef-${k}" style="width:auto" ${opcInforme(k) ? 'checked' : ''} onchange="setAjuste('informe.${k}', this.checked ? '1' : '0')"> ${t}</label>`).join('')}
+
     <h3 style="margin-top:22px">Modo de visualización</h3>
     <select id="pTema" style="width:auto" onchange="setAjuste('tema', this.value); aplicarTema()">
       <option value="claro" ${a.tema !== 'oscuro' ? 'selected' : ''}>Claro</option>
@@ -4639,11 +4756,22 @@ function datosPdf(p, desde, hasta){
   return { dias, puntos };
 }
 
-// Observaciones de sesión de un periodo, por fecha y hora de la sesión (para el informe de pautas).
+// Observaciones de un periodo, por fecha y hora de la sesión (para el informe de pautas): las de la sesión y, debajo,
+// las de sus bloques y ejercicios. Solo los niveles que se ven (Ajustes › Personalizar).
 function obsPeriodoPdf(pid, desde, hasta){
   const out = [];
-  for (let s = desde; s <= hasta; s = addDays(s, 1)) for (const { o, cita } of obsSesionesDia(pid, s))
-    out.push({ fecha: s, titulo: cita ? etiquetaSesion({ cita }) : (citasDia(pid, s).length ? 'Sin sesión' : ''), texto: o.texto.trim() });
+  for (let s = desde; s <= hasta; s = addDays(s, 1)){
+    const os = db.observaciones.filter(o => o.patientId === pid && o.fecha === s && !o.repeticion && o.texto.trim() && verObs(nivelObs(o)));
+    const sesiones = [...new Set(os.map(o => o.sesion))].map(id => ({ id, cita: id ? getCita(id) : null }))
+      .sort((a, b) => (a.cita ? a.cita.hora : '').localeCompare(b.cita ? b.cita.hora : ''));
+    for (const { id, cita } of sesiones){
+      const de = os.filter(o => o.sesion === id), nombre = o => o.exerciseId ? (getE(o.exerciseId) || {}).nombre || 'Ejercicio' : ((db.bloques.find(b => b.id === o.bloqueId) || {}).nombre || 'Bloque');
+      const partes = [...de.filter(o => nivelObs(o) === 'sesion').map(o => o.texto.trim()),
+        ...de.filter(o => nivelObs(o) === 'bloque').map(o => nombre(o) + ': ' + o.texto.trim()),
+        ...de.filter(o => nivelObs(o) === 'ejercicio').map(o => nombre(o) + ': ' + o.texto.trim())];
+      out.push({ fecha: s, titulo: cita ? etiquetaSesion({ cita }) : (citasDia(pid, s).length ? 'Sin sesión' : ''), texto: partes.join('\n') });
+    }
+  }
   return out;
 }
 async function pdfPaciente(p, desde, hasta, opciones = {}){
@@ -4720,7 +4848,7 @@ async function pdfPaciente(p, desde, hasta, opciones = {}){
   page.drawLine({ start: { x: M, y }, end: { x: W - M, y }, thickness: 0.6, color: lineaC }); y -= 16;
 
   // --- Gráfica de la media diaria ---
-  if (datos.puntos.length){
+  if (datos.puntos.length && opciones.grafica !== false){
     texto('Evolución de la puntuación media diaria', M, 11, fB); y -= 20;
     const alto = 120, x0 = M + 24, x1 = W - M, base = y - alto;
     for (let v = 0; v <= 3; v++){
@@ -4849,10 +4977,14 @@ async function pdfPaciente(p, desde, hasta, opciones = {}){
   return doc.save();
 }
 
+// Qué incluye el informe de pautas. Lo que se marca por defecto se elige en Ajustes › Personalizar (ajustes
+// «informe.<clave>», '1' o '0'; sin ajuste, todo marcado) y se puede cambiar en cada informe.
+const OPC_INFORME = [['grafica', 'La gráfica de la evolución de la puntuación media'], ['detalle', 'El detalle de cada día (el informe es más largo)'], ['obs', 'Las observaciones de las sesiones']];
+const opcInforme = k => db.ajustes['informe.' + k] !== '0';
 function openExportar(ids, desde, hasta){
   ids = ids.filter(id => getP(id));
   if (!ids.length) return;
-  ui.exp = { ids, desde: desde || iso(firstOfMonth(new Date())), hasta: hasta || todayIso(), ocupado: false };
+  ui.exp = { ids, desde: desde || iso(firstOfMonth(new Date())), hasta: hasta || todayIso(), ocupado: false, ...Object.fromEntries(OPC_INFORME.map(([k]) => [k, opcInforme(k)])) };
   renderExportar();
 }
 function renderExportar(){
@@ -4860,7 +4992,7 @@ function renderExportar(){
   const pacs = e.ids.map(getP).sort((a, b) => (a.apellidos + a.nombre).localeCompare(b.apellidos + b.nombre, 'es'));
   showModal(`
     <h3>Generar informe de pautas${ayudaIco('exportar')}</h3>
-    <p class="muted">Se crea un PDF por paciente con una gráfica de la evolución, un resumen por ejercicio y, si quieres, el detalle de cada día. ${e.ids.length === 1 ? 'Al generarlo podrás elegir dónde guardarlo.' : 'Al generarlos podrás elegir la carpeta donde se guardan.'} Quedan anotados en la pestaña «Informes» de cada paciente.</p>
+    <p class="muted">Se crea un PDF por paciente con un resumen por ejercicio y, si quieres, la gráfica de la evolución, el detalle de cada día y las observaciones. ${e.ids.length === 1 ? 'Al generarlo podrás elegir dónde guardarlo.' : 'Al generarlos podrás elegir la carpeta donde se guardan.'} Quedan anotados en la pestaña «Informes» de cada paciente.</p>
     <div class="row" style="flex-wrap:wrap;gap:10px;align-items:end">
       <label>Desde<br><input type="date" id="expDesde" value="${esc(e.desde)}" onchange="ui.exp.desde=this.value"></label>
       <label>Hasta<br><input type="date" id="expHasta" value="${esc(e.hasta)}" onchange="ui.exp.hasta=this.value"></label>
@@ -4869,8 +5001,8 @@ function renderExportar(){
       <button class="ghost small" onclick="expPreset('todo')">Todo el historial</button>
     </div>
     <label>Nombre del informe <span class="muted">(opcional)</span><br><input id="expNombre" maxlength="80" value="${esc(e.nombre || '')}" placeholder="Por ejemplo: Valoración de octubre" oninput="ui.exp.nombre=this.value"></label>
-    <label class="row" style="gap:6px;margin:12px 0 0;color:var(--ink)"><input type="checkbox" id="expDetalle" style="width:auto" ${e.detalle !== false ? 'checked' : ''} onchange="ui.exp.detalle=this.checked"> Incluir el detalle de cada día (el informe es más largo)</label>
-    <label class="row" style="gap:6px;margin:6px 0 0;color:var(--ink)"><input type="checkbox" id="expObs" style="width:auto" ${e.obs !== false ? 'checked' : ''} onchange="ui.exp.obs=this.checked"> Incluir las observaciones de las sesiones</label>
+    <p style="margin:12px 0 0">Incluir:</p>
+    ${OPC_INFORME.map(([k, t]) => `<label class="row" style="gap:6px;margin:4px 0 0;color:var(--ink)"><input type="checkbox" id="exp${k[0].toUpperCase() + k.slice(1)}" style="width:auto" ${e[k] !== false ? 'checked' : ''} onchange="ui.exp.${k}=this.checked"> ${t}</label>`).join('')}
     <p><strong>${pacs.length === 1 ? 'Paciente' : pacs.length + ' pacientes'}:</strong> ${pacs.map(p => esc(p.nombre + ' ' + p.apellidos)).join(', ')}</p>
     <p class="muted">Los PDF contienen datos de salud: guárdalos y compártelos con cuidado.</p>
     <div id="expEstado" class="muted" aria-live="polite"></div>
@@ -4918,7 +5050,7 @@ async function generarExportacion(){
         estadoExp(`Generando ${i + 1} de ${e.ids.length}: ${esc(p.nombre + ' ' + p.apellidos)}…` + (carpeta ? '' : '<br>Elige dónde guardarlo (el diálogo puede aparecer detrás de esta ventana).'), true);
         await new Promise(r => setTimeout(r, 30));   // deja pintar el estado antes del trabajo pesado
         try {
-          const bytes = await pdfPaciente(p, e.desde, e.hasta, { detalle: e.detalle !== false, observaciones: e.obs !== false });
+          const bytes = await pdfPaciente(p, e.desde, e.hasta, { detalle: e.detalle !== false, observaciones: e.obs !== false, grafica: e.grafica !== false });
           const descripcion = (e.nombre || '').trim();
           const nombre = nombrePdf([p.apellidos, p.nombre, descripcion, 'Informe de pautas', e.desde, e.hasta]);
           const info = await guardarPdf(bytes, nombre, carpeta);   // con carpeta, el servidor no pisa archivos con el mismo nombre
