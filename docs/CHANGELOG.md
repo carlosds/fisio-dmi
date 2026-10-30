@@ -11,6 +11,7 @@
 - **Agenda**: buscador de pacientes.
 - **Sesiones del paciente**: botones **Próximas / Pasadas / Todas** (y **↻ Se repiten**, con las sesiones que se repiten cada semana), búsqueda por fechas, mes y año, y el estado de cada sesión (sin ejercicios, sin puntuar, cuántos puntuados). **Puntuar** está en todas: si la sesión aún no tiene ejercicios, se abre para añadirlos.
 - **Pautas**: botones **Vigentes / Terminadas / Todas** y búsqueda por fechas, mes y año, además de por bloque o ejercicio.
+- **Ordenar las pestañas de la ficha del paciente** en **Ajustes → Personalizar** (↑ ↓). La ficha se abre en la primera. El orden por defecto pasa a ser **Pautas · Sesiones · Calendario · Plan en casa · Progreso · Informes**.
 - **Informes de pautas con nombre**: al generarlo puedes ponerle un nombre, que sale en la lista y en el nombre del archivo. La lista de informes se puede buscar por nombre, archivo y fecha, y filtrar por fecha de generación.
 
 ### Mejoras

@@ -31,7 +31,8 @@ Al asignar, los días vienen todos marcados: una pauta normal toca los 7 días a
 ### 4. Navegación entre pacientes y dentro de la ficha
 - ✅ Buscador de pacientes en la barra superior, desde cualquier pantalla (⌘K / Ctrl+K).
 - ⏳ Una pestaña de entrada **«Resumen del paciente»** (próxima y última sesión con sus observaciones, pautas vigentes, plan en casa en curso, último hito), en vez de abrir en «Pautas».
-- ⏳ Reordenar las pestañas (por ejemplo: Resumen · Sesiones · Ejercicios · Casa · Progreso) y sacar «Evaluación inicial» e «Hitos» del desplegable.
+- ✅ Reordenar las pestañas: el orden se elige en Ajustes › Personalizar y la ficha se abre en la primera. Por defecto: Pautas · Sesiones · Calendario · Plan en casa · Progreso · Informes.
+- ⏳ Sacar «Evaluación inicial» e «Hitos» del desplegable.
 
 ### 5. Densidad visual y acciones peligrosas a la vista
 - ✅ **Filtros de fecha plegados** tras «Filtrar por fecha» en Pautas, Sesiones, Planes en casa e Informes (abiertos si hay alguno puesto, y se recuerda si los abriste).

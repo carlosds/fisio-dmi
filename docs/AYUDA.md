@@ -103,12 +103,12 @@ Arriba de la ficha están siempre la foto, el nombre, su **próxima sesión** (p
 
 Si el paciente está archivado, lo indica debajo del nombre, con el botón **Recuperar paciente**.
 
-Debajo hay seis pestañas:
+Debajo hay seis pestañas (este es su orden por defecto; puedes cambiarlo en **Ajustes → Personalizar**, y la ficha se abre en la primera):
 
 - **Pautas**: qué ejercicios tiene asignados para la clínica. Ver [Pautas del paciente](#pautas).
+- **Sesiones**: sus próximas sesiones, las que se repiten cada semana y las pasadas. Ver [Agenda y sesiones](#agenda).
 - **Calendario**: el día a día, para puntuar, y el **Resumen** de la evolución. Ver [Calendario](#calendario) y [Resumen](#resumen).
 - **Plan en casa**: los ejercicios para casa. Ver [Plan en casa](#plan-en-casa).
-- **Sesiones**: sus próximas sesiones, las que se repiten cada semana y las pasadas. Ver [Agenda y sesiones](#agenda).
 - **Progreso ▾**: despliega **Evaluación inicial** e **Hitos**. Ver [Progreso](#progreso).
 - **Informes**: los PDF generados de este paciente (informes de pautas y planes en casa). Ver [Informes](#informes).
 
@@ -476,6 +476,7 @@ En **Personalizar**:
 
 - **Nombre de la clínica**, **profesional responsable** y **nº de colegiado**: salen en la barra de arriba y en la cabecera de los PDF (informes de pautas y planes en casa).
 - **Logo**: sale en la cabecera de los PDF. La **firma** (en PNG; mejor con fondo transparente) sale en los PDF del plan en casa.
+- **Pestañas de la ficha del paciente**: ordénalas con ↑ ↓. La ficha de cada paciente se abre en la primera. **Volver al orden de siempre** deja Pautas · Sesiones · Calendario · Plan en casa · Progreso · Informes.
 - **Modo de visualización**: claro u oscuro. También se cambia con el botón de la luna o el sol de la barra de arriba.
 
 ## Copias de seguridad {#copias}

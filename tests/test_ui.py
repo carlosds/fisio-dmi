@@ -203,7 +203,7 @@ with sync_playwright() as pw:
 
     print('\n[9] Pestañas de la ficha del paciente')
     check(page.locator('nav.side').count() == 0, 'ya no hay menú lateral')
-    check(page.locator('.ptabs [role=tab]').all_inner_texts() == ['Pautas', 'Calendario', 'Plan en casa', 'Sesiones', 'Progreso ▾', 'Informes'], 'pestañas: Pautas, Calendario, Plan en casa, Sesiones, Progreso, Informes')
+    check(page.locator('.ptabs [role=tab]').all_inner_texts() == ['Pautas', 'Sesiones', 'Calendario', 'Plan en casa', 'Progreso ▾', 'Informes'], 'pestañas: Pautas, Calendario, Plan en casa, Sesiones, Progreso, Informes')
     page.get_by_role('tab', name='Calendario').click(); page.locator('#subCal').get_by_role('button', name='Calendario').click(); page.wait_for_timeout(100)
     check(page.locator('#sec-calendario').count() == 1 and page.locator('#sec-pautas').count() == 0, 'cada pestaña muestra solo su sección')
     check(page.locator('.ptabs [aria-selected=true]').inner_text() == 'Calendario', 'la pestaña activa está marcada')

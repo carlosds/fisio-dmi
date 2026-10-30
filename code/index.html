@@ -295,6 +295,9 @@ button.btn:disabled{opacity:.45;cursor:default}
 .grp-titulo{font-weight:700;font-size:16px;margin-bottom:4px;display:flex;align-items:center;gap:8px;flex-wrap:wrap}
 .ord-ses{display:inline-flex;gap:4px}
 .grp-titulo .ord-ses{margin-left:auto}
+.orden-pestanas{max-width:420px;border:1px solid var(--line);border-radius:8px}
+.orden-pestanas .ord{display:flex;justify-content:space-between;align-items:center;gap:8px;padding:4px 8px;border-bottom:1px solid var(--line)}
+.orden-pestanas .ord:last-child{border-bottom:0}
 .orden-add .ord{display:flex;justify-content:space-between;align-items:center;gap:8px;padding:4px 8px;border-bottom:1px solid var(--line)}
 .orden-add .ord.nuevo{background:var(--zebra)}
 #ordenAdd{border:1px solid var(--line);border-radius:8px;max-height:min(60vh,560px);overflow:auto;background:var(--card)}
@@ -1194,7 +1197,7 @@ document.addEventListener('keydown', e => {
 function openPatient(id){ prepararPaciente(id); render(); window.scrollTo(0, 0); }
 // Deja la ficha de un paciente lista para verse (pestaña Pautas, sin búsquedas de otro paciente).
 function prepararPaciente(id){
-  ui.patientId = id; ui.tabP = 'pautas'; ui.calVista = 'calendario'; ui.planCasaId = null; ui.fPlanes = null; ui.qH = ''; ui.qEv = ''; ui.qPautas = ''; ui.qCal = ''; ui.qRes = ''; ui.qCasa = ''; ui.infQ = ''; ui.fSes = null; ui.fPautas = null; ui.fInf = null; ui.casaExpMsg = null; fotosPend = { hitos: [], evaluaciones: [] }; ui.view = 'paciente'; ui.fecha = new Date(); ui.res.fecha = new Date(); ui.res.vista = 'mes';
+  ui.patientId = id; ui.tabP = primeraTabPac(); ui.calVista = 'calendario'; ui.planCasaId = null; ui.fPlanes = null; ui.qH = ''; ui.qEv = ''; ui.qPautas = ''; ui.qCal = ''; ui.qRes = ''; ui.qCasa = ''; ui.infQ = ''; ui.fSes = null; ui.fPautas = null; ui.fInf = null; ui.casaExpMsg = null; fotosPend = { hitos: [], evaluaciones: [] }; ui.view = 'paciente'; ui.fecha = new Date(); ui.res.fecha = new Date(); ui.res.vista = 'mes';
 }
 function render(){
   if (loaded) normalizarSesiones();
@@ -1468,10 +1471,33 @@ async function savePatient(id){
 }
 
 /* ---------- vista de paciente ---------- */
-// Pestañas del paciente. «Progreso» es un submenú (Evaluación inicial e Hitos); el Resumen es una subpestaña de Calendario.
-const TABS_PAC = [['pautas', 'Pautas'], ['calendario', 'Calendario'], ['casa', 'Plan en casa'], ['citas', 'Sesiones'],
+// Pestañas del paciente, en su orden por defecto. «Progreso» es un submenú (Evaluación inicial e Hitos); el Resumen es una
+// subpestaña de Calendario. El orden se puede cambiar en Ajustes › Personalizar (ajustes.ordenPestanas, claves separadas
+// por comas); la ficha se abre en la primera.
+const TABS_PAC = [['pautas', 'Pautas'], ['citas', 'Sesiones'], ['calendario', 'Calendario'], ['casa', 'Plan en casa'],
   ['progreso', 'Progreso', [['evaluaciones', 'Evaluación inicial'], ['hitos', 'Hitos']]], ['informes', 'Informes']];
 const CLAVES_TAB_PAC = TABS_PAC.flatMap(([k, , sub]) => sub ? sub.map(x => x[0]) : [k]);
+// Las pestañas en el orden elegido; las que no estén en el ajuste (o si no hay ajuste) van en su orden por defecto.
+function tabsPacOrdenadas(){
+  const orden = String(db.ajustes.ordenPestanas || '').split(',').filter(k => TABS_PAC.some(t => t[0] === k));
+  return [...new Set(orden)].map(k => TABS_PAC.find(t => t[0] === k)).concat(TABS_PAC.filter(t => !orden.includes(t[0])));
+}
+// Pestaña con la que se abre la ficha: la primera (de un submenú, su primera opción).
+const primeraTabPac = () => { const [k, , sub] = tabsPacOrdenadas()[0]; return sub ? sub[0][0] : k; };
+function moverPestana(k, dir){
+  const ks = tabsPacOrdenadas().map(t => t[0]), i = ks.indexOf(k), j = i + dir;
+  if (i < 0 || j < 0 || j >= ks.length) return;
+  [ks[i], ks[j]] = [ks[j], ks[i]];
+  setAjuste('ordenPestanas', ks.join() === TABS_PAC.map(t => t[0]).join() ? '' : ks.join());
+  render();
+}
+function ordenPestanasHTML(){
+  const ts = tabsPacOrdenadas();
+  return `<div class="orden-pestanas" id="ordenPestanas">${ts.map(([k, t, sub], i) => `<div class="ord" data-k="${k}">
+      <span><span class="muted">${i + 1}.</span> ${esc(t)}${sub ? ` <span class="muted">(${sub.map(x => esc(x[1])).join(' e ')})</span>` : ''}</span>
+      <span class="row" style="gap:4px"><button type="button" class="ghost small" ${i === 0 ? 'disabled' : ''} onclick="moverPestana('${k}', -1)" aria-label="Subir ${esc(t)}">↑</button>
+      <button type="button" class="ghost small" ${i === ts.length - 1 ? 'disabled' : ''} onclick="moverPestana('${k}', 1)" aria-label="Bajar ${esc(t)}">↓</button></span></div>`).join('')}</div>`;
+}
 function irTab(k){
   cerrarSubmenu();
   if (k === 'resumen'){ k = 'calendario'; ui.calVista = 'resumen'; }   // el Resumen vive dentro de Calendario
@@ -1479,7 +1505,7 @@ function irTab(k){
 }
 function subCal(v){ ui.calVista = v; render(); }
 function tabsPacHTML(tab){
-  return TABS_PAC.map(([k, t, sub]) => {
+  return tabsPacOrdenadas().map(([k, t, sub]) => {
     if (!sub) return `<button role="tab" aria-selected="${k === tab}" class="${k === tab ? 'on' : ''}" onclick="irTab('${k}')">${t}</button>`;
     const activo = sub.some(x => x[0] === tab);
     return `<div class="menu-sub" id="tab-${k}">
@@ -1607,7 +1633,7 @@ function diasPorSemanaHTML(p){
 function viewPaciente(){
   const p = getP(ui.patientId);
   if (ui.tabP === 'resumen'){ ui.tabP = 'calendario'; ui.calVista = 'resumen'; }
-  const tab = CLAVES_TAB_PAC.includes(ui.tabP) ? ui.tabP : 'pautas';
+  const tab = CLAVES_TAB_PAC.includes(ui.tabP) ? ui.tabP : primeraTabPac();
   const panel = tab === 'pautas' ? panelPautas(p)
     : tab === 'casa' ? `<div class="card" id="sec-casa">${planCasaSeccionHTML(p)}</div>`
     : tab === 'citas' ? `<div class="card" id="sec-citas">${citasSeccionHTML(p)}</div>`
@@ -4470,6 +4496,11 @@ function personalizarHTML(){
       </div>
     </div>
 
+    <h3 style="margin-top:22px">Pestañas de la ficha del paciente</h3>
+    <p class="muted">Ordénalas con ↑ ↓. La ficha se abre en la primera.</p>
+    ${ordenPestanasHTML()}
+    <p style="margin-top:8px"><button class="ghost small" onclick="setAjuste('ordenPestanas', ''); render()" ${db.ajustes.ordenPestanas ? '' : 'disabled'}>Volver al orden de siempre</button></p>
+
     <h3 style="margin-top:22px">Modo de visualización</h3>
     <select id="pTema" style="width:auto" onchange="setAjuste('tema', this.value); aplicarTema()">
       <option value="claro" ${a.tema !== 'oscuro' ? 'selected' : ''}>Claro</option>
@@ -6428,7 +6459,7 @@ function irANav(k){
   cerrarSubmenu();
   if (v === 'paciente' && getP(a)){
     if (ui.patientId !== a || ui.view !== 'paciente') prepararPaciente(a);
-    ui.view = 'paciente'; ui.tabP = b || 'pautas'; ui.calVista = c === 'resumen' ? 'resumen' : 'calendario';
+    ui.view = 'paciente'; ui.tabP = b || primeraTabPac(); ui.calVista = c === 'resumen' ? 'resumen' : 'calendario';
     ui.planCasaId = b === 'casa' && c && db.planes.some(x => x.id === c) ? c : null;
   } else if (v === 'plantilla' && db.plantillas.some(t => t.id === a)){ ui.plantillaId = a; ui.view = 'plantilla'; }
   else ui.view = ['pacientes', 'agenda', 'ejercicios', 'bloques', 'plantillas', 'ajustes', 'ayuda'].includes(v) ? v : 'pacientes';

@@ -11,7 +11,7 @@ with sync_playwright() as pw:
     page.on('pageerror', lambda e: errors.append(str(e))); page.on('dialog', lambda d: d.accept())
     page.goto(BASE); page.wait_for_selector('#main')
     page.locator('#listaPacientes .item a').first.click(); page.wait_for_selector('#sec-pautas')
-    check(page.locator('.ptabs [role=tab]').all_inner_texts() == ['Pautas', 'Calendario', 'Plan en casa', 'Sesiones', 'Progreso ▾', 'Informes'], 'orden de pestañas: Pautas, Calendario, Plan en casa, Sesiones, Progreso, Informes')
+    check(page.locator('.ptabs [role=tab]').all_inner_texts() == ['Pautas', 'Sesiones', 'Calendario', 'Plan en casa', 'Progreso ▾', 'Informes'], 'orden de pestañas por defecto: Pautas, Sesiones, Calendario, Plan en casa, Progreso, Informes')
     page.get_by_role('tab', name='Progreso').click(); page.get_by_role('menuitem', name='Evaluación inicial').click(); page.wait_for_selector('#sec-evaluaciones')
     check('Todavía no hay evaluaciones' in page.locator('#listaEvaluaciones').inner_text(), 'estado vacío')
     check(page.locator('#sec-evaluaciones label', has_text='Evaluación').count() == 1, 'el campo se llama «Evaluación»')
