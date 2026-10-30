@@ -17,7 +17,7 @@
 ### Mejoras
 - En el calendario del paciente, los **días con sesión** llevan todo el borde del color de la sesión, y la barra de arriba (navegación, buscador y leyenda) se queda **fija** al bajar.
 - El **color de las sesiones** de cada paciente se elige en sus datos (**Editar datos del paciente**); en cada sesión se puede seguir cambiando.
-- **Ver ficha**, en la ventana de una sesión, abre el calendario del paciente en la semana de esa sesión.
+- **Ver calendario** (antes «Ver ficha»), en la ventana de una sesión, abre el calendario del paciente en la semana de esa sesión.
 - Lo que **borra o quita** (eliminar, anular, vaciar, quitar de la lista…) pasa al menú **⋯** de cada fila o apartado, para no pulsarlo sin querer. «Vaciar» un día del plan está ahora dentro de **Editar** el día.
 - Los **filtros por fecha** salen plegados tras **Filtrar por fecha** (abiertos si hay alguno puesto).
 - La cabecera del paciente ya no muestra los días por semana, y los atajos de teclado de la ventana del día están en su **?**.

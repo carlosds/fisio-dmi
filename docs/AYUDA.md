@@ -366,7 +366,7 @@ En **Agenda** (menú de arriba) están las sesiones de todos los pacientes en un
 - **Día**, **Semana** o **Mes**: cómo se ve. Pulsa el nombre (o, en el mes, el número) de un día para ver solo ese día. En el mes, cada día muestra sus primeras sesiones (con **+N más** si hay más); pulsar un día programa una sesión ese día.
 - **Anterior**, **Hoy** y **Siguiente**, o el calendario pequeño, para ir a otra fecha.
 - **Programar una sesión**: pulsa un hueco libre de la cuadrícula (la sesión empieza a esa hora) o el botón **Nueva sesión**. Elige el paciente, el día, la hora y la duración, y pulsa **Programar sesión**.
-- **Cambiar o anular una sesión**: púlsala. En su ventana también está **Ver ficha**.
+- **Cambiar o anular una sesión**: púlsala. En su ventana también está **Ver calendario**, que abre el calendario del paciente en la semana de esa sesión.
 - Las sesiones que se solapan se ven una al lado de la otra. La línea roja marca la hora actual.
 
 **Colores.** Cada sesión puede tener un color (los mismos que Google Calendar, así se ven igual allí). En los datos del paciente (**Editar datos del paciente**) eliges el **color de sus sesiones**: es el que llevan por defecto las sesiones nuevas de ese paciente. Al cambiarlo, la aplicación pregunta si cambiar también sus próximas sesiones o solo las nuevas. En la ventana de cada sesión (y de cada serie) se puede poner otro color.

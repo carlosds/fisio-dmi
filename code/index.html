@@ -3579,7 +3579,7 @@ function openCita(id, pre = {}){
     <div id="ctSolape" role="status" aria-live="polite"></div>
     <p class="row" style="justify-content:space-between;margin-top:16px">
       <span class="row">${c ? `<button class="danger" onclick="anularCita('${c.id}')">Anular sesión…</button>
-        ${p ? `<button class="ghost" onclick="irFichaCita('${p.id}', '${c.fecha}')">Ver ficha</button>` : ''}` : ''}</span>
+        ${p ? `<button class="ghost" onclick="irFichaCita('${p.id}', '${c.fecha}')">Ver calendario</button>` : ''}` : ''}</span>
       <span class="row"><button class="ghost" onclick="closeModal()">Cancelar</button>
       <button class="btn" onclick="guardarCita()">${c ? 'Guardar' : 'Programar sesión'}</button></span>
     </p>`);
@@ -3771,7 +3771,7 @@ async function anularCita(id){
   render(); if ($('#tabsDia')) refrescarModalDia();
   ofrecerDeshacer(antes, op === 'una' ? 'Sesión anulada' : 'Sesiones anuladas');
 }
-// «Ver ficha» de una sesión: el calendario del paciente en vista semanal, en la semana de esa sesión.
+// «Ver calendario» de una sesión: el calendario del paciente en vista semanal, en la semana de esa sesión.
 function irFichaCita(pid, fecha){
   closeModal(); prepararPaciente(pid);
   ui.tabP = 'calendario'; ui.calVista = 'calendario'; ui.vista = 'semana'; ui.fecha = fromIso(fecha || todayIso());

@@ -11,7 +11,7 @@ La aplicación cubre bien el trabajo diario y tiene muy buenos detalles: «Puntu
 ## Problemas encontrados y propuestas
 
 ### 1. Desde la agenda no se puede puntuar ⏳
-Al pulsar una sesión en la agenda se abre la ventana de cambiar hora, duración y color, sin el estado de sus ejercicios ni sus observaciones. Para puntuar hay que ir a «Ver ficha», al calendario y pulsar el día: 3 clics y 2 cambios de pantalla.
+Al pulsar una sesión en la agenda se abre la ventana de cambiar hora, duración y color, sin el estado de sus ejercicios ni sus observaciones. Para puntuar hay que ir a «Ver calendario» y pulsar el día: 3 clics y 2 cambios de pantalla.
 - ⏳ La ventana de la sesión con su estado («4 ejercicios, 2 puntuados»), sus observaciones y un botón **Puntuar**; o una pantalla **Hoy** con las sesiones del día.
 
 ### 2. Ruido de «sin puntuar» en días sin sesión ⏳
